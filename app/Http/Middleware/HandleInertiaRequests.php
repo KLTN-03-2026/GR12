@@ -4,7 +4,7 @@ namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
 use Inertia\Middleware;
-use Illuminate\Support\Facades\Session;
+use App\Models\CartItem; // Nhớ import Model này vào nhé
 
 class HandleInertiaRequests extends Middleware
 {
@@ -17,26 +17,27 @@ class HandleInertiaRequests extends Middleware
 
     public function share(Request $request): array
     {
-        // Lấy giỏ hàng từ Session
-        $cart = Session::get('cart', []);
-        
-        // Tính tổng số lượng món ăn trong giỏ
-        $totalQuantity = 0;
-        foreach ($cart as $item) {
-            $totalQuantity += $item['quantity'] ?? 0;
-        }
+        $user = $request->user();
 
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
             ],
             
-            // Chia sẻ dữ liệu giỏ hàng
-            'cart' => $cart,
-            'cartCount' => $totalQuantity,
+            // Chia sẻ dữ liệu giỏ hàng từ DATABASE thay vì Session
+            'cart' => function () use ($user) {
+                return $user 
+                    ? CartItem::where('user_id', $user->id)->with('product')->get() 
+                    : [];
+            },
+
+            'cartCount' => function () use ($user) {
+                return $user 
+                    ? CartItem::where('user_id', $user->id)->sum('quantity') 
+                    : 0;
+            },
             
-            // CHỈNH SỬA Ở ĐÂY: Dùng fn () => để Inertia lấy dữ liệu flash mới nhất
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),

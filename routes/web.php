@@ -8,6 +8,9 @@ use App\Http\Controllers\Customer\RestaurantController as CustomerRestaurantCont
 use App\Http\Controllers\Customer\CartController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\Customer\OrderController;
+use App\Http\Controllers\Restaurant\RestaurantOrderController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -35,6 +38,16 @@ Route::get('/waiting-for-approval', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
 
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/my-orders', [OrderController::class, 'index'])->name('orders.index');
+        Route::get('/checkout', [OrderController::class, 'checkout'])->name('checkout');
+        Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
+    });
+
+    Route::prefix('restaurant')->name('restaurant.')->middleware(['auth'])->group(function () {
+        Route::get('/orders', [RestaurantOrderController::class, 'index'])->name('orders.index');
+        Route::patch('/orders/{id}/status', [RestaurantOrderController::class, 'updateStatus'])->name('orders.update');
+    });
     // --- NHÓM QUÁN ĂN (RESTAURANT) ---
     Route::prefix('shop')->name('restaurant.')->group(function () {
         
@@ -65,10 +78,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
     });
 
-    // --- GIỎ HÀNG (CART) ---
+    // Giỏ hàng
     Route::prefix('cart')->name('cart.')->group(function () {
         Route::get('/', [CartController::class, 'index'])->name('index');
         Route::post('/add', [CartController::class, 'add'])->name('add');
+        Route::patch('/{cartItem}', [CartController::class, 'update'])->name('update');
+        Route::delete('/{cartItem}', [CartController::class, 'destroy'])->name('destroy');
     });
 
     // --- HỒ SƠ CÁ NHÂN (PROFILE) ---

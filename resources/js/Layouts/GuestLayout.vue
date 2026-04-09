@@ -3,10 +3,13 @@ import { Link } from "@inertiajs/vue3";
 import ApplicationLogo from "@/Components/ApplicationLogo.vue";
 import Dropdown from "@/Components/Dropdown.vue";
 import DropdownLink from "@/Components/DropdownLink.vue";
+import ToastList from "@/Components/ToastList.vue"; // 1. Import component Toast
 </script>
 
 <template>
-    <div class="min-h-screen bg-gray-50 text-gray-900">
+    <div class="min-h-screen bg-gray-50 text-gray-900 flex flex-col">
+        <ToastList />
+
         <nav
             class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm"
         >
@@ -59,7 +62,7 @@ import DropdownLink from "@/Components/DropdownLink.vue";
 
                     <template v-if="$page.props.auth.user">
                         <Link
-                            href="#"
+                            :href="route('orders.index')"
                             class="font-bold text-gray-600 hover:text-orange-500 transition-colors"
                         >
                             Đơn hàng của tôi
@@ -74,7 +77,7 @@ import DropdownLink from "@/Components/DropdownLink.vue";
                                         class="flex items-center gap-2 font-bold text-gray-700 hover:text-orange-500 transition-all focus:outline-none"
                                     >
                                         <div
-                                            class="w-8 h-8 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-xs"
+                                            class="w-8 h-8 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-xs font-black"
                                         >
                                             {{
                                                 $page.props.auth.user.name
@@ -105,7 +108,7 @@ import DropdownLink from "@/Components/DropdownLink.vue";
                                         :href="route('logout')"
                                         method="post"
                                         as="button"
-                                        class="text-red-500"
+                                        class="text-red-500 font-bold"
                                     >
                                         Đăng xuất
                                     </DropdownLink>
@@ -124,7 +127,7 @@ import DropdownLink from "@/Components/DropdownLink.vue";
                             </Link>
                             <Link
                                 :href="route('register')"
-                                class="bg-orange-500 text-white px-6 py-2.5 rounded-full font-bold hover:bg-orange-600 shadow-lg transition-all text-sm"
+                                class="bg-orange-500 text-white px-6 py-2.5 rounded-full font-bold hover:bg-orange-600 shadow-lg transition-all text-sm uppercase tracking-widest"
                             >
                                 Đăng ký
                             </Link>
@@ -142,35 +145,36 @@ import DropdownLink from "@/Components/DropdownLink.vue";
                             {{ $page.props.cartCount }}
                         </div>
                     </Link>
-                    <button class="p-2 text-gray-600">
-                        <svg
-                            class="w-6 h-6"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M4 6h16M4 12h16m-7 6h7"
-                            ></path>
-                        </svg>
-                    </button>
                 </div>
             </div>
         </nav>
 
-        <main class="max-w-7xl mx-auto px-6 py-10 animate-fade-in">
+        <main class="max-w-7xl mx-auto px-6 py-10 flex-grow animate-fade-in">
             <slot />
         </main>
 
         <footer class="bg-white border-t border-gray-100 py-10 mt-auto">
             <div
-                class="max-w-7xl mx-auto px-6 text-center text-gray-500 text-sm"
+                class="max-w-7xl mx-auto px-6 text-center text-gray-400 text-xs font-bold uppercase tracking-widest"
             >
-                &copy; 2026 FoodXpress - Dự án của Hoàng Anh
+                &copy; 2026 FoodXpress - Dự án của Hoàng Anh • Đà Nẵng
             </div>
         </footer>
     </div>
 </template>
+
+<style scoped>
+.animate-fade-in {
+    animation: fadeIn 0.5s ease-out;
+}
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>

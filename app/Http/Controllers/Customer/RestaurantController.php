@@ -12,24 +12,32 @@ use Inertia\Inertia;
 class RestaurantController extends Controller
 {
     //
+    // app/Http/Controllers/Customer/RestaurantController.php
+
     public function show($id)
     {
-        // Lấy thông tin quán ăn
-        $restaurant = User::where('role', 'restaurant')
-                        ->where('status', 'active')
-                        ->findOrFail($id);
+        // Lấy thông tin quán
+        $restaurant = \App\Models\User::findOrFail($id);
+        
+        // Lấy Menu và nhóm theo danh mục
+        $menu = \App\Models\Product::where('user_id', $id)
+            ->with(['category', 'options', 'gallery'])
+            ->get()
+            ->groupBy(fn($item) => $item->category->name);
 
-        // Lấy danh sách món ăn của quán đó, phân nhóm theo danh mục
-        $products = Product::where('user_id', $id)
-                        ->where('is_available', true)
-                        ->with('category', 'options') // Lấy luôn thông tin danh mục và tùy chọn
-                        ->get()
-                        ->groupBy('category.name');
+        // Lấy giỏ hàng thực tế từ Database
+        $cartItems = [];
+        if (auth()->check()) {
+            $cartItems = \App\Models\CartItem::where('user_id', auth()->id())
+                ->with('product')
+                ->get();
+        }
 
-        return Inertia::render('Customer/RestaurantMenu', [
+        return \Inertia\Inertia::render('Customer/RestaurantMenu', [
             'restaurant' => $restaurant,
-            'menu' => $products,
-            'currentTime' => now()->format('H:i') // Gửi giờ hiện tại để check ẩn/hiện
+            'menu' => $menu,
+            'cartItems' => $cartItems, // Quan trọng để đồng bộ nút giỏ hàng
+            'currentTime' => now()->format('H:i')
         ]);
     }
 }

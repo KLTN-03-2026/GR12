@@ -3,46 +3,62 @@ import GuestLayout from "@/Layouts/GuestLayout.vue";
 import { Head, Link, router } from "@inertiajs/vue3";
 import { ref, watch } from "vue";
 import ProductDetailModal from "@/Components/ProductDetailModal.vue";
-import debounce from "lodash/debounce"; // Hoàng Anh nhớ chạy lệnh: npm install lodash
+import debounce from "lodash/debounce";
 
 const props = defineProps({
     restaurants: Array,
     products: Array,
-    categories: Array, // Nhận danh mục từ Backend
+    categories: Array,
     filters: Object,
 });
 
 defineOptions({ layout: GuestLayout });
 
-// --- XỬ LÝ TÌM KIẾM & LỌC REAL-TIME ---
+// --- 1. TÌM KIẾM & LỌC REAL-TIME ---
 const search = ref(props.filters.search || "");
 const selectedCat = ref(props.filters.category_id || "");
 
-// Hàm thực hiện gửi request lên server (Debounced)
 const updateFilters = debounce(() => {
     router.get(
         route("home"),
         { search: search.value, category_id: selectedCat.value },
-        {
-            preserveState: true,
-            replace: true,
-            preserveScroll: true,
-        },
+        { preserveState: true, replace: true, preserveScroll: true },
     );
-}, 400); // Đợi người dùng ngừng gõ 0.4s mới gửi yêu cầu
+}, 400);
 
-// Theo dõi sự thay đổi của input tìm kiếm và danh mục
 watch([search, selectedCat], () => {
     updateFilters();
 });
 
-// --- XỬ LÝ MODAL CHI TIẾT ---
+// --- 2. XỬ LÝ MODAL VÀ GIỎ HÀNG ---
 const isModalOpen = ref(false);
 const selectedProduct = ref(null);
 
 const openProductModal = (product) => {
     selectedProduct.value = product;
     isModalOpen.value = true;
+};
+
+const handleAddToCart = (data) => {
+    console.log("Welcome nhận tín hiệu từ Modal:", data);
+    router.post(
+        route("cart.add"),
+        {
+            product_id: data.product.id,
+            quantity: data.quantity,
+            options: data.options,
+            note: data.note,
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                isModalOpen.value = false;
+            },
+            onError: (errors) => {
+                console.error("Lỗi giỏ hàng:", errors);
+            },
+        },
+    );
 };
 
 const resetFilters = () => {
@@ -85,23 +101,6 @@ const resetFilters = () => {
                         />
                     </svg>
                 </div>
-                <div
-                    v-if="search"
-                    @click="search = ''"
-                    class="absolute right-5 top-5 cursor-pointer text-gray-300 hover:text-orange-500"
-                >
-                    <svg
-                        class="w-6 h-6"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                    >
-                        <path
-                            fill-rule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                            clip-rule="evenodd"
-                        />
-                    </svg>
-                </div>
             </div>
         </div>
         <div
@@ -111,90 +110,93 @@ const resetFilters = () => {
         </div>
     </div>
 
-    <div
-        class="mb-10 overflow-x-auto no-scrollbar flex items-center gap-3 pb-2"
-    >
-        <button
-            @click="selectedCat = ''"
-            :class="
-                selectedCat === ''
-                    ? 'bg-orange-600 text-white shadow-lg shadow-orange-100'
-                    : 'bg-white text-gray-500 border border-gray-100'
-            "
-            class="px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all whitespace-nowrap"
+    <div class="relative mb-12">
+        <div
+            class="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-gray-50 to-transparent z-10 pointer-events-none"
+        ></div>
+        <div
+            class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-50 to-transparent z-10 pointer-events-none"
+        ></div>
+
+        <div
+            class="overflow-x-auto no-scrollbar flex items-center gap-4 pb-4 px-2"
         >
-            🔥 Tất cả
-        </button>
-        <button
-            v-for="cat in categories"
-            :key="cat.id"
-            @click="selectedCat = cat.id"
-            :class="
-                selectedCat == cat.id
-                    ? 'bg-orange-600 text-white shadow-lg shadow-orange-100'
-                    : 'bg-white text-gray-500 border border-gray-100'
-            "
-            class="px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all whitespace-nowrap"
-        >
-            {{ cat.name }}
-        </button>
+            <button
+                @click="selectedCat = ''"
+                :class="
+                    selectedCat === ''
+                        ? 'bg-orange-600 text-white shadow-lg shadow-orange-200'
+                        : 'bg-white text-gray-600 border border-gray-100 hover:border-orange-200'
+                "
+                class="px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all whitespace-nowrap"
+            >
+                🔥 Tất cả
+            </button>
+
+            <button
+                v-for="cat in categories"
+                :key="cat.id"
+                @click="selectedCat = cat.id"
+                :class="
+                    selectedCat == cat.id
+                        ? 'bg-orange-600 text-white shadow-lg shadow-orange-200'
+                        : 'bg-white text-gray-600 border border-gray-100 hover:border-orange-200'
+                "
+                class="px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2"
+            >
+                <span v-if="cat.icon">{{ cat.icon }}</span>
+                {{ cat.name }}
+            </button>
+        </div>
     </div>
 
     <section class="mb-16">
-        <div class="flex items-center justify-between mb-8">
+        <div class="flex items-center justify-between mb-8 px-2">
             <h2 class="text-3xl font-black text-gray-800 tracking-tight">
                 Món ngon dành cho bạn
             </h2>
             <button
                 v-if="search || selectedCat"
                 @click="resetFilters"
-                class="text-orange-500 font-bold text-sm hover:underline"
+                class="text-orange-500 font-bold text-sm hover:underline italic"
             >
-                Xóa lọc
+                Xóa bộ lọc ({{ products.length }} món)
             </button>
         </div>
 
         <div
             v-if="products.length > 0"
-            class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6"
+            class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 px-2"
         >
             <div
                 v-for="product in products"
                 :key="product.id"
                 @click="openProductModal(product)"
-                class="bg-white rounded-[2rem] p-3 border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all cursor-pointer group"
+                class="bg-white rounded-[2.5rem] p-3 border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all cursor-pointer group"
             >
                 <div
-                    class="relative h-40 rounded-[1.5rem] overflow-hidden mb-4"
+                    class="relative h-44 rounded-[2rem] overflow-hidden mb-4 shadow-inner"
                 >
                     <img
                         :src="'/storage/' + product.image"
-                        class="w-full h-full object-cover group-hover:scale-110 transition duration-500"
+                        class="w-full h-full object-cover group-hover:scale-110 transition duration-700"
                     />
                     <div
-                        class="absolute bottom-2 right-2 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-black text-gray-900 shadow-sm"
+                        class="absolute bottom-3 right-3 bg-white/90 backdrop-blur px-4 py-2 rounded-2xl text-xs font-black text-gray-900 shadow-xl border border-white/20"
                     >
                         {{ Number(product.price).toLocaleString() }}đ
                     </div>
                 </div>
-                <div class="px-2">
+                <div class="px-3 pb-2">
                     <h4
-                        class="font-bold text-gray-800 line-clamp-1 group-hover:text-orange-600 transition"
+                        class="font-black text-gray-800 line-clamp-1 group-hover:text-orange-600 transition text-lg"
                     >
                         {{ product.name }}
                     </h4>
                     <p
-                        class="text-[10px] text-gray-400 flex items-center gap-1 mt-1"
+                        class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 flex items-center gap-1"
                     >
-                        <svg
-                            class="w-3 h-3 text-orange-400"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                        >
-                            <path
-                                d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"
-                            />
-                        </svg>
+                        <span class="text-orange-400 text-lg">🏠</span>
                         {{ product.user?.name }}
                     </p>
                 </div>
@@ -202,21 +204,25 @@ const resetFilters = () => {
         </div>
         <div
             v-else
-            class="text-center py-20 bg-gray-50 rounded-[3rem] border-2 border-dashed border-gray-200"
+            class="text-center py-32 bg-white rounded-[4rem] border-4 border-dashed border-gray-100 mx-2"
         >
-            <p class="text-4xl mb-4">🔎</p>
+            <p class="text-7xl mb-6">🏜️</p>
             <h3
-                class="text-lg font-black text-gray-400 uppercase tracking-widest"
+                class="text-2xl font-black text-gray-400 uppercase tracking-widest"
             >
-                Không tìm thấy món ăn nào!
+                Không tìm thấy món bạn yêu thích!
             </h3>
+            <button
+                @click="resetFilters"
+                class="mt-6 bg-orange-100 text-orange-600 px-8 py-3 rounded-full font-black hover:bg-orange-200 transition"
+            >
+                Thử tìm món khác nhé
+            </button>
         </div>
     </section>
 
-    <section class="mb-20">
-        <div class="flex items-center justify-between mb-8">
-            <h2 class="text-3xl font-black text-gray-800">Quán ăn nổi bật</h2>
-        </div>
+    <section class="mb-20 px-2">
+        <h2 class="text-3xl font-black text-gray-800 mb-8">Quán ăn nổi bật</h2>
         <div
             v-if="restaurants.length > 0"
             class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"
@@ -224,32 +230,34 @@ const resetFilters = () => {
             <div
                 v-for="shop in restaurants"
                 :key="shop.id"
-                class="group bg-white rounded-[2rem] overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300"
+                class="group bg-white rounded-[3rem] overflow-hidden border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-500"
             >
                 <Link :href="route('restaurant.menu', shop.id)">
-                    <div class="relative h-48">
+                    <div class="relative h-56 overflow-hidden">
                         <img
                             :src="
                                 'https://ui-avatars.com/api/?name=' +
                                 shop.name +
-                                '&background=ffedd5&color=f97316'
+                                '&background=ffedd5&color=f97316&bold=true'
                             "
-                            class="w-full h-full object-cover"
+                            class="w-full h-full object-cover group-hover:scale-110 transition duration-700"
                         />
                         <div
-                            class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"
+                            class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"
                         ></div>
-                        <div class="absolute bottom-4 left-4 text-white">
-                            <h3 class="text-lg font-black leading-tight">
+                        <div class="absolute bottom-6 left-6 text-white">
+                            <h3 class="text-xl font-black leading-tight mb-1">
                                 {{ shop.name }}
                             </h3>
-                            <div class="flex items-center gap-2 mt-1">
+                            <div class="flex items-center gap-2">
                                 <span
-                                    class="text-[9px] bg-orange-600 px-2 py-0.5 rounded-full font-bold"
+                                    class="text-[10px] bg-orange-600 px-3 py-1 rounded-full font-black shadow-lg"
                                     >4.8 ★</span
                                 >
-                                <p class="text-[10px] opacity-80 font-medium">
-                                    Free Ship • 20-30 phút
+                                <p
+                                    class="text-[10px] font-bold opacity-90 uppercase tracking-tighter italic"
+                                >
+                                    Free Ship • 20 phút
                                 </p>
                             </div>
                         </div>
@@ -264,16 +272,21 @@ const resetFilters = () => {
         :show="isModalOpen"
         :product="selectedProduct"
         @close="isModalOpen = false"
+        @addToCart="handleAddToCart"
     />
 </template>
 
 <style scoped>
-/* Ẩn thanh cuộn cho thanh danh mục */
 .no-scrollbar::-webkit-scrollbar {
     display: none;
 }
 .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+}
+
+/* Tạo cảm giác mượt mà cho hình ảnh khi hover */
+img {
+    image-rendering: -webkit-optimize-contrast;
 }
 </style>

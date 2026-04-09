@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\User;
+use App\Models\Category;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -11,7 +12,7 @@ class HomeController extends Controller
 {
     public function index(Request $request)
     {
-        // 1. Phân quyền nếu đã đăng nhập
+        // 1. Phân quyền (Giữ nguyên logic của bạn - Rất tốt)
         if (auth()->check()) {
             $user = auth()->user();
             if ($user->status !== 'active') return redirect()->route('wait.approval');
@@ -20,16 +21,18 @@ class HomeController extends Controller
         }
 
         $search = $request->input('search');
-        $categoryId = $request->input('category_id'); // Lấy thêm ID danh mục
+        $categoryId = $request->input('category_id');
 
-        // 1. Lấy danh sách danh mục để hiện lên thanh lọc (Filter bar)
-        $categories = \App\Models\Category::where('is_active', true)->get();
+        // 2. Lấy danh mục cho Filter Bar
+        $categories = Category::where('is_active', true)->get();
 
-        // 2. Lấy danh sách món ăn với logic lọc nâng cao
+        // 3. Lấy sản phẩm (Bản fix logic lọc)
         $products = Product::with(['user', 'category', 'options'])
-            ->when($search, function($query) use ($search) {
-                $query->where('name', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
+            ->where(function($query) use ($search) {
+                if ($search) {
+                    $query->where('name', 'like', "%{$search}%")
+                          ->orWhere('description', 'like', "%{$search}%");
+                }
             })
             ->when($categoryId, function($query) use ($categoryId) {
                 $query->where('category_id', $categoryId);
@@ -37,7 +40,7 @@ class HomeController extends Controller
             ->latest()
             ->get();
 
-        // 3. Quán ăn (chỉ hiện khi tìm kiếm chung hoặc không lọc danh mục cụ thể)
+        // 4. Lấy danh sách quán ăn
         $restaurants = User::where('role', 'restaurant')
             ->where('status', 'active')
             ->when($search, function($query) use ($search) {
@@ -48,8 +51,9 @@ class HomeController extends Controller
         return Inertia::render('Welcome', [
             'restaurants' => $restaurants,
             'products'    => $products,
-            'categories'  => $categories, // Truyền sang FE
+            'categories'  => $categories,
             'filters'     => $request->only(['search', 'category_id']),
+            // Đảm bảo cartCount được handle qua Middleware HandleInertiaRequests như mình đã sửa
         ]);
     }
 }
