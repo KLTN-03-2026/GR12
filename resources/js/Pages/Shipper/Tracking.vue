@@ -627,7 +627,7 @@ const handleAcceptOrder = async () => {
     if (!selectedOrder.value) return;
 
     try {
-        const response = await fetch(
+        const response = await csrfFetch(
             `/api/shipper/orders/${selectedOrder.value.id}/accept`,
             {
                 method: "POST",

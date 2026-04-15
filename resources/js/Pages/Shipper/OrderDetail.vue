@@ -236,7 +236,11 @@
 import { ref, onMounted } from "vue";
 import { Link, usePage } from "@inertiajs/vue3";
 import { router } from "@inertiajs/vue3";
+import { useToast } from "vue-toastification";
 import ShipperLayout from "@/Layouts/ShipperLayout.vue";
+
+const toast = useToast();
+const csrfFetch = window.csrfFetch;
 
 const props = defineProps({
     order: Object,
@@ -246,49 +250,72 @@ const order = ref(props.order);
 
 const confirmPickup = async () => {
     try {
-        const response = await fetch(
+        const response = await csrfFetch(
             `/api/shipper/orders/${order.value.id}/confirm-pickup`,
             {
                 method: "POST",
                 headers: {
                     Accept: "application/json",
                 },
-                credentials: "include",
             },
         );
         if (response.ok) {
             order.value.status = "picked_up";
+            toast.success("✅ Đã xác nhận lấy hàng.");
+        } else {
+            const error = await response.json();
+            throw new Error(error?.error || "Không thể xác nhận lấy hàng.");
         }
     } catch (error) {
         console.error("Error confirming pickup:", error);
+        toast.error(error.message || "❌ Có lỗi khi xác nhận lấy hàng.");
     }
 };
 
 const completeOrder = async () => {
     try {
-        const response = await fetch(
+        const response = await csrfFetch(
             `/api/shipper/orders/${order.value.id}/complete`,
             {
                 method: "POST",
                 headers: {
                     Accept: "application/json",
                 },
-                credentials: "include",
             },
         );
         if (response.ok) {
+            toast.success("✅ Giao hàng hoàn thành.");
             router.visit("/shipper/dashboard");
+        } else {
+            const error = await response.json();
+            throw new Error(error?.error || "Không thể hoàn thành giao hàng.");
         }
     } catch (error) {
         console.error("Error completing order:", error);
+        toast.error(error.message || "❌ Có lỗi khi hoàn thành đơn.");
     }
 };
 
 const startDelivery = async () => {
     try {
-        // Update order status to shipping
+        const response = await csrfFetch(
+            `/api/shipper/orders/${order.value.id}/start-delivery`,
+            {
+                method: "POST",
+                headers: {
+                    Accept: "application/json",
+                },
+            },
+        );
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error?.error || "Không thể bắt đầu giao hàng.");
+        }
+
         order.value.status = "shipping";
-        // Start real-time location tracking
+        toast.success("🚚 Bắt đầu giao hàng.");
+
         if (navigator.geolocation) {
             navigator.geolocation.watchPosition(
                 updateLocation,
@@ -302,12 +329,13 @@ const startDelivery = async () => {
         }
     } catch (error) {
         console.error("Error starting delivery:", error);
+        toast.error(error.message || "❌ Có lỗi khi bắt đầu giao hàng.");
     }
 };
 
 const updateLocation = async (position) => {
     try {
-        await window.csrfFetch("/api/shipper/location", {
+        await csrfFetch("/api/shipper/location", {
             method: "POST",
             headers: {
                 Accept: "application/json",

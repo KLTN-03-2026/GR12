@@ -558,8 +558,10 @@ onMounted(() => {
                                 </div>
                             </div>
                         </div>
+                    </div>
+
                     <div
-                        class="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100 mt-6"
+                        class="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100"
                     >
                         <h3
                             class="text-xl font-black text-gray-800 mb-6 flex items-center gap-2"
@@ -574,7 +576,7 @@ onMounted(() => {
                             <div>
                                 <label
                                     class="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block"
-                                    >Chọn voucher</label
+                                >Chọn voucher</label>
                                 <select
                                     v-model="form.voucher_code"
                                     class="w-full rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm outline-none transition focus:border-orange-500"
@@ -605,7 +607,6 @@ onMounted(() => {
                                 Chọn voucher để nhận khuyến mãi khi thanh toán.
                             </div>
                         </div>
-                    </div>
                     </div>
 
                     <div class="lg:col-span-1">

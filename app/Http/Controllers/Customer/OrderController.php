@@ -50,6 +50,63 @@ class OrderController extends Controller
 
         return response()->json(['message' => 'Delivery confirmed']);
     }
+
+    /**
+     * API Endpoint: Lấy chi tiết đơn hàng real-time (dành cho front-end polling)
+     */
+    public function getOrderDetails($id)
+    {
+        $order = Order::where('user_id', auth()->id())
+            ->with([
+                'items.product',
+                'shipper.user',
+                'user'
+            ])
+            ->findOrFail($id);
+
+        return response()->json([
+            'id' => $order->id,
+            'order_code' => $order->order_code,
+            'address' => $order->address,
+            'phone' => $order->phone,
+            'note' => $order->note,
+            'status' => $order->status,
+            'subtotal' => $order->subtotal,
+            'shipping_fee' => $order->shipping_fee,
+            'discount_amount' => $order->discount_amount,
+            'total' => $order->total,
+            'payment_method' => $order->payment_method,
+            'created_at' => $order->created_at,
+            'items' => $order->items->map(fn($item) => [
+                'id' => $item->id,
+                'product' => [
+                    'id' => $item->product->id,
+                    'name' => $item->product->name,
+                    'image' => $item->product->image,
+                    'price' => $item->product->price,
+                ],
+                'quantity' => $item->quantity,
+                'price' => $item->price,
+            ]),
+            'shipper' => $order->shipper ? [
+                'id' => $order->shipper->id,
+                'status' => $order->shipper->status,
+                'current_latitude' => $order->shipper->current_latitude,
+                'current_longitude' => $order->shipper->current_longitude,
+                'user' => [
+                    'name' => $order->shipper->user->name,
+                    'phone' => $order->shipper->user->phone,
+                    'profile_photo_path' => $order->shipper->user->profile_photo_path,
+                ]
+            ] : null,
+            'user' => [
+                'name' => $order->user->name,
+                'latitude' => $order->user->latitude,
+                'longitude' => $order->user->longitude,
+            ]
+        ]);
+    }
+
     /**
      * Hiển thị trang thanh toán (Checkout)
      */

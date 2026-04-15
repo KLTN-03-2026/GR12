@@ -11,10 +11,10 @@ const showingNavigationDropdown = ref(false);
 const user = usePage().props.auth.user;
 
 // Xác định role của user - nếu không có role hoặc role là customer, dùng role mặc định
-const userRole = user.role || 'customer';
-const isAdmin = userRole === 'admin';
-const isRestaurant = userRole === 'restaurant';
-const isCustomer = userRole === 'customer';
+const userRole = user.role || "customer";
+const isAdmin = userRole === "admin";
+const isRestaurant = userRole === "restaurant";
+const isCustomer = userRole === "customer";
 </script>
 
 <template>
@@ -43,7 +43,11 @@ const isCustomer = userRole === 'customer';
                             <!-- Dashboard cho Admin & Restaurant -->
                             <NavLink
                                 v-if="isAdmin || isRestaurant"
-                                :href="isAdmin ? route('admin.dashboard') : route('restaurant.dashboard')"
+                                :href="
+                                    isAdmin
+                                        ? route('admin.dashboard')
+                                        : route('restaurant.dashboard')
+                                "
                                 :active="route().current('dashboard')"
                             >
                                 Dashboard
@@ -154,7 +158,11 @@ const isCustomer = userRole === 'customer';
                     <!-- Dashboard cho Admin & Restaurant -->
                     <ResponsiveNavLink
                         v-if="isAdmin || isRestaurant"
-                        :href="isAdmin ? route('admin.dashboard') : route('restaurant.dashboard')"
+                        :href="
+                            isAdmin
+                                ? route('admin.dashboard')
+                                : route('restaurant.dashboard')
+                        "
                         :active="route().current('dashboard')"
                     >
                         Dashboard

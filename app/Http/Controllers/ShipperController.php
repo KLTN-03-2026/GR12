@@ -207,6 +207,20 @@ class ShipperController extends Controller
         return response()->json(['message' => 'Pickup confirmed']);
     }
 
+    public function startDelivery($orderId)
+    {
+        $shipper = Shipper::where('user_id', Auth::id())->first();
+        $order = Order::where('id', $orderId)->where('shipper_id', $shipper->id)->firstOrFail();
+
+        if ($order->status !== 'picked_up') {
+            return response()->json(['error' => 'Invalid order status'], 400);
+        }
+
+        $order->update(['status' => 'shipping']);
+
+        return response()->json(['message' => 'Delivery started']);
+    }
+
     public function completeOrder($orderId)
     {
         $shipper = Shipper::where('user_id', Auth::id())->first();
@@ -297,5 +311,25 @@ class ShipperController extends Controller
             ->firstOrFail();
 
         return response()->json($order);
+    }
+
+    /**
+     * Tính khoảng cách giữa hai điểm tọa độ bằng công thức Haversine (km)
+     */
+    private function distanceBetweenCoordinates($lat1, $lon1, $lat2, $lon2)
+    {
+        $earthRadiusKm = 6371;
+
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
+
+        $a = sin($dLat / 2) * sin($dLat / 2) +
+            cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
+            sin($dLon / 2) * sin($dLon / 2);
+
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+        $distance = $earthRadiusKm * $c;
+
+        return $distance;
     }
 }

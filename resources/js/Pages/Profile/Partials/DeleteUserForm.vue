@@ -1,17 +1,17 @@
 <script setup>
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import Modal from '@/Components/Modal.vue';
-import SecondaryButton from '@/Components/SecondaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
-import { useForm } from '@inertiajs/vue3';
-import { nextTick, ref } from 'vue';
+import InputError from "@/Components/InputError.vue";
+import InputLabel from "@/Components/InputLabel.vue";
+import Modal from "@/Components/Modal.vue";
+import SecondaryButton from "@/Components/SecondaryButton.vue";
+import TextInput from "@/Components/TextInput.vue";
+import { useForm } from "@inertiajs/vue3";
+import { nextTick, ref } from "vue";
 
 const confirmingUserDeletion = ref(false);
 const passwordInput = ref(null);
 
 const form = useForm({
-    password: '',
+    password: "",
 });
 
 const confirmUserDeletion = () => {
@@ -21,7 +21,7 @@ const confirmUserDeletion = () => {
 };
 
 const deleteUser = () => {
-    form.delete(route('profile.destroy'), {
+    form.delete(route("profile.destroy"), {
         preserveScroll: true,
         onSuccess: () => closeModal(),
         onError: () => passwordInput.value.focus(),
@@ -40,11 +40,15 @@ const closeModal = () => {
 <template>
     <section>
         <div class="mb-8">
-            <h2 class="text-2xl font-black text-red-600 flex items-center gap-2">
+            <h2
+                class="text-2xl font-black text-red-600 flex items-center gap-2"
+            >
                 ⚠️ Xóa tài khoản
             </h2>
             <p class="mt-2 text-gray-600">
-                Sau khi xóa tài khoản, tất cả dữ liệu và tài nguyên sẽ bị xóa vĩnh viễn. Vui lòng tải xuống bất kỳ dữ liệu nào bạn muốn giữ lại trước khi xóa.
+                Sau khi xóa tài khoản, tất cả dữ liệu và tài nguyên sẽ bị xóa
+                vĩnh viễn. Vui lòng tải xuống bất kỳ dữ liệu nào bạn muốn giữ
+                lại trước khi xóa.
             </p>
         </div>
 
@@ -53,7 +57,9 @@ const closeModal = () => {
             <div class="flex items-start gap-4">
                 <span class="text-3xl">🚨</span>
                 <div>
-                    <h3 class="font-black text-red-900 mb-2">Hành động này không thể hoàn tác</h3>
+                    <h3 class="font-black text-red-900 mb-2">
+                        Hành động này không thể hoàn tác
+                    </h3>
                     <div class="text-sm text-red-800 space-y-2">
                         <p>• Tất cả đơn hàng sẽ bị xóa</p>
                         <p>• Tất cả địa chỉ đã lưu sẽ bị xóa</p>
@@ -82,7 +88,8 @@ const closeModal = () => {
                             Có chắc xóa tài khoản không?
                         </h2>
                         <p class="text-gray-600">
-                            Hành động này sẽ xóa vĩnh viễn tài khoản và tất cả dữ liệu liên quan. Không có cách nào để khôi phục.
+                            Hành động này sẽ xóa vĩnh viễn tài khoản và tất cả
+                            dữ liệu liên quan. Không có cách nào để khôi phục.
                         </p>
                     </div>
                 </div>
@@ -119,7 +126,9 @@ const closeModal = () => {
 
                     <button
                         class="px-6 py-2 bg-red-600 text-white font-black rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-                        :class="{ 'opacity-50 cursor-not-allowed': form.processing }"
+                        :class="{
+                            'opacity-50 cursor-not-allowed': form.processing,
+                        }"
                         :disabled="form.processing"
                         @click="deleteUser"
                     >

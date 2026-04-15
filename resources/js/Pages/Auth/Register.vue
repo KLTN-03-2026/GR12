@@ -45,6 +45,17 @@ const prevStep = () => {
     if (currentStep.value > 1) currentStep.value--;
 };
 
+// Validation cho từng bước
+const canProceed = computed(() => {
+    if (currentStep.value === 1) {
+        return form.role !== '';
+    }
+    if (currentStep.value === 2) {
+        return form.name && form.email && form.phone;
+    }
+    return true;
+});
+
 // --- HỆ THỐNG TOAST TỰ ĐỘNG ---
 const errors = computed(() => page.props.errors);
 watch(
@@ -56,17 +67,6 @@ watch(
         }
     },
     { deep: true },
-);
-
-const flashToast = computed(() => page.props.flash.toast);
-watch(
-    flashToast,
-    (newToast) => {
-        if (newToast && newToast.message) {
-            toast[newToast.type || "success"](newToast.message);
-        }
-    },
-    { immediate: true },
 );
 
 // --- TÌM KIẾM ĐỊA CHỈ (PHOTON API) ---
@@ -123,7 +123,7 @@ watch(
 const submit = () => {
     form.post(route("register"), {
         onSuccess: () => {
-            toast.success("Đăng ký thành công! Vui lòng đăng nhập.");
+            toast.success("Đăng ký thành công! Chào mừng bạn đến với FoodXpress!");
         },
         onFinish: () => form.reset("password", "password_confirmation"),
     });
@@ -132,552 +132,342 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Khởi tạo tài khoản FoodXpress" />
+        <Head title="Gia nhập cộng đồng FoodXpress" />
 
-        <div class="min-h-screen flex bg-white font-sans overflow-hidden">
+        <div class="min-h-screen flex">
+            <!-- LEFT IMAGE -->
             <div
-                class="hidden lg:flex lg:w-5/12 bg-orange-500 relative overflow-hidden items-center justify-center"
+                class="hidden md:flex w-1/2 bg-orange-500 items-center justify-center"
             >
                 <img
-                    src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1000&q=80"
-                    class="absolute inset-0 w-full h-full object-cover mix-blend-multiply opacity-70"
+                    src="https://images.unsplash.com/photo-1504674900247-0877df9cc836"
+                    class="object-cover h-full w-full opacity-90"
                 />
-                <div class="relative z-10 p-12 text-white text-center">
-                    <h1
-                        class="text-6xl font-black italic tracking-tighter leading-none mb-4"
-                    >
-                        FOOD<br />XPRESS.
-                    </h1>
-                    <p
-                        class="text-orange-100 font-bold uppercase tracking-[0.3em] text-xs"
-                    >
-                        Fast • Fresh • Reliable
-                    </p>
-                </div>
             </div>
 
+            <!-- RIGHT FORM -->
             <div
-                class="w-full lg:w-7/12 flex flex-col items-center justify-center p-6 md:p-12 bg-gray-50/50"
+                class="flex w-full md:w-1/2 items-center justify-center bg-gray-50 px-6"
             >
-                <div class="w-full max-w-xl">
-                    <div
-                        class="mb-12 flex items-center justify-between relative px-4"
-                    >
+                <div class="w-full max-w-md bg-white p-8 rounded-3xl shadow-xl">
+                    <!-- Progress Bar -->
+                    <div class="flex gap-2 mb-6">
                         <div
-                            class="absolute left-4 right-4 top-1/2 -translate-y-1/2 h-1.5 bg-gray-200 rounded-full z-0"
-                        ></div>
-                        <div
-                            class="absolute left-4 top-1/2 -translate-y-1/2 h-1.5 bg-orange-500 transition-all duration-700 rounded-full z-0"
-                            :style="{
-                                width: ((currentStep - 1) / 2) * 100 + '%',
-                            }"
-                        ></div>
-
-                        <div
-                            v-for="step in [1, 2, 3]"
-                            :key="step"
-                            class="relative z-10 w-12 h-12 rounded-2xl flex items-center justify-center font-black transition-all duration-500 shadow-sm"
+                            v-for="s in 3"
+                            :key="s"
+                            class="h-1.5 flex-1 rounded-full transition-all duration-700 shadow-sm"
                             :class="
-                                currentStep >= step
-                                    ? 'bg-orange-500 text-white rotate-0'
-                                    : 'bg-white text-gray-300 border-2 border-gray-100 rotate-12'
+                                currentStep >= s
+                                    ? 'bg-orange-500'
+                                    : 'bg-gray-200'
                             "
-                        >
-                            {{ step }}
-                        </div>
+                        ></div>
                     </div>
 
-                    <div
-                        class="bg-white shadow-[0_20px_60px_rgba(0,0,0,0.03)] rounded-[3rem] border border-gray-100 overflow-hidden"
-                    >
-                        <form @submit.prevent="submit" class="p-8 md:p-12">
-                            <div
-                                v-if="currentStep === 1"
-                                class="animate-in fade-in slide-in-from-bottom-6 duration-700"
-                            >
-                                <div class="mb-10">
-                                    <h2
-                                        class="text-3xl font-black text-gray-900 tracking-tight italic uppercase"
-                                    >
-                                        Bạn là ai? 👋
-                                    </h2>
-                                    <p
-                                        class="text-gray-400 font-bold text-[10px] uppercase tracking-widest mt-1"
-                                    >
-                                        Hãy chọn vai trò để chúng tôi phục vụ
-                                        bạn tốt hơn
-                                    </p>
-                                </div>
+                    <div class="mb-6 text-center">
+                        <h1 class="text-3xl font-black text-gray-800">
+                            {{ currentStep === 1 ? 'Chào bạn mới! 👋' : currentStep === 2 ? 'Thông tin cá nhân' : 'Hoàn tất 🚀' }}
+                        </h1>
+                        <p class="text-gray-500 mt-2">
+                            {{ currentStep === 1 ? 'Chọn vai trò để bắt đầu trải nghiệm' : currentStep === 2 ? 'Hãy để chúng tôi biết về bạn' : 'Bảo mật tài khoản & Địa chỉ' }}
+                        </p>
+                    </div>
 
-                                <div class="grid grid-cols-1 gap-4">
-                                    <label
-                                        v-for="r in [
-                                            [
-                                                'customer',
-                                                '😋 Khách Hàng',
-                                                'Khám phá vạn món ngon',
-                                            ],
-                                            [
-                                                'restaurant',
-                                                '🏪 Quán Ăn',
-                                                'Mở rộng kinh doanh tại đây',
-                                            ],
-                                            [
-                                                'shipper',
-                                                '🛵 Shipper',
-                                                'Giao hàng, tăng thu nhập',
-                                            ],
-                                        ]"
-                                        :key="r[0]"
-                                        class="group relative p-6 rounded-3xl border-2 transition-all duration-300 flex items-center gap-6 cursor-pointer"
-                                        :class="
-                                            form.role === r[0]
-                                                ? 'border-orange-500 bg-orange-50/30'
-                                                : 'border-gray-50 hover:border-orange-100 bg-white'
-                                        "
-                                    >
-                                        <input
-                                            type="radio"
-                                            v-model="form.role"
-                                            :value="r[0]"
-                                            class="hidden"
-                                        />
-                                        <div
-                                            class="text-4xl bg-gray-50 w-16 h-16 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform"
-                                        >
-                                            {{ r[1].split(" ")[0] }}
-                                        </div>
-                                        <div class="flex-1">
-                                            <h4
-                                                class="font-black text-gray-800 uppercase text-sm"
-                                            >
-                                                {{ r[1].split(" ")[1] }}
-                                            </h4>
-                                            <p
-                                                class="text-[11px] text-gray-400 font-bold tracking-tight"
-                                            >
-                                                {{ r[2] }}
-                                            </p>
-                                        </div>
-                                        <div
-                                            v-if="form.role === r[0]"
-                                            class="text-orange-500"
-                                        >
-                                            <svg
-                                                class="w-6 h-6"
-                                                fill="currentColor"
-                                                viewBox="0 0 20 20"
-                                            >
-                                                <path
-                                                    fill-rule="evenodd"
-                                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L8 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                                    clip-rule="evenodd"
-                                                />
-                                            </svg>
-                                        </div>
-                                    </label>
-                                </div>
-
-                                <div class="mt-8 flex justify-end">
-                                    <button
-                                        type="button"
-                                        @click="nextStep"
-                                        class="bg-orange-500 text-white px-8 py-3 rounded-2xl font-black uppercase text-sm hover:bg-orange-600 transition-all"
-                                    >
-                                        Tiếp theo →
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div
-                                v-if="currentStep === 2"
-                                class="animate-in fade-in slide-in-from-right-6 duration-700 space-y-6"
-                            >
-                                <div class="mb-10">
-                                    <h2
-                                        class="text-3xl font-black text-gray-900 tracking-tight italic uppercase"
-                                    >
-                                        Hồ sơ cá nhân
-                                    </h2>
-                                    <p
-                                        class="text-gray-400 font-bold text-[10px] uppercase tracking-widest mt-1"
-                                    >
-                                        Giới thiệu một chút về bản thân bạn
-                                    </p>
-                                </div>
-
-                                <div class="grid md:grid-cols-2 gap-5">
-                                    <div class="space-y-1">
-                                        <InputLabel
-                                            value="Họ và tên"
-                                            class="ml-2 text-[10px] font-black uppercase text-gray-400"
-                                        />
-                                        <TextInput
-                                            v-model="form.name"
-                                            class="w-full bg-gray-50 border-none rounded-2xl p-4 focus:ring-4 focus:ring-orange-100"
-                                            placeholder="Nguyễn Văn A"
-                                            required
-                                        />
-                                    </div>
-                                    <div class="space-y-1">
-                                        <InputLabel
-                                            value="Email liên hệ"
-                                            class="ml-2 text-[10px] font-black uppercase text-gray-400"
-                                        />
-                                        <TextInput
-                                            v-model="form.email"
-                                            type="email"
-                                            class="w-full bg-gray-50 border-none rounded-2xl p-4 focus:ring-4 focus:ring-orange-100"
-                                            placeholder="email@example.com"
-                                            required
-                                        />
-                                    </div>
-                                    <div class="space-y-1">
-                                        <InputLabel
-                                            value="Số điện thoại"
-                                            class="ml-2 text-[10px] font-black uppercase text-gray-400"
-                                        />
-                                        <TextInput
-                                            v-model="form.phone"
-                                            class="w-full bg-gray-50 border-none rounded-2xl p-4 focus:ring-4 focus:ring-orange-100"
-                                            placeholder="090XXXXXXXX"
-                                            required
-                                        />
-                                    </div>
-                                    <div class="grid grid-cols-2 gap-3">
-                                        <div class="space-y-1">
-                                            <InputLabel
-                                                value="Giới tính"
-                                                class="ml-2 text-[10px] font-black uppercase text-gray-400"
-                                            />
-                                            <select
-                                                v-model="form.gender"
-                                                class="w-full rounded-2xl border-none bg-gray-50 h-[56px] font-bold text-sm focus:ring-4 focus:ring-orange-100"
-                                            >
-                                                <option value="" disabled>
-                                                    Chọn...
-                                                </option>
-                                                <option value="Nam">Nam</option>
-                                                <option value="Nữ">Nữ</option>
-                                            </select>
-                                        </div>
-                                        <div class="space-y-1">
-                                            <InputLabel
-                                                value="Ngày sinh"
-                                                class="ml-2 text-[10px] font-black uppercase text-gray-400"
-                                            />
-                                            <TextInput
-                                                v-model="form.birthday"
-                                                type="date"
-                                                class="w-full bg-gray-50 border-none rounded-2xl p-4 focus:ring-4 focus:ring-orange-100 text-xs"
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="space-y-1">
-                                    <InputLabel
-                                        value="Công việc"
-                                        class="ml-2 text-[10px] font-black uppercase text-gray-400"
+                    <form @submit.prevent="submit" class="space-y-5">
+                        <!-- STEP 1: ROLE SELECTION -->
+                        <div v-if="currentStep === 1" class="space-y-4">
+                            <div class="grid grid-cols-1 gap-3">
+                                <label
+                                    v-for="r in [
+                                        ['customer', '😋', 'Khách hàng', 'Đặt món & Thưởng thức'],
+                                        ['restaurant', '🏪', 'Chủ quán', 'Kinh doanh & Phát triển'],
+                                        ['shipper', '🛵', 'Shipper', 'Giao hàng tăng thu nhập']
+                                    ]"
+                                    :key="r[0]"
+                                    class="group relative flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer"
+                                    :class="
+                                        form.role === r[0]
+                                            ? 'border-orange-500 bg-orange-50'
+                                            : 'border-gray-200 hover:border-orange-300 hover:bg-orange-50/50'
+                                    "
+                                >
+                                    <input
+                                        type="radio"
+                                        v-model="form.role"
+                                        :value="r[0]"
+                                        class="hidden"
                                     />
+                                    <div class="text-2xl">{{ r[1] }}</div>
+                                    <div class="flex-1">
+                                        <h4 class="font-bold text-gray-800 text-sm">{{ r[2] }}</h4>
+                                        <p class="text-xs text-gray-500">{{ r[3] }}</p>
+                                    </div>
+                                    <div
+                                        v-if="form.role === r[0]"
+                                        class="w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center text-white text-xs"
+                                    >
+                                        ✓
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- STEP 2: PERSONAL INFO -->
+                        <div v-if="currentStep === 2" class="space-y-4">
+                            <div>
+                                <InputLabel for="name" value="Họ và tên" />
+                                <TextInput
+                                    id="name"
+                                    type="text"
+                                    class="mt-1 block w-full rounded-xl border-gray-200 focus:border-orange-500 focus:ring-orange-500"
+                                    v-model="form.name"
+                                    required
+                                    placeholder="Nguyễn Văn A"
+                                />
+                                <InputError class="mt-2" :message="form.errors.name" />
+                            </div>
+
+                            <div>
+                                <InputLabel for="email" value="Email" />
+                                <TextInput
+                                    id="email"
+                                    type="email"
+                                    class="mt-1 block w-full rounded-xl border-gray-200 focus:border-orange-500 focus:ring-orange-500"
+                                    v-model="form.email"
+                                    required
+                                    placeholder="example@email.com"
+                                />
+                                <InputError class="mt-2" :message="form.errors.email" />
+                            </div>
+
+                            <div>
+                                <InputLabel for="phone" value="Số điện thoại" />
+                                <TextInput
+                                    id="phone"
+                                    type="tel"
+                                    class="mt-1 block w-full rounded-xl border-gray-200 focus:border-orange-500 focus:ring-orange-500"
+                                    v-model="form.phone"
+                                    required
+                                    placeholder="033xxxxxxx"
+                                />
+                                <InputError class="mt-2" :message="form.errors.phone" />
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <InputLabel for="birthday" value="Ngày sinh" />
+                                    <TextInput
+                                        id="birthday"
+                                        type="date"
+                                        class="mt-1 block w-full rounded-xl border-gray-200 focus:border-orange-500 focus:ring-orange-500"
+                                        v-model="form.birthday"
+                                    />
+                                    <InputError class="mt-2" :message="form.errors.birthday" />
+                                </div>
+
+                                <div>
+                                    <InputLabel for="gender" value="Giới tính" />
                                     <select
-                                        v-model="form.occupation"
-                                        class="w-full rounded-2xl border-none bg-gray-50 h-[56px] font-bold text-sm focus:ring-4 focus:ring-orange-100 shadow-none"
+                                        id="gender"
+                                        v-model="form.gender"
+                                        class="mt-1 block w-full rounded-xl border-gray-200 focus:border-orange-500 focus:ring-orange-500 px-3 py-2"
                                     >
-                                        <option
-                                            v-for="occ in [
-                                                'Sinh viên',
-                                                'Nhân viên văn phòng',
-                                                'Lao động tự do',
-                                                'Kinh doanh',
-                                                'Khác',
-                                            ]"
-                                            :key="occ"
-                                            :value="occ"
-                                        >
-                                            {{ occ }}
-                                        </option>
+                                        <option value="">Chọn giới tính</option>
+                                        <option value="Nam">Nam</option>
+                                        <option value="Nữ">Nữ</option>
                                     </select>
-                                </div>
-
-                                <div class="flex justify-between mt-8">
-                                    <button
-                                        type="button"
-                                        @click="prevStep"
-                                        class="bg-gray-200 text-gray-700 px-8 py-3 rounded-2xl font-black uppercase text-sm hover:bg-gray-300 transition-all"
-                                    >
-                                        ← Quay lại
-                                    </button>
-                                    <button
-                                        type="button"
-                                        @click="nextStep"
-                                        class="bg-orange-500 text-white px-8 py-3 rounded-2xl font-black uppercase text-sm hover:bg-orange-600 transition-all"
-                                    >
-                                        Tiếp theo →
-                                    </button>
+                                    <InputError class="mt-2" :message="form.errors.gender" />
                                 </div>
                             </div>
 
-                            <div
-                                v-if="currentStep === 3"
-                                class="animate-in fade-in slide-in-from-right-6 duration-700 space-y-8"
+                            <div>
+                                <InputLabel for="occupation" value="Nghề nghiệp" />
+                                <select
+                                    id="occupation"
+                                    v-model="form.occupation"
+                                    class="mt-1 block w-full rounded-xl border-gray-200 focus:border-orange-500 focus:ring-orange-500 px-3 py-2"
+                                >
+                                    <option value="">Chọn nghề nghiệp</option>
+                                    <option value="Sinh viên">Sinh viên</option>
+                                    <option value="Nhân viên văn phòng">Nhân viên văn phòng</option>
+                                    <option value="Lao động tự do">Lao động tự do</option>
+                                    <option value="Kinh doanh">Kinh doanh</option>
+                                    <option value="Khác">Khác</option>
+                                </select>
+                                <InputError class="mt-2" :message="form.errors.occupation" />
+                            </div>
+                        </div>
+
+                        <!-- STEP 3: FINAL DETAILS -->
+                        <div v-if="currentStep === 3" class="space-y-4">
+                            <!-- Restaurant specific fields -->
+                            <div v-if="form.role === 'restaurant'" class="space-y-4">
+                                <div>
+                                    <InputLabel for="restaurant_name" value="Tên quán ăn" />
+                                    <TextInput
+                                        id="restaurant_name"
+                                        type="text"
+                                        class="mt-1 block w-full rounded-xl border-gray-200 focus:border-orange-500 focus:ring-orange-500"
+                                        v-model="form.restaurant_name"
+                                        required
+                                        placeholder="Tên thương hiệu quán ăn"
+                                    />
+                                    <InputError class="mt-2" :message="form.errors.restaurant_name" />
+                                </div>
+
+                                <div class="relative">
+                                    <InputLabel for="address" value="Địa chỉ quán" />
+                                    <TextInput
+                                        id="address"
+                                        type="text"
+                                        class="mt-1 block w-full rounded-xl border-gray-200 focus:border-orange-500 focus:ring-orange-500"
+                                        v-model="form.address"
+                                        required
+                                        placeholder="📍 Tìm đường, phường, quận..."
+                                    />
+                                    <InputError class="mt-2" :message="form.errors.address" />
+
+                                    <!-- Address suggestions -->
+                                    <ul
+                                        v-if="suggestions.length > 0"
+                                        class="absolute z-50 w-full bg-white mt-1 rounded-xl shadow-lg border py-2 max-h-48 overflow-y-auto"
+                                    >
+                                        <li
+                                            v-for="(s, i) in suggestions"
+                                            :key="i"
+                                            @click="selectAddress(s)"
+                                            class="px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm"
+                                        >
+                                            {{ s.properties.name || s.properties.street }}, {{ s.properties.city }}
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <div>
+                                    <InputLabel for="house_number" value="Số nhà/Tòa nhà" />
+                                    <TextInput
+                                        id="house_number"
+                                        type="text"
+                                        class="mt-1 block w-full rounded-xl border-gray-200 focus:border-orange-500 focus:ring-orange-500"
+                                        v-model="form.house_number"
+                                        placeholder="Ví dụ: 123, Tòa A, Chung cư ABC..."
+                                    />
+                                    <InputError class="mt-2" :message="form.errors.house_number" />
+                                </div>
+                            </div>
+
+                            <!-- Shipper specific fields -->
+                            <div v-if="form.role === 'shipper'" class="space-y-4">
+                                <div>
+                                    <InputLabel for="id_card_number" value="CMND/CCCD" />
+                                    <TextInput
+                                        id="id_card_number"
+                                        type="text"
+                                        class="mt-1 block w-full rounded-xl border-gray-200 focus:border-orange-500 focus:ring-orange-500"
+                                        v-model="form.id_card_number"
+                                        required
+                                        placeholder="123456789"
+                                    />
+                                    <InputError class="mt-2" :message="form.errors.id_card_number" />
+                                </div>
+
+                                <div>
+                                    <InputLabel for="license_plate" value="Biển số xe" />
+                                    <TextInput
+                                        id="license_plate"
+                                        type="text"
+                                        class="mt-1 block w-full rounded-xl border-gray-200 focus:border-orange-500 focus:ring-orange-500"
+                                        v-model="form.license_plate"
+                                        required
+                                        placeholder="43A-12345"
+                                    />
+                                    <InputError class="mt-2" :message="form.errors.license_plate" />
+                                </div>
+                            </div>
+
+                            <!-- Password fields -->
+                            <div>
+                                <InputLabel for="password" value="Mật khẩu" />
+                                <div class="relative mt-1">
+                                    <TextInput
+                                        id="password"
+                                        :type="showPassword ? 'text' : 'password'"
+                                        class="block w-full rounded-xl border-gray-200 pr-12 focus:border-orange-500 focus:ring-orange-500"
+                                        v-model="form.password"
+                                        required
+                                        placeholder="••••••••"
+                                    />
+                                    <button
+                                        type="button"
+                                        @click="showPassword = !showPassword"
+                                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                                    >
+                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path v-if="!showPassword" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path v-if="!showPassword" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            <path v-if="showPassword" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <InputError class="mt-2" :message="form.errors.password" />
+                            </div>
+
+                            <div>
+                                <InputLabel for="password_confirmation" value="Xác nhận mật khẩu" />
+                                <TextInput
+                                    id="password_confirmation"
+                                    type="password"
+                                    class="mt-1 block w-full rounded-xl border-gray-200 focus:border-orange-500 focus:ring-orange-500"
+                                    v-model="form.password_confirmation"
+                                    required
+                                    placeholder="••••••••"
+                                />
+                                <InputError class="mt-2" :message="form.errors.password_confirmation" />
+                            </div>
+                        </div>
+
+                        <!-- Navigation Buttons -->
+                        <div class="flex gap-3 pt-4">
+                            <button
+                                v-if="currentStep > 1"
+                                type="button"
+                                @click="prevStep"
+                                class="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
                             >
-                                <div class="mb-10 text-center">
-                                    <h2
-                                        class="text-3xl font-black text-gray-900 tracking-tight italic uppercase"
-                                    >
-                                        Bảo mật tài khoản
-                                    </h2>
-                                    <p
-                                        class="text-gray-400 font-bold text-[10px] uppercase tracking-widest mt-1"
-                                    >
-                                        Tạo mật khẩu mạnh để bảo vệ tài khoản
-                                    </p>
-                                </div>
+                                Quay lại
+                            </button>
 
-                                <div class="space-y-6">
-                                    <div class="space-y-1">
-                                        <InputLabel
-                                            value="Mật khẩu"
-                                            class="ml-2 text-[10px] font-black uppercase text-gray-400"
-                                        />
-                                        <div class="relative">
-                                            <TextInput
-                                                v-model="form.password"
-                                                :type="
-                                                    showPassword
-                                                        ? 'text'
-                                                        : 'password'
-                                                "
-                                                class="w-full bg-gray-50 border-none rounded-2xl pr-12 p-4 focus:ring-4 focus:ring-orange-100"
-                                                placeholder="••••••••"
-                                                required
-                                            />
-                                            <button
-                                                type="button"
-                                                @click="
-                                                    showPassword = !showPassword
-                                                "
-                                                class="absolute inset-y-0 right-4 flex items-center text-lg hover:scale-110 transition"
-                                            >
-                                                <span v-if="showPassword"
-                                                    >🙈</span
-                                                >
-                                                <span v-else>👁️</span>
-                                            </button>
-                                        </div>
-                                    </div>
+                            <button
+                                v-if="currentStep < 3"
+                                type="button"
+                                @click="nextStep"
+                                :disabled="!canProceed"
+                                class="flex-1 bg-orange-500 text-white py-3 px-4 rounded-xl font-semibold hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                Tiếp tục
+                            </button>
 
-                                    <div class="space-y-1">
-                                        <InputLabel
-                                            value="Xác nhận mật khẩu"
-                                            class="ml-2 text-[10px] font-black uppercase text-gray-400"
-                                        />
-                                        <TextInput
-                                            v-model="form.password_confirmation"
-                                            type="password"
-                                            class="w-full bg-gray-50 border-none rounded-2xl p-4 focus:ring-4 focus:ring-orange-100"
-                                            placeholder="••••••••"
-                                            required
-                                        />
-                                    </div>
+                            <PrimaryButton
+                                v-if="currentStep === 3"
+                                :disabled="form.processing"
+                                class="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-3 px-4 rounded-xl font-semibold"
+                            >
+                                <span v-if="form.processing">Đang xử lý...</span>
+                                <span v-else>Gia nhập ngay</span>
+                            </PrimaryButton>
+                        </div>
+                    </form>
 
-                                    <!-- Additional fields for restaurant -->
-                                    <div
-                                        v-if="form.role === 'restaurant'"
-                                        class="space-y-6"
-                                    >
-                                        <div class="space-y-1">
-                                            <InputLabel
-                                                value="Tên quán ăn"
-                                                class="ml-2 text-[10px] font-black uppercase text-gray-400"
-                                            />
-                                            <TextInput
-                                                v-model="form.restaurant_name"
-                                                class="w-full bg-gray-50 border-none rounded-2xl p-4 focus:ring-4 focus:ring-orange-100"
-                                                placeholder="Nhà hàng ABC"
-                                            />
-                                        </div>
-
-                                        <div class="space-y-1">
-                                            <InputLabel
-                                                value="Địa chỉ quán ăn"
-                                                class="ml-2 text-[10px] font-black uppercase text-gray-400"
-                                            />
-                                            <div class="relative">
-                                                <TextInput
-                                                    v-model="form.address"
-                                                    class="w-full bg-gray-50 border-none rounded-2xl p-4 focus:ring-4 focus:ring-orange-100"
-                                                    placeholder="Nhập địa chỉ..."
-                                                />
-                                                <div
-                                                    v-if="isSearching"
-                                                    class="absolute right-4 top-1/2 -translate-y-1/2"
-                                                >
-                                                    <div
-                                                        class="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"
-                                                    ></div>
-                                                </div>
-                                            </div>
-                                            <div
-                                                v-if="suggestions.length > 0"
-                                                class="bg-white border border-gray-200 rounded-2xl mt-2 max-h-40 overflow-y-auto"
-                                            >
-                                                <div
-                                                    v-for="suggestion in suggestions"
-                                                    :key="
-                                                        suggestion.properties
-                                                            .osm_id
-                                                    "
-                                                    @click="
-                                                        selectAddress(
-                                                            suggestion,
-                                                        )
-                                                    "
-                                                    class="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                                                >
-                                                    <div
-                                                        class="font-semibold text-sm"
-                                                    >
-                                                        {{
-                                                            suggestion
-                                                                .properties
-                                                                .name ||
-                                                            "Địa chỉ không xác định"
-                                                        }}
-                                                    </div>
-                                                    <div
-                                                        class="text-xs text-gray-500"
-                                                    >
-                                                        {{
-                                                            [
-                                                                suggestion
-                                                                    .properties
-                                                                    .street,
-                                                                suggestion
-                                                                    .properties
-                                                                    .district,
-                                                                suggestion
-                                                                    .properties
-                                                                    .city,
-                                                            ]
-                                                                .filter(Boolean)
-                                                                .join(", ")
-                                                        }}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Additional fields for shipper -->
-                                    <div
-                                        v-if="form.role === 'shipper'"
-                                        class="space-y-6"
-                                    >
-                                        <div class="space-y-1">
-                                            <InputLabel
-                                                value="Số CMND/CCCD"
-                                                class="ml-2 text-[10px] font-black uppercase text-gray-400"
-                                            />
-                                            <TextInput
-                                                v-model="form.id_card_number"
-                                                class="w-full bg-gray-50 border-none rounded-2xl p-4 focus:ring-4 focus:ring-orange-100"
-                                                placeholder="123456789"
-                                            />
-                                        </div>
-
-                                        <div class="space-y-1">
-                                            <InputLabel
-                                                value="Biển số xe (tùy chọn)"
-                                                class="ml-2 text-[10px] font-black uppercase text-gray-400"
-                                            />
-                                            <TextInput
-                                                v-model="form.license_plate"
-                                                class="w-full bg-gray-50 border-none rounded-2xl p-4 focus:ring-4 focus:ring-orange-100"
-                                                placeholder="51A-12345"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="flex justify-between mt-8">
-                                    <button
-                                        type="button"
-                                        @click="prevStep"
-                                        class="bg-gray-200 text-gray-700 px-8 py-3 rounded-2xl font-black uppercase text-sm hover:bg-gray-300 transition-all"
-                                    >
-                                        ← Quay lại
-                                    </button>
-                                    <PrimaryButton
-                                        class="px-8 py-3 rounded-2xl bg-orange-500 hover:bg-gray-900 text-white font-black uppercase tracking-[0.2em] text-xs shadow-xl shadow-orange-100 transition-all active:scale-95 border-none"
-                                        :disabled="form.processing"
-                                    >
-                                        {{
-                                            form.processing
-                                                ? "Đang tạo tài khoản..."
-                                                : "Hoàn thành đăng ký 🚀"
-                                        }}
-                                    </PrimaryButton>
-                                </div>
-                            </div>
-                        </form>
+                    <div class="mt-6 text-center">
+                        <p class="text-sm text-gray-600">
+                            Đã có tài khoản?
+                            <Link href="/login" class="text-orange-500 hover:text-orange-600 font-semibold">
+                                Đăng nhập
+                            </Link>
+                        </p>
                     </div>
                 </div>
             </div>
         </div>
     </GuestLayout>
 </template>
-
-<style scoped>
-.animate-in {
-    animation-fill-mode: both;
-}
-
-.fade-in {
-    animation-name: fadeIn;
-}
-
-.slide-in-from-bottom-6 {
-    animation-name: slideInFromBottom;
-}
-
-.slide-in-from-right-6 {
-    animation-name: slideInFromRight;
-}
-
-.duration-700 {
-    animation-duration: 700ms;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-}
-
-@keyframes slideInFromBottom {
-    from {
-        opacity: 0;
-        transform: translateY(2rem);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes slideInFromRight {
-    from {
-        opacity: 0;
-        transform: translateX(2rem);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-</style>

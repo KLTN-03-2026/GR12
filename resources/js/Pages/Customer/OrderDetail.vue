@@ -1,6 +1,6 @@
 <template>
     <GuestLayout>
-        <Head :title="`Đơn hàng ${order.order_code} - FoodXpress`" />
+        <Head :title="`Đơn hàng ${orderData.order_code} - FoodXpress`" />
 
         <div class="min-h-screen bg-[#f8f9fb] py-12 px-4">
             <div class="max-w-4xl mx-auto">
@@ -22,21 +22,21 @@
                                 <h1
                                     class="text-2xl font-black text-gray-800 tracking-tight"
                                 >
-                                    #{{ order.order_code }}
+                                    #{{ orderData.order_code }}
                                 </h1>
                             </div>
                             <div
-                                :class="getStatusStyle(order.status)"
+                                :class="getStatusStyle(orderData.status)"
                                 class="px-5 py-2 rounded-2xl text-xs font-black uppercase tracking-widest border shadow-sm"
                             >
-                                {{ getStatusText(order.status) }}
+                                {{ getStatusText(orderData.status) }}
                             </div>
                         </div>
                     </div>
 
                     <div class="p-6 md:p-8 space-y-6">
                         <div
-                            v-for="item in order.items"
+                            v-for="item in orderData.items"
                             :key="item.id"
                             class="flex items-center justify-between gap-4"
                         >
@@ -80,17 +80,17 @@
                                 <div class="space-y-2 text-sm">
                                     <p>
                                         <span class="font-bold">Địa chỉ:</span>
-                                        {{ order.address }}
+                                        {{ orderData.address }}
                                     </p>
                                     <p>
                                         <span class="font-bold"
                                             >Số điện thoại:</span
                                         >
-                                        {{ order.phone }}
+                                        {{ orderData.phone }}
                                     </p>
-                                    <p v-if="order.note">
+                                    <p v-if="orderData.note">
                                         <span class="font-bold">Ghi chú:</span>
-                                        {{ order.note }}
+                                        {{ orderData.note }}
                                     </p>
                                 </div>
                             </div>
@@ -102,13 +102,13 @@
                                     <div class="flex justify-between">
                                         <span>Tạm tính:</span>
                                         <span>{{
-                                            formatPrice(order.subtotal)
+                                            formatPrice(orderData.subtotal)
                                         }}</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span>Phí giao hàng:</span>
                                         <span>{{
-                                            formatPrice(order.shipping_fee)
+                                            formatPrice(orderData.shipping_fee)
                                         }}</span>
                                     </div>
                                     <div
@@ -116,7 +116,7 @@
                                     >
                                         <span>Tổng cộng:</span>
                                         <span>{{
-                                            formatPrice(order.total)
+                                            formatPrice(orderData.total)
                                         }}</span>
                                     </div>
                                 </div>
@@ -127,7 +127,7 @@
 
                 <!-- Shipper Information -->
                 <div
-                    v-if="order.shipper"
+                    v-if="orderData.shipper"
                     class="bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-gray-100 mb-8"
                 >
                     <div
@@ -138,15 +138,15 @@
                         </h3>
                         <div class="flex items-center gap-4">
                             <UserAvatar
-                                :user="order.shipper.user"
+                                :user="orderData.shipper.user"
                                 class="w-12 h-12"
                             />
                             <div>
                                 <p class="font-black text-gray-800">
-                                    {{ order.shipper.user.name }}
+                                    {{ orderData.shipper.user.name }}
                                 </p>
                                 <p class="text-sm text-gray-500">
-                                    {{ order.shipper.user.phone }}
+                                    {{ orderData.shipper.user.phone }}
                                 </p>
                             </div>
                         </div>
@@ -164,8 +164,8 @@
                                 </p>
                                 <p class="mt-1 font-black text-gray-800">
                                     {{
-                                        order.shipper.current_latitude
-                                            ? `${order.shipper.current_latitude.toFixed(4)}, ${order.shipper.current_longitude.toFixed(4)}`
+                                        orderData.shipper.current_latitude
+                                            ? `${orderData.shipper.current_latitude.toFixed(4)}, ${orderData.shipper.current_longitude.toFixed(4)}`
                                             : "Chưa cập nhật"
                                     }}
                                 </p>
@@ -175,7 +175,7 @@
                                     Trạng thái
                                 </p>
                                 <p class="mt-1 font-black text-gray-800">
-                                    {{ getShipperStatus(order.shipper.status) }}
+                                    {{ getShipperStatus(orderData.shipper.status) }}
                                 </p>
                             </div>
                         </div>
@@ -363,7 +363,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import { Head } from "@inertiajs/vue3";
 import GuestLayout from "@/Layouts/GuestLayout.vue";
 import UserAvatar from "@/Components/UserAvatar.vue";
@@ -375,6 +375,9 @@ const props = defineProps({
 });
 
 const map = ref(null);
+const orderData = ref(props.order);
+const shipperMarker = ref(null);
+const refreshInterval = ref(null);
 
 const formatPrice = (p) =>
     new Intl.NumberFormat("vi-VN", {
@@ -429,17 +432,21 @@ const getShipperStatus = (status) => {
 
 const initMap = () => {
     if (
-        !order.shipper ||
-        !order.shipper.current_latitude ||
-        !order.shipper.current_longitude
+        !orderData.value.shipper ||
+        !orderData.value.shipper.current_latitude ||
+        !orderData.value.shipper.current_longitude
     )
         return;
+
+    if (map.value) {
+        map.value.remove();
+    }
 
     map.value = L.map("order-map", {
         zoomControl: false,
         attributionControl: false,
     }).setView(
-        [order.shipper.current_latitude, order.shipper.current_longitude],
+        [orderData.value.shipper.current_latitude, orderData.value.shipper.current_longitude],
         15,
     );
 
@@ -450,9 +457,25 @@ const initMap = () => {
             '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map.value);
 
+    // Add customer marker
+    if (orderData.value.user.latitude && orderData.value.user.longitude) {
+        L.circleMarker(
+            [orderData.value.user.latitude, orderData.value.user.longitude],
+            {
+                radius: 8,
+                fillColor: "#2563eb",
+                color: "#ffffff",
+                weight: 2,
+                fillOpacity: 0.9,
+            },
+        )
+            .addTo(map.value)
+            .bindPopup("Vị trí khách hàng");
+    }
+
     // Add shipper marker
-    L.circleMarker(
-        [order.shipper.current_latitude, order.shipper.current_longitude],
+    shipperMarker.value = L.circleMarker(
+        [orderData.value.shipper.current_latitude, orderData.value.shipper.current_longitude],
         {
             radius: 10,
             fillColor: "#ef4444",
@@ -465,18 +488,51 @@ const initMap = () => {
         .bindPopup("Vị trí shipper hiện tại");
 };
 
+const updateOrderData = async () => {
+    try {
+        const response = await fetch(`/api/orders/${orderData.value.id}/details`, {
+            headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+            },
+            credentials: 'include',
+        });
+
+        if (response.ok) {
+            const freshData = await response.json();
+            orderData.value = freshData;
+        }
+    } catch (error) {
+        console.error("Error fetching order details:", error);
+    }
+};
+
+// Watch shipper location changes to update map
+watch(() => orderData.value.shipper?.current_latitude, () => {
+    if (orderData.value.shipper && shipperMarker.value) {
+        const newLat = orderData.value.shipper.current_latitude;
+        const newLng = orderData.value.shipper.current_longitude;
+        
+        if (newLat && newLng) {
+            shipperMarker.value.setLatLng([newLat, newLng]);
+            map.value?.panTo([newLat, newLng]);
+        }
+    }
+});
+
 const confirmDelivery = async () => {
     if (!confirm("Bạn xác nhận đã nhận được hàng?")) return;
 
     try {
         const response = await fetch(
-            `/api/orders/${order.id}/confirm-delivery`,
+            `/api/orders/${orderData.value.id}/confirm-delivery`,
             {
                 method: "POST",
                 headers: {
                     Accept: "application/json",
                     "Content-Type": "application/json",
                 },
+                credentials: 'include',
             },
         );
 
@@ -492,7 +548,26 @@ const confirmDelivery = async () => {
     }
 };
 
+import { onUnmounted } from "vue";
+
 onMounted(() => {
     initMap();
+
+    // Poll order details every 5 seconds when shipper is taking/delivering the order
+    if (orderData.value.status === "shipping" || orderData.value.status === "picked_up") {
+        refreshInterval.value = setInterval(() => {
+            updateOrderData();
+        }, 5000);
+    }
+});
+
+onUnmounted(() => {
+    if (refreshInterval.value) {
+        clearInterval(refreshInterval.value);
+    }
+    if (map.value) {
+        map.value.remove();
+    }
 });
 </script>
+
