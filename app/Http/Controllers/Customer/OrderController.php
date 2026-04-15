@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\CartItem;
+use App\Models\Voucher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -19,13 +20,35 @@ class OrderController extends Controller
     public function index()
     {
         $orders = Order::where('user_id', auth()->id())
-            ->with(['items.product']) // Lấy kèm chi tiết món ăn
+            ->with(['items.product.reviews.user']) // Lấy kèm chi tiết món ăn và đánh giá
             ->latest() // Đơn hàng mới nhất lên đầu
             ->get();
 
         return Inertia::render('Customer/Orders', [
             'orders' => $orders
         ]);
+    }
+
+    public function show($id)
+    {
+        $order = Order::where('user_id', auth()->id())
+            ->with(['items.product', 'shipper.user'])
+            ->findOrFail($id);
+
+        return Inertia::render('Customer/OrderDetail', [
+            'order' => $order
+        ]);
+    }
+
+    public function confirmDelivery($id)
+    {
+        $order = Order::where('user_id', auth()->id())
+            ->whereIn('status', ['shipping', 'picked_up'])
+            ->findOrFail($id);
+
+        $order->update(['status' => 'completed']);
+
+        return response()->json(['message' => 'Delivery confirmed']);
     }
     /**
      * Hiển thị trang thanh toán (Checkout)
@@ -44,9 +67,14 @@ class OrderController extends Controller
             return redirect()->route('home')->with('error', 'Giỏ hàng của bạn đang trống, hãy chọn món trước nhé!');
         }
 
+        $vouchers = Voucher::active()
+            ->orderBy('expires_at', 'asc')
+            ->get();
+
         return Inertia::render('Customer/Checkout', [
             'cartItems' => $cartItems,
-            'user' => $user
+            'user' => $user,
+            'vouchers' => $vouchers,
         ]);
     }
 
@@ -59,7 +87,8 @@ class OrderController extends Controller
             $request->validate([
             'address' => 'required|string|min:10',
             'phone' => 'required|numeric|digits_between:10,11',
-            'payment_method' => 'required',
+            'payment_method' => 'required|in:cod,cash',
+            'voucher_code' => 'nullable|string|exists:vouchers,code',
         ], [
             'address.required' => 'Hoàng Anh ơi, quên nhập địa chỉ rồi!',
             'address.min' => 'Địa chỉ cần chi tiết hơn một chút nhé.',
@@ -84,11 +113,40 @@ class OrderController extends Controller
             return $item->product->price * $item->quantity;
         });
         $shippingFee = 15000; // Phí ship cố định (Hoàng Anh có thể chỉnh lại)
-        $total = $subtotal + $shippingFee;
+        $voucherCode = $request->voucher_code;
+        $discountAmount = 0;
+
+        if ($voucherCode) {
+            $voucher = Voucher::where('code', $voucherCode)
+                ->where('expires_at', '>', now())
+                ->first();
+
+            if (!$voucher) {
+                return redirect()->back()->withErrors([
+                    'voucher_code' => 'Mã voucher không hợp lệ hoặc đã hết hạn.',
+                ])->withInput();
+            }
+
+            if ($voucher->discount_type === 'percent') {
+                $discountAmount = round($subtotal * ($voucher->discount_value / 100), 2);
+            } else {
+                $discountAmount = min($subtotal, $voucher->discount_value);
+            }
+        }
+
+        $total = $subtotal + $shippingFee - $discountAmount;
 
         try {
             // 3. Sử dụng Transaction để đảm bảo tính toàn vẹn dữ liệu
             DB::beginTransaction();
+
+            // Cập nhật địa chỉ người dùng vào profile
+            $user->update([
+                'address' => $request->address,
+                'phone' => $request->phone,
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
+            ]);
 
             // Tạo đơn hàng chính
             $order = Order::create([
@@ -97,8 +155,10 @@ class OrderController extends Controller
                 'address' => $request->address,
                 'phone' => $request->phone,
                 'note' => $request->note,
+                'voucher_code' => $voucherCode,
                 'subtotal' => $subtotal,
                 'shipping_fee' => $shippingFee,
+                'discount_amount' => $discountAmount,
                 'total' => $total,
                 'payment_method' => $request->payment_method,
                 'status' => 'pending', // Trạng thái chờ xử lý

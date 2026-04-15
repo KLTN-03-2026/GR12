@@ -11,6 +11,7 @@
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
+        <script async src ="https://maps.googleapis.com/maps/api/js?key=AIzaSyDyYu9FIefk8juXKkeylr-v9nVg4scfNks&libraries=places"></script>
         @routes
         @vite(['resources/js/app.js', "resources/js/Pages/{$page['component']}.vue"])
         @inertiaHead

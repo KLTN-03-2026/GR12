@@ -17,9 +17,14 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
+        // Enable Sanctum's stateful API middleware so /api routes can authenticate
+        // using the session cookie from the SPA frontend.
+        $middleware->statefulApi();
+
         // ĐĂNG KÝ ALIAS CHO MIDDLEWARE TẠI ĐÂY
         $middleware->alias([
             'checkStatus' => \App\Http\Middleware\CheckUserStatus::class,
+            'role' => \App\Http\Middleware\RoleMiddleware::class,
         ]);
         
     })

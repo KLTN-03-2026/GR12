@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Restaurant;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\ShipperController;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -53,12 +54,20 @@ class RestaurantOrderController extends Controller
             $query->where('user_id', $restaurantId);
         })->findOrFail($id);
 
+        $oldStatus = $order->status;
+
         // 3. Cập nhật trạng thái
         $order->update([
             'status' => $request->status
         ]);
 
-        // 4. Trả về thông báo thành công cho Toast
+        // 4. Nếu chuyển sang processing, tự động gán shipper
+        if ($oldStatus !== 'processing' && $request->status === 'processing') {
+            $shipperController = new ShipperController();
+            $shipperController->assignShipperToOrder($id);
+        }
+
+        // 5. Trả về thông báo thành công cho Toast
         $statusMap = [
             'processing' => 'đã được xác nhận và đang chuẩn bị',
             'shipping'   => 'đang được giao đến khách hàng',

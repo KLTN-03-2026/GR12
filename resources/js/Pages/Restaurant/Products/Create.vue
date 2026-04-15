@@ -9,7 +9,9 @@ const form = useForm({
     name: "",
     category_id: "",
     price: "",
-    description: "", // Đảm bảo đã có trường mô tả
+    description: "",
+    stock_quantity: 0,
+    is_available: true,
     image: null,
     gallery: [],
     options: [],
@@ -251,6 +253,35 @@ const submitForm = () => {
                                 type="number"
                                 class="w-full border-none bg-gray-50 rounded-2xl p-4 mt-1 focus:ring-orange-500"
                             />
+                            <div v-if="form.errors.price" class="text-red-500 text-[10px] mt-1">
+                                {{ form.errors.price }}
+                            </div>
+                        </div>
+                        <div>
+                            <label
+                                class="text-xs font-bold text-gray-400 uppercase tracking-widest"
+                                >Số lượng</label
+                            >
+                            <input
+                                v-model="form.stock_quantity"
+                                type="number"
+                                min="0"
+                                class="w-full border-none bg-gray-50 rounded-2xl p-4 mt-1 focus:ring-orange-500"
+                            />
+                            <div v-if="form.errors.stock_quantity" class="text-red-500 text-[10px] mt-1">
+                                {{ form.errors.stock_quantity }}
+                            </div>
+                        </div>
+                        <div class="md:col-span-2 flex items-center gap-3 mt-2">
+                            <input
+                                id="is_available"
+                                type="checkbox"
+                                v-model="form.is_available"
+                                class="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                            />
+                            <label for="is_available" class="text-sm font-semibold text-gray-600">
+                                Cho phép khách hàng đặt món
+                            </label>
                         </div>
                     </div>
 

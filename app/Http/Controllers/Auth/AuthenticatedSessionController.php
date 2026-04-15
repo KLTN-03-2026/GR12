@@ -49,8 +49,7 @@ class AuthenticatedSessionController extends Controller
         }
 
         if ($user->role === 'shipper') {
-            // Tạm thời để home hoặc dashboard shipper nếu có
-            return redirect()->route('home'); 
+            return redirect()->route('shipper.dashboard');
         }
 
         // 3. MẶC ĐỊNH CHO KHÁCH HÀNG (CUSTOMER)

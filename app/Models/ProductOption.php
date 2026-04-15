@@ -15,6 +15,7 @@ class ProductOption extends Model
         'option_name',
         'option_value',
         'additional_price',
+        'image',
     ];
 
     // Thiết lập quan hệ ngược lại với Product (nên có)

@@ -43,14 +43,30 @@ class CartController extends Controller
         $userId = Auth::id();
         $productId = $request->product_id;
         
-        // 2. Chuẩn hóa Options: Sắp xếp theo ID để so sánh mảng cho chính xác
+        // 2. Lấy thông tin sản phẩm và quán sở hữu
+        $product = Product::with('user')->find($productId);
+        $restaurantId = $product->user_id;
+        
+        // 3. Kiểm tra giỏ hàng hiện tại - chỉ cho phép mua từ 1 quán
+        $existingCartItems = CartItem::where('user_id', $userId)
+            ->with('product.user')
+            ->get();
+            
+        if ($existingCartItems->isNotEmpty()) {
+            $currentRestaurantId = $existingCartItems->first()->product->user_id;
+            if ($currentRestaurantId !== $restaurantId) {
+                return redirect()->back()->with('error', 'Bạn chỉ có thể đặt hàng từ một quán trong một lần. Vui lòng xóa giỏ hàng hiện tại hoặc hoàn tất đơn hàng trước khi đặt từ quán khác.');
+            }
+        }
+        
+        // 4. Chuẩn hóa Options: Sắp xếp theo ID để so sánh mảng cho chính xác
         // Nếu không có options, ta để mảng trống [] thay vì null để dễ so sánh trong DB
         $options = $request->options 
             ? collect($request->options)->sortBy('id')->values()->toArray() 
             : [];
 
         /**
-         * 3. Tìm món đã tồn tại với CÙNG tùy chọn (options)
+         * 5. Tìm món đã tồn tại với CÙNG tùy chọn (options)
          * Chúng ta lấy toàn bộ món cùng product_id trong giỏ ra rồi dùng filter của Collection
          * để so sánh mảng options, tránh việc so sánh JSON thô bị lệch thứ tự.
          */

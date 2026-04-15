@@ -5,9 +5,16 @@ import Dropdown from "@/Components/Dropdown.vue";
 import DropdownLink from "@/Components/DropdownLink.vue";
 import NavLink from "@/Components/NavLink.vue";
 import ResponsiveNavLink from "@/Components/ResponsiveNavLink.vue";
-import { Link } from "@inertiajs/vue3";
+import { Link, usePage } from "@inertiajs/vue3";
 
 const showingNavigationDropdown = ref(false);
+const user = usePage().props.auth.user;
+
+// Xác định role của user - nếu không có role hoặc role là customer, dùng role mặc định
+const userRole = user.role || 'customer';
+const isAdmin = userRole === 'admin';
+const isRestaurant = userRole === 'restaurant';
+const isCustomer = userRole === 'customer';
 </script>
 
 <template>
@@ -33,11 +40,21 @@ const showingNavigationDropdown = ref(false);
                             >
                                 Khám phá
                             </NavLink>
+                            <!-- Dashboard cho Admin & Restaurant -->
                             <NavLink
-                                :href="route('dashboard')"
+                                v-if="isAdmin || isRestaurant"
+                                :href="isAdmin ? route('admin.dashboard') : route('restaurant.dashboard')"
                                 :active="route().current('dashboard')"
                             >
                                 Dashboard
+                            </NavLink>
+                            <!-- Đơn hàng cho Customer -->
+                            <NavLink
+                                v-if="isCustomer"
+                                :href="route('orders.index')"
+                                :active="route().current('orders.index')"
+                            >
+                                Đơn hàng
                             </NavLink>
                         </div>
                     </div>
@@ -70,14 +87,14 @@ const showingNavigationDropdown = ref(false);
 
                                 <template #content>
                                     <DropdownLink :href="route('profile.edit')">
-                                        Hồ sơ
+                                        🧑 Hồ sơ
                                     </DropdownLink>
                                     <DropdownLink
                                         :href="route('logout')"
                                         method="post"
                                         as="button"
                                     >
-                                        Đăng xuất
+                                        🚪 Đăng xuất
                                     </DropdownLink>
                                 </template>
                             </Dropdown>
@@ -134,11 +151,21 @@ const showingNavigationDropdown = ref(false);
                 class="sm:hidden"
             >
                 <div class="space-y-1 pb-3 pt-2">
+                    <!-- Dashboard cho Admin & Restaurant -->
                     <ResponsiveNavLink
-                        :href="route('dashboard')"
+                        v-if="isAdmin || isRestaurant"
+                        :href="isAdmin ? route('admin.dashboard') : route('restaurant.dashboard')"
                         :active="route().current('dashboard')"
                     >
                         Dashboard
+                    </ResponsiveNavLink>
+                    <!-- Đơn hàng cho Customer -->
+                    <ResponsiveNavLink
+                        v-if="isCustomer"
+                        :href="route('orders.index')"
+                        :active="route().current('orders.index')"
+                    >
+                        Đơn hàng
                     </ResponsiveNavLink>
                 </div>
                 <div class="border-t border-gray-200 pb-1 pt-4">

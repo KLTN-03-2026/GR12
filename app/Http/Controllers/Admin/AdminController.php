@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Voucher;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Mail; // <--- THÊM DÒNG NÀY
@@ -34,6 +35,38 @@ class AdminController extends Controller
         return Inertia::render('Admin/PendingUsers', [
             'users' => $users
         ]);
+    }
+
+    public function vouchers()
+    {
+        $vouchers = Voucher::orderBy('expires_at', 'asc')->get();
+
+        return Inertia::render('Admin/Vouchers', [
+            'vouchers' => $vouchers,
+        ]);
+    }
+
+    public function storeVoucher(Request $request)
+    {
+        $request->validate([
+            'code' => 'required|string|unique:vouchers,code|max:50',
+            'discount_type' => 'required|in:fixed,percent',
+            'discount_value' => 'required|numeric|min:1',
+            'expires_at' => 'required|date|after:now',
+        ], [
+            'code.required' => 'Mã voucher không được để trống.',
+            'code.unique' => 'Mã voucher đã tồn tại. Vui lòng sử dụng mã khác.',
+            'expires_at.after' => 'Ngày hết hạn phải lớn hơn thời điểm hiện tại.',
+        ]);
+
+        Voucher::create([
+            'code' => strtoupper(trim($request->code)),
+            'discount_type' => $request->discount_type,
+            'discount_value' => $request->discount_value,
+            'expires_at' => $request->expires_at,
+        ]);
+
+        return back()->with('success', 'Đã tạo voucher thành công.');
     }
 
     // Hàm duyệt tài khoản

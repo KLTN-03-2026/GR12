@@ -14,14 +14,18 @@ class VerifyEmailController extends Controller
      */
     public function __invoke(EmailVerificationRequest $request): RedirectResponse
     {
+        // 1. Nếu người dùng đã xác nhận rồi, chuyển về trang chủ
         if ($request->user()->hasVerifiedEmail()) {
-            return redirect()->intended(route('dashboard', absolute: false).'?verified=1');
+            return redirect()->intended(route('home', absolute: false).'?verified=1');
         }
 
+        // 2. Thực hiện đánh dấu đã xác nhận trong Database
         if ($request->user()->markEmailAsVerified()) {
             event(new Verified($request->user()));
         }
 
-        return redirect()->intended(route('dashboard', absolute: false).'?verified=1');
+        // 3. Sau khi xác nhận thành công, chuyển về trang chủ
+        // Mình đổi 'dashboard' thành 'home' để khớp với web.php của bạn
+        return redirect()->intended(route('home', absolute: false).'?verified=1');
     }
 }

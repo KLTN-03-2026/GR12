@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Order extends Model
 {
-    protected $fillable = ['user_id', 'order_code', 'address', 'phone', 'note', 'subtotal', 'shipping_fee', 'total', 'payment_method', 'status'];
+    protected $fillable = ['user_id', 'order_code', 'address', 'phone', 'note', 'voucher_code', 'subtotal', 'shipping_fee', 'discount_amount', 'total', 'payment_method', 'status', 'shipper_id', 'shipper_fee'];
 
     public function items() {
         return $this->hasMany(OrderItem::class);
@@ -15,5 +15,10 @@ class Order extends Model
     {
         // Một đơn hàng thuộc về một người dùng (khách hàng)
         return $this->belongsTo(User::class);
+    }
+
+    public function shipper()
+    {
+        return $this->belongsTo(Shipper::class);
     }
 }

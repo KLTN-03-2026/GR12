@@ -1,12 +1,27 @@
 <script setup>
 import GuestLayout from "@/Layouts/GuestLayout.vue";
 import { Head, Link } from "@inertiajs/vue3";
+import ReviewForm from "@/Pages/Customer/ProductDetailModal.vue";
+import { ref } from "vue";
 
 defineOptions({ layout: GuestLayout });
 
 const props = defineProps({
     orders: Array,
 });
+
+const showReviewModal = ref(false);
+const selectedProduct = ref(null);
+
+const openReviewModal = (product) => {
+    selectedProduct.value = product;
+    showReviewModal.value = true;
+};
+
+const closeReviewModal = () => {
+    showReviewModal.value = false;
+    selectedProduct.value = null;
+};
 
 const formatPrice = (p) =>
     new Intl.NumberFormat("vi-VN", {
@@ -88,31 +103,53 @@ const getStatusText = (status) => {
                         <div
                             v-for="item in order.items"
                             :key="item.id"
-                            class="flex items-center gap-4"
+                            class="flex items-center justify-between gap-4 group/item"
                         >
-                            <div
-                                class="w-16 h-16 rounded-2xl overflow-hidden shadow-md shrink-0 border border-gray-100"
-                            >
-                                <img
-                                    :src="'/storage/' + item.product.image"
-                                    class="w-full h-full object-cover"
-                                />
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <h4
-                                    class="font-black text-gray-800 line-clamp-1 italic"
+                            <div class="flex items-center gap-4 flex-1">
+                                <div
+                                    class="w-16 h-16 rounded-2xl overflow-hidden shadow-md shrink-0 border border-gray-100"
                                 >
-                                    {{ item.product.name }}
-                                </h4>
-                                <p
-                                    class="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1"
-                                >
-                                    Số lượng: {{ item.quantity }} •
-                                    {{ formatPrice(item.price) }}
-                                </p>
+                                    <img
+                                        :src="'/storage/' + item.product.image"
+                                        class="w-full h-full object-cover"
+                                    />
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h4
+                                        class="font-black text-gray-800 line-clamp-1 italic"
+                                    >
+                                        {{ item.product.name }}
+                                    </h4>
+                                    <p
+                                        class="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1"
+                                    >
+                                        Số lượng: {{ item.quantity }} •
+                                        {{ formatPrice(item.price) }}
+                                    </p>
+                                </div>
                             </div>
-                            <div class="text-right font-black text-gray-700">
-                                {{ formatPrice(item.price * item.quantity) }}
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="text-right font-black text-gray-700"
+                                >
+                                    {{
+                                        formatPrice(item.price * item.quantity)
+                                    }}
+                                </div>
+                                <Link
+                                    :href="`/my-orders/${order.id}`"
+                                    class="px-3 py-2 bg-blue-600 hover:bg-blue-700 border border-blue-200 rounded-lg text-white font-black text-xs uppercase tracking-widest transition-all duration-200 hover:shadow-md"
+                                >
+                                    Xem chi tiết
+                                </Link>
+                                <button
+                                    v-if="order.status === 'completed'"
+                                    @click="openReviewModal(item.product)"
+                                    class="px-3 py-2 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-lg text-orange-600 font-black text-xs uppercase tracking-widest transition-all duration-200 hover:shadow-md"
+                                    title="Đánh giá sản phẩm này"
+                                >
+                                    ⭐ Đánh giá
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -174,6 +211,41 @@ const getStatusText = (status) => {
                 </Link>
             </div>
         </div>
+
+        <!-- Review Modal -->
+        <Teleport to="body">
+            <div
+                v-if="showReviewModal"
+                @click="showReviewModal = false"
+                class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            >
+                <div
+                    @click.stop
+                    class="bg-white rounded-[2.5rem] shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                >
+                    <div
+                        class="sticky top-0 bg-white flex justify-between items-center p-6 border-b border-gray-100 z-10"
+                    >
+                        <h2 class="text-xl font-black text-gray-900">
+                            Đánh giá sản phẩm
+                        </h2>
+                        <button
+                            @click="showReviewModal = false"
+                            class="text-2xl text-gray-400 hover:text-gray-600 transition"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <div class="p-6">
+                        <ReviewForm
+                            v-if="selectedProduct"
+                            :product="selectedProduct"
+                            @close="closeReviewModal"
+                        />
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </div>
 </template>
 

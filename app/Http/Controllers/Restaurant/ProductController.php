@@ -44,8 +44,7 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'image' => 'nullable|image|max:2048',
             'stock_quantity' => 'required|integer|min:0',
-            'available_from' => 'required',
-            'available_to' => 'required',
+            'is_available' => 'boolean',
             'gallery' => 'nullable|array',
             'gallery.*' => 'image|max:2048',
             'options' => 'nullable|array',
@@ -58,8 +57,8 @@ class ProductController extends Controller
         try {
             DB::transaction(function () use ($request) {
                 $data = $request->only([
-                    'name', 'category_id', 'price', 'description', 
-                    'stock_quantity', 'available_from', 'available_to'
+                    'name', 'category_id', 'price', 'description',
+                    'stock_quantity', 'is_available'
                 ]);
                 $data['user_id'] = auth()->id();
                 $data['slug'] = Str::slug($request->name) . '-' . time();
@@ -119,7 +118,88 @@ class ProductController extends Controller
         $product->delete();
         return back()->with('success', 'Đã xóa món ăn và toàn bộ hình ảnh.');
     }
-    // Thêm vào ProductController.php
+
+    public function edit(Product $product)
+    {
+        if ($product->user_id !== auth()->id()) abort(403);
+
+        return Inertia::render('Restaurant/Products/Edit', [
+            'product' => $product->load(['category', 'options', 'gallery']),
+            'categories' => Category::where('is_active', true)->get(),
+        ]);
+    }
+
+    public function update(Request $request, Product $product)
+    {
+        if ($product->user_id !== auth()->id()) abort(403);
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'category_id' => 'required|exists:categories,id',
+            'price' => 'required|numeric|min:0',
+            'description' => 'nullable|string',
+            'image' => 'nullable|image|max:2048',
+            'stock_quantity' => 'required|integer|min:0',
+            'is_available' => 'boolean',
+            'gallery' => 'nullable|array',
+            'gallery.*' => 'image|max:2048',
+            'options' => 'nullable|array',
+            'options.*.option_name' => 'required|string',
+            'options.*.option_value' => 'required|string',
+            'options.*.additional_price' => 'required|numeric|min:0',
+            'options.*.image' => 'nullable|image|max:1024',
+        ]);
+
+        try {
+            DB::transaction(function () use ($request, $product) {
+                $data = $request->only([
+                    'name', 'category_id', 'price', 'description',
+                    'stock_quantity', 'is_available'
+                ]);
+
+                if ($request->hasFile('image')) {
+                    if ($product->image) {
+                        Storage::disk('public')->delete($product->image);
+                    }
+                    $data['image'] = $request->file('image')->store('products', 'public');
+                }
+
+                $product->update($data);
+
+                if ($request->has('options')) {
+                    $product->options()->delete();
+                    foreach ($request->options as $index => $optionData) {
+                        $optionImage = $optionData['existing_image'] ?? null;
+                        if ($request->hasFile("options.$index.image")) {
+                            $optionImage = $request->file("options.$index.image")->store('options', 'public');
+                        }
+
+                        $product->options()->create([
+                            'option_name' => $optionData['option_name'],
+                            'option_value' => $optionData['option_value'],
+                            'additional_price' => $optionData['additional_price'],
+                            'image' => $optionImage,
+                        ]);
+                    }
+                } else {
+                    $product->options()->delete();
+                }
+
+                if ($request->hasFile('gallery')) {
+                    foreach ($request->file('gallery') as $image) {
+                        $path = $image->store('products/gallery', 'public');
+                        $product->gallery()->create(['image_path' => $path]);
+                    }
+                }
+            });
+
+            return redirect()->route('restaurant.products.index')
+                ->with('success', 'Món ăn đã được cập nhật thành công.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Lỗi: ' . $e->getMessage());
+        }
+    }
+
     public function show($id)
     {
         $product = Product::with(['category', 'options', 'gallery'])->findOrFail($id);

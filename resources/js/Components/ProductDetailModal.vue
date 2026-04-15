@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from "vue";
+import UserAvatar from "@/Components/UserAvatar.vue";
 
 const props = defineProps({
     product: Object,
@@ -32,7 +33,7 @@ const toggleOption = (option) => {
     }
 };
 
-// 4. Gửi dữ liệu ra ngoài Welcome.vue
+// 4. Gửi dữ liệu ra ngoài
 const handleAddToCart = () => {
     emit("addToCart", {
         product: props.product,

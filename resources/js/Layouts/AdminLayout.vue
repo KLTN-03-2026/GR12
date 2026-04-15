@@ -1,6 +1,7 @@
 <script setup>
 import { Link } from "@inertiajs/vue3";
 import ToastList from "@/Components/ToastList.vue"; // 1. Import hệ thống Toast
+import UserAvatar from "@/Components/UserAvatar.vue";
 </script>
 
 <template>
@@ -31,6 +32,16 @@ import ToastList from "@/Components/ToastList.vue"; // 1. Import hệ thống To
                     }"
                 >
                     ⏳ Duyệt tài khoản
+                </Link>
+                <Link
+                    :href="route('admin.vouchers.index')"
+                    class="block p-3 rounded-lg hover:bg-slate-800 transition"
+                    :class="{
+                        'bg-orange-600 shadow-lg shadow-orange-900/50':
+                            $page.component === 'Admin/Vouchers',
+                    }"
+                >
+                    🎟️ Quản lý voucher
                 </Link>
                 <Link
                     href="#"
@@ -84,11 +95,12 @@ import ToastList from "@/Components/ToastList.vue"; // 1. Import hệ thống To
                             $page.props.auth.user.name
                         }}</span>
                     </div>
-                    <div
-                        class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-black border-2 border-orange-200"
-                    >
-                        {{ $page.props.auth.user.name.charAt(0).toUpperCase() }}
-                    </div>
+                    <UserAvatar
+                        :user="$page.props.auth.user"
+                        size="md"
+                        rounded="full"
+                        showBorder
+                    />
                 </div>
             </header>
 

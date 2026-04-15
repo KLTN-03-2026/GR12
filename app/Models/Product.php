@@ -31,4 +31,14 @@ class Product extends Model
     {
         return $this->hasMany(ProductImage::class);
     }
+
+    // app/Models/Product.php
+    public function reviews() {
+        return $this->hasMany(Review::class);
+    }
+
+    // Hàm tính số sao trung bình
+    public function getAverageRatingAttribute() {
+        return round($this->reviews()->avg('rating') ?: 5, 1);
+    }
 }
