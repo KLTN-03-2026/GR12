@@ -122,7 +122,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         })->name('menu.item');
 
         Route::get('/orders/{order}/detail', function (\App\Models\Order $order) {
-            return Inertia::render('Shipper/OrderDetail', ['order' => $order->load('items.product', 'user', 'shipper.user')]);
+            // Kiểm tra xem đơn hàng này có thuộc shipper hiện tại không
+            $shipper = \App\Models\Shipper::where('user_id', auth()->id())->first();
+            if (!$shipper || $order->shipper_id !== $shipper->id) {
+                abort(403, 'Unauthorized access to this order');
+            }
+            return Inertia::render('Shipper/OrderDetail', [
+                'order' => $order->load('items.product.user', 'user', 'shipper.user')
+            ]);
         })->name('order.detail');
     });
 

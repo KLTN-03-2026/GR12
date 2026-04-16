@@ -23,11 +23,14 @@ class ShipperController extends Controller
 
         // Đơn hàng đang giao
         $currentOrders = Order::where('shipper_id', $shipper->id)
-            ->whereIn('status', ['shipping', 'picked_up'])
+            ->whereIn('status', ['assigned', 'shipping', 'picked_up', 'delivering'])
             ->with('items.product.user', 'user')
             ->get()
+            ->filter(function ($order) {
+                return $order->items->count() > 0;
+            })
             ->map(function ($order) {
-                $restaurantUser = $order->items->first()->product?->user;
+                $restaurantUser = $order->items->first()?->product?->user;
 
                 return [
                     'id' => $order->id,
@@ -59,12 +62,16 @@ class ShipperController extends Controller
                 ];
             });
 
-        // Đơn hàng available (chưa có shipper) và nằm trong bán kính 2km từ shipper đến quán
-        $availableOrders = Order::whereNull('shipper_id')
-            ->where('status', 'confirmed')
+        // Đơn hàng available (chưa nhận) - có thể chưa có shipper hoặc đã gán nhưng chưa shipper xác nhận
+        $availableOrders = Order::where(function ($query) {
+                $query->whereNull('shipper_id')
+                    ->where('status', 'confirmed')
+                    ->orWhere('status', 'assigned');
+            })
             ->with('items.product.user', 'user')
-            ->get()
-            ->map(function ($order) use ($shipperLat, $shipperLng) {
+            ->get()            ->filter(function ($order) {
+                return $order->items->count() > 0;
+            })            ->map(function ($order) use ($shipperLat, $shipperLng) {
                 $restaurantUser = $order->items->first()->product?->user;
                 $restaurantLat = $restaurantUser?->latitude;
                 $restaurantLng = $restaurantUser?->longitude;
@@ -110,14 +117,21 @@ class ShipperController extends Controller
                 ];
             })
             ->filter(function ($order) {
-                return $order['distance_to_restaurant'] !== null && $order['distance_to_restaurant'] <= 2;
+                // Nếu có distance, phải <= 2km. Nếu không có distance (chưa set vị trí), vẫn show để chọn
+                return $order['distance_to_restaurant'] === null || $order['distance_to_restaurant'] <= 2;
             })
             ->values();
 
         return response()->json([
             'current_orders' => $currentOrders,
             'available_orders' => $availableOrders,
-            'shipper' => $shipper
+            'shipper' => [
+                'id' => $shipper->id,
+                'user_id' => $shipper->user_id,
+                'status' => $shipper->status,
+                'current_latitude' => $shipper->current_latitude,
+                'current_longitude' => $shipper->current_longitude,
+            ]
         ]);
     }
 
@@ -164,8 +178,7 @@ class ShipperController extends Controller
         $shipper = $this->findNearestShipper($restaurantUser->latitude, $restaurantUser->longitude);
 
         if ($shipper) {
-            $order->update(['shipper_id' => $shipper->id, 'status' => 'confirmed']);
-            $shipper->update(['status' => 'busy']);
+            $order->update(['shipper_id' => $shipper->id, 'status' => 'assigned']);
         }
     }
 
@@ -173,13 +186,17 @@ class ShipperController extends Controller
     {
         $shipper = Shipper::where('user_id', Auth::id())->first();
 
-        if (!$shipper || $shipper->status !== 'available') {
+        if (!$shipper || !in_array($shipper->status, ['available', 'online'], true)) {
             return response()->json(['error' => 'Shipper not available'], 400);
         }
 
         $order = Order::findOrFail($orderId);
 
-        if ($order->shipper_id || $order->status !== 'confirmed') {
+        if ($order->shipper_id && $order->shipper_id !== $shipper->id) {
+            return response()->json(['error' => 'Order not available'], 400);
+        }
+
+        if (! in_array($order->status, ['assigned', 'confirmed'], true)) {
             return response()->json(['error' => 'Order not available'], 400);
         }
 
@@ -202,6 +219,26 @@ class ShipperController extends Controller
             return response()->json(['error' => 'Invalid order status'], 400);
         }
 
+        $restaurantUser = $order->items->first()->product?->user;
+        if (! $restaurantUser || ! $restaurantUser->latitude || ! $restaurantUser->longitude) {
+            return response()->json(['error' => 'Restaurant location not available'], 400);
+        }
+
+        if (! $shipper->current_latitude || ! $shipper->current_longitude) {
+            return response()->json(['error' => 'Shipper location not available'], 400);
+        }
+
+        $distanceToRestaurant = $this->distanceBetweenCoordinates(
+            $shipper->current_latitude,
+            $shipper->current_longitude,
+            $restaurantUser->latitude,
+            $restaurantUser->longitude,
+        );
+
+        if ($distanceToRestaurant > 0.3) {
+            return response()->json(['error' => 'Bạn chưa đến gần quán, vui lòng đi đúng vị trí trước khi xác nhận lấy hàng.'], 400);
+        }
+
         $order->update(['status' => 'picked_up']);
 
         return response()->json(['message' => 'Pickup confirmed']);
@@ -216,7 +253,7 @@ class ShipperController extends Controller
             return response()->json(['error' => 'Invalid order status'], 400);
         }
 
-        $order->update(['status' => 'shipping']);
+        $order->update(['status' => 'delivering']);
 
         return response()->json(['message' => 'Delivery started']);
     }
@@ -226,13 +263,32 @@ class ShipperController extends Controller
         $shipper = Shipper::where('user_id', Auth::id())->first();
         $order = Order::where('id', $orderId)->where('shipper_id', $shipper->id)->firstOrFail();
 
-        if ($order->status !== 'picked_up') {
+        if (! in_array($order->status, ['picked_up', 'delivering'], true)) {
             return response()->json(['error' => 'Invalid order status'], 400);
+        }
+
+        $customer = $order->user;
+        if (! $customer || ! $customer->latitude || ! $customer->longitude) {
+            return response()->json(['error' => 'Customer location not available'], 400);
+        }
+
+        if (! $shipper->current_latitude || ! $shipper->current_longitude) {
+            return response()->json(['error' => 'Shipper location not available'], 400);
+        }
+
+        $distanceToCustomer = $this->distanceBetweenCoordinates(
+            $shipper->current_latitude,
+            $shipper->current_longitude,
+            $customer->latitude,
+            $customer->longitude,
+        );
+
+        if ($distanceToCustomer > 0.3) {
+            return response()->json(['error' => 'Bạn đang ở sai vị trí giao hàng. Vui lòng di chuyển vào bán kính 300m của khách hàng.'], 400);
         }
 
         // Tính phí shipper dựa trên khoảng cách từ quán đến khách hàng
         $restaurantUser = $order->items->first()->product?->user;
-        $customer = $order->user;
 
         if ($restaurantUser && $customer && $restaurantUser->latitude && $restaurantUser->longitude && $customer->latitude && $customer->longitude) {
             $distance = $this->distanceBetweenCoordinates(

@@ -73,6 +73,29 @@ watch([search, selectedCat, activeTab, priceRange, deliveryType], () => {
 // --- 3. KHỞI TẠO BẢN ĐỒ & ĐỊNH VỊ ---
 const userLocation = ref(null);
 let map = null;
+const markersGroup = ref(null);
+
+const openDirections = (targetLat, targetLng) => {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const url = `https://www.openstreetmap.org/directions?engine=graphhopper_car&route=${pos.coords.latitude},${pos.coords.longitude};${targetLat},${targetLng}`;
+                window.open(url, "_blank");
+            },
+            () => {
+                const url = `https://www.openstreetmap.org/directions?engine=graphhopper_car&route=${targetLat},${targetLng}`;
+                window.open(url, "_blank");
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+            }
+        );
+    } else {
+        const url = `https://www.openstreetmap.org/directions?engine=graphhopper_car&route=${targetLat},${targetLng}`;
+        window.open(url, "_blank");
+    }
+};
 
 const initMap = () => {
     const mapContainer = document.getElementById("map-home");
@@ -81,21 +104,28 @@ const initMap = () => {
     map = L.map("map-home", {
         scrollWheelZoom: true,
         zoomControl: true,
+        zoomControlOptions: {
+            position: 'topright'
+        }
     }).setView([16.061, 108.2158], 13);
 
+    // Sử dụng tile layer chất lượng cao hơn
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution:
-            "&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors",
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         subdomains: "abc",
         maxZoom: 22,
+        minZoom: 3,
     }).addTo(map);
 
+    markersGroup.value = L.featureGroup();
+
+    // Icon cho quán ăn với animation
     const foodIcon = L.divIcon({
         html: `
             <div class="relative">
-                <div class="absolute -top-2 -left-2 w-8 h-8 bg-orange-500/20 rounded-full animate-ping"></div>
-                <div class="relative bg-orange-500 w-8 h-8 rounded-2xl flex items-center justify-center shadow-lg border-2 border-white text-white rotate-45 group hover:scale-125 transition-all font-sans">
-                    <span class="-rotate-45 text-xs">🍕</span>
+                <div class="absolute -top-3 -left-3 w-10 h-10 bg-orange-500/30 rounded-full animate-ping"></div>
+                <div class="relative bg-orange-500 w-8 h-8 rounded-2xl flex items-center justify-center shadow-lg border-2 border-white text-white rotate-45 hover:scale-110 transition-all duration-200">
+                    <span class="-rotate-45 text-sm">🍕</span>
                 </div>
             </div>
         `,
@@ -104,65 +134,119 @@ const initMap = () => {
         iconAnchor: [16, 16],
     });
 
-    const markersGroup = L.featureGroup();
-
     props.restaurants.forEach((shop) => {
         if (shop.latitude && shop.longitude) {
-            const m = L.marker([shop.latitude, shop.longitude], {
+            const marker = L.marker([shop.latitude, shop.longitude], {
                 icon: foodIcon,
             }).bindPopup(
                 `
-                    <div class="p-3 font-sans min-w-[180px]">
-                        <b class="text-gray-800 text-sm leading-tight">${shop.restaurant_name || shop.name}</b>
-                        <p class="text-[10px] text-gray-400 mb-4 font-bold">📍 ${shop.address}</p>
-                        <a href="/restaurant-menu/${shop.id}" class="block text-center bg-orange-500 text-white py-2 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-orange-100 no-underline">Khám phá menu ➔</a>
+                    <div class="p-4 font-sans min-w-[220px] max-w-[300px]">
+                        <h3 class="font-bold text-gray-800 text-base mb-2">${shop.restaurant_name || shop.name}</h3>
+                        <p class="text-sm text-gray-600 mb-3">📍 ${shop.address}</p>
+                        <div class="flex gap-2">
+                            <a href="/restaurant-menu/${shop.id}" class="flex-1 text-center bg-orange-500 text-white py-2 px-3 rounded-lg text-sm font-semibold hover:bg-orange-600 transition-colors no-underline">Xem menu</a>
+                            <button data-direction-lat="${shop.latitude}" data-direction-lng="${shop.longitude}" class="open-directions-btn bg-blue-500 text-white py-2 px-3 rounded-lg text-sm font-semibold hover:bg-blue-600 transition-colors">Chỉ đường</button>
+                        </div>
                     </div>
                 `,
-                { closeButton: false, offset: [0, -10] },
+                { closeButton: true, offset: [0, -16], className: 'custom-popup' }
             );
-            markersGroup.addLayer(m);
+
+            marker.on('popupopen', (e) => {
+                const btn = e.popup._container.querySelector('.open-directions-btn');
+                if (btn) {
+                    btn.addEventListener('click', () => {
+                        const lat = btn.getAttribute('data-direction-lat');
+                        const lng = btn.getAttribute('data-direction-lng');
+                        openDirections(lat, lng);
+                    });
+                }
+            });
+
+            markersGroup.value.addLayer(marker);
         }
     });
 
-    markersGroup.addTo(map);
+    markersGroup.value.addTo(map);
 
+    // Lấy vị trí người dùng với độ chính xác cao hơn
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
-                const { latitude, longitude } = position.coords;
+                const { latitude, longitude, accuracy } = position.coords;
                 userLocation.value = [latitude, longitude];
 
+                console.log(`Vị trí xác định với độ chính xác: ${accuracy} mét`);
+
                 const userIcon = L.divIcon({
-                    html: `<div class="relative"><div class="absolute -top-1 -left-1 w-6 h-6 bg-blue-500/40 rounded-full animate-ping"></div><div class="relative bg-blue-600 w-4 h-4 rounded-full border-2 border-white shadow-lg"></div></div>`,
+                    html: `
+                        <div class="relative">
+                            <div class="absolute -top-2 -left-2 w-8 h-8 bg-blue-500/40 rounded-full animate-ping"></div>
+                            <div class="relative bg-blue-600 w-5 h-5 rounded-full border-2 border-white shadow-lg"></div>
+                        </div>
+                    `,
                     className: "user-location-marker",
-                    iconSize: [16, 16],
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
                 });
 
-                L.marker([latitude, longitude], { icon: userIcon })
+                const userMarker = L.marker([latitude, longitude], { icon: userIcon })
                     .addTo(map)
                     .bindTooltip("Bạn đang ở đây!", {
-                        permanent: true,
+                        permanent: false,
                         direction: "top",
                         className: "user-tooltip",
                     });
 
-                if (markersGroup.getLayers().length > 0) {
-                    const bounds = markersGroup.getBounds();
+                // Tự động zoom và center
+                if (markersGroup.value.getLayers().length > 0) {
+                    const bounds = markersGroup.value.getBounds();
                     bounds.extend([latitude, longitude]);
-                    map.fitBounds(bounds, { padding: [50, 50] });
+                    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
                 } else {
-                    map.flyTo([latitude, longitude], 15);
+                    map.setView([latitude, longitude], 15);
                 }
 
+                // Gửi vị trí lên server
                 router.post(
                     route("update-location"),
                     { latitude, longitude },
                     { preserveScroll: true, preserveState: true },
                 );
             },
-            (err) => console.warn("Định vị bị từ chối."),
+            (err) => {
+                console.warn("Không thể định vị:", err.message);
+                // Fallback: hiển thị tất cả quán ăn
+                if (markersGroup.value.getLayers().length > 0) {
+                    map.fitBounds(markersGroup.value.getBounds(), { padding: [50, 50] });
+                }
+            },
+            {
+                enableHighAccuracy: true, // Yêu cầu độ chính xác cao
+                timeout: 10000,
+                maximumAge: 300000 // Cache vị trí trong 5 phút
+            }
         );
     }
+
+    // Thêm CSS cho popup
+    const style = document.createElement('style');
+    style.textContent = `
+        .custom-popup .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .custom-popup .leaflet-popup-content {
+            margin: 0;
+        }
+        .user-tooltip {
+            background: rgba(37, 99, 235, 0.9) !important;
+            color: white !important;
+            border: none !important;
+            font-weight: bold !important;
+        }
+    `;
+    document.head.appendChild(style);
 
     setTimeout(() => map.invalidateSize(), 500);
 };
@@ -403,9 +487,10 @@ const handleAddToCart = (data) => {
         </div>
         <div
             v-show="showMap"
-            id="map-home"
             class="h-[500px] w-full rounded-[3.5rem] shadow-2xl border-[12px] border-white overflow-hidden relative z-0 transition-all duration-500"
-        ></div>
+        >
+            <div id="map-home" class="h-full w-full rounded-3xl"></div>
+        </div>
     </section>
 
     <section v-else class="mb-16 px-2">

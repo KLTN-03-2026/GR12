@@ -3,188 +3,287 @@
         <Head :title="`Đơn hàng ${orderData.order_code} - FoodXpress`" />
 
         <div class="min-h-screen bg-[#f8f9fb] py-12 px-4">
-            <div class="max-w-4xl mx-auto">
+            <div class="max-w-4xl mx-auto space-y-8">
                 <div
-                    class="bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-gray-100 mb-8"
+                    class="bg-white rounded-[3rem] overflow-hidden shadow-sm border border-gray-100"
                 >
-                    <div
-                        class="p-6 md:p-8 border-b border-gray-50 bg-gray-50/30"
-                    >
-                        <div
-                            class="flex flex-wrap justify-between items-center gap-4"
-                        >
-                            <div>
-                                <p
-                                    class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1"
-                                >
-                                    Mã đơn hàng
-                                </p>
-                                <h1
-                                    class="text-2xl font-black text-gray-800 tracking-tight"
-                                >
-                                    #{{ orderData.order_code }}
-                                </h1>
-                            </div>
-                            <div
-                                :class="getStatusStyle(orderData.status)"
-                                class="px-5 py-2 rounded-2xl text-xs font-black uppercase tracking-widest border shadow-sm"
-                            >
-                                {{ getStatusText(orderData.status) }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="p-6 md:p-8 space-y-6">
-                        <div
-                            v-for="item in orderData.items"
-                            :key="item.id"
-                            class="flex items-center justify-between gap-4"
-                        >
-                            <div class="flex items-center gap-4 flex-1">
-                                <div
-                                    class="w-16 h-16 rounded-2xl overflow-hidden shadow-md shrink-0 border border-gray-100"
-                                >
-                                    <img
-                                        :src="'/storage/' + item.product.image"
-                                        class="w-full h-full object-cover"
-                                    />
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <h4
-                                        class="font-black text-gray-800 line-clamp-1 italic"
-                                    >
-                                        {{ item.product.name }}
-                                    </h4>
-                                    <p
-                                        class="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1"
-                                    >
-                                        Số lượng: {{ item.quantity }} •
-                                        {{ formatPrice(item.price) }}
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="text-right font-black text-gray-700">
-                                {{ formatPrice(item.price * item.quantity) }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div
-                        class="p-6 md:p-8 bg-gray-50/50 border-t border-gray-50"
-                    >
-                        <div class="grid md:grid-cols-2 gap-6">
-                            <div>
-                                <h3 class="font-black text-gray-800 mb-4">
-                                    Thông tin giao hàng
-                                </h3>
-                                <div class="space-y-2 text-sm">
-                                    <p>
-                                        <span class="font-bold">Địa chỉ:</span>
-                                        {{ orderData.address }}
-                                    </p>
-                                    <p>
-                                        <span class="font-bold"
-                                            >Số điện thoại:</span
-                                        >
-                                        {{ orderData.phone }}
-                                    </p>
-                                    <p v-if="orderData.note">
-                                        <span class="font-bold">Ghi chú:</span>
-                                        {{ orderData.note }}
-                                    </p>
-                                </div>
-                            </div>
-                            <div>
-                                <h3 class="font-black text-gray-800 mb-4">
-                                    Tóm tắt đơn hàng
-                                </h3>
-                                <div class="space-y-2 text-sm">
-                                    <div class="flex justify-between">
-                                        <span>Tạm tính:</span>
-                                        <span>{{
-                                            formatPrice(orderData.subtotal)
-                                        }}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span>Phí giao hàng:</span>
-                                        <span>{{
-                                            formatPrice(orderData.shipping_fee)
-                                        }}</span>
-                                    </div>
-                                    <div
-                                        class="flex justify-between font-black text-lg border-t pt-2"
-                                    >
-                                        <span>Tổng cộng:</span>
-                                        <span>{{
-                                            formatPrice(orderData.total)
-                                        }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Shipper Information -->
-                <div
-                    v-if="orderData.shipper"
-                    class="bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-gray-100 mb-8"
-                >
-                    <div
-                        class="p-6 md:p-8 border-b border-gray-50 bg-blue-50/30"
-                    >
-                        <h3 class="font-black text-gray-800 mb-4">
-                            Thông tin shipper
-                        </h3>
-                        <div class="flex items-center gap-4">
-                            <UserAvatar
-                                :user="orderData.shipper.user"
-                                class="w-12 h-12"
-                            />
-                            <div>
-                                <p class="font-black text-gray-800">
-                                    {{ orderData.shipper.user.name }}
-                                </p>
-                                <p class="text-sm text-gray-500">
-                                    {{ orderData.shipper.user.phone }}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="p-6 md:p-8">
                         <div
-                            id="order-map"
-                            class="h-64 w-full bg-gray-200 rounded-2xl mb-4"
-                        ></div>
-                        <div class="grid grid-cols-2 gap-4 text-sm">
-                            <div class="bg-gray-50 p-4 rounded-2xl">
-                                <p class="text-gray-400 font-bold">
-                                    Vị trí hiện tại
+                            class="flex flex-col gap-6 md:flex-row md:items-start md:justify-between"
+                        >
+                            <div class="max-w-2xl">
+                                <p
+                                    class="text-[10px] uppercase tracking-[0.3em] text-gray-400 mb-2"
+                                >
+                                    Thời gian giao dự kiến
                                 </p>
-                                <p class="mt-1 font-black text-gray-800">
-                                    {{
-                                        orderData.shipper.current_latitude
-                                            ? `${orderData.shipper.current_latitude.toFixed(4)}, ${orderData.shipper.current_longitude.toFixed(4)}`
-                                            : "Chưa cập nhật"
-                                    }}
+                                <h2
+                                    class="text-3xl sm:text-4xl font-black text-gray-900"
+                                >
+                                    {{ estimatedDeliveryTime }}
+                                </h2>
+                                <p class="mt-3 text-sm text-gray-500">
+                                    ShopeeFood sẽ thông báo khi đơn bắt đầu được
+                                    giao đến bạn.
                                 </p>
                             </div>
-                            <div class="bg-gray-50 p-4 rounded-2xl">
-                                <p class="text-gray-400 font-bold">
-                                    Trạng thái
-                                </p>
-                                <p class="mt-1 font-black text-gray-800">
-                                    {{ getShipperStatus(orderData.shipper.status) }}
-                                </p>
+                            <div
+                                class="rounded-full bg-orange-50 border border-orange-100 px-5 py-3 text-orange-700 font-black uppercase tracking-[0.18em] text-sm text-center"
+                            >
+                                {{ getStatusHeadline(orderData.status) }}
+                            </div>
+                        </div>
+
+                        <div class="mt-8 space-y-5">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div
+                                    v-for="step in progressSteps"
+                                    :key="step.key"
+                                    class="rounded-[2rem] border p-4 text-center transition"
+                                >
+                                    <div
+                                        :class="
+                                            step.active
+                                                ? 'bg-orange-500 text-white'
+                                                : 'bg-gray-100 text-gray-500'
+                                        "
+                                        class="mx-auto flex h-10 w-10 items-center justify-center rounded-full text-lg"
+                                    >
+                                        {{ step.icon }}
+                                    </div>
+                                    <p
+                                        class="mt-3 text-xs uppercase tracking-[0.2em] font-black"
+                                    >
+                                        {{ step.title }}
+                                    </p>
+                                    <p
+                                        class="mt-1 text-[11px] text-gray-500 leading-tight"
+                                    >
+                                        {{ step.label }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div
+                                class="h-2 rounded-full bg-slate-100 overflow-hidden"
+                            >
+                                <div
+                                    class="h-full rounded-full bg-orange-500 transition-all duration-500"
+                                    :style="{ width: `${progressPercent}%` }"
+                                ></div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Order Timeline -->
+                <div class="grid gap-6 lg:grid-cols-[1.8fr_1fr]">
+                    <div class="space-y-6">
+                        <div
+                            class="bg-white rounded-[3rem] shadow-sm border border-gray-100 p-6 md:p-8"
+                        >
+                            <div
+                                class="flex items-center justify-between gap-4 mb-5"
+                            >
+                                <div>
+                                    <p
+                                        class="text-xs uppercase tracking-[0.25em] text-gray-400 mb-2"
+                                    >
+                                        Từ
+                                    </p>
+                                    <h3
+                                        class="text-lg font-black text-gray-900"
+                                    >
+                                        {{ restaurant.name }}
+                                    </h3>
+                                    <p class="mt-2 text-sm text-gray-500">
+                                        {{
+                                            restaurant.address ||
+                                            "Địa chỉ nhà hàng chưa có"
+                                        }}
+                                    </p>
+                                </div>
+                                <span
+                                    class="inline-flex items-center rounded-full bg-orange-50 px-3 py-2 text-xs font-black uppercase tracking-[0.2em] text-orange-700"
+                                >
+                                    {{ orderData.items?.length || 0 }} món
+                                </span>
+                            </div>
+                        </div>
+
+                        <div
+                            class="bg-white rounded-[3rem] shadow-sm border border-gray-100 p-6 md:p-8"
+                        >
+                            <div class="flex items-start justify-between gap-4">
+                                <div>
+                                    <p
+                                        class="text-xs uppercase tracking-[0.25em] text-gray-400 mb-2"
+                                    >
+                                        Đến
+                                    </p>
+                                    <h3
+                                        class="text-lg font-black text-gray-900"
+                                    >
+                                        {{ orderData.address }}
+                                    </h3>
+                                    <p class="mt-2 text-sm text-gray-500">
+                                        {{ orderData.phone }}
+                                    </p>
+                                </div>
+                                <div
+                                    class="rounded-full bg-slate-100 px-3 py-2 text-xs font-black uppercase tracking-[0.18em] text-slate-600"
+                                >
+                                    Khách hàng
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            v-if="showTrackingMap"
+                            class="bg-white rounded-[3rem] overflow-hidden shadow-sm border border-gray-100"
+                        >
+                            <div class="p-6 md:p-8">
+                                <div
+                                    class="flex items-center justify-between gap-4 mb-4"
+                                >
+                                    <div>
+                                        <p
+                                            class="text-xs uppercase tracking-[0.25em] text-gray-400"
+                                        >
+                                            Bản đồ theo dõi
+                                        </p>
+                                        <h3
+                                            class="text-lg font-black text-gray-900"
+                                        >
+                                            Shipper đang giao đến bạn
+                                        </h3>
+                                    </div>
+                                </div>
+                                <div
+                                    id="order-map"
+                                    class="h-72 w-full rounded-3xl border border-gray-100"
+                                ></div>
+                            </div>
+                        </div>
+
+                        <div
+                            v-else-if="orderData.shipper"
+                            class="bg-white rounded-[3rem] shadow-sm border border-gray-100 p-6 md:p-8 text-center text-gray-500"
+                        >
+                            Bản đồ sẽ hiển thị khi shipper bắt đầu giao đơn.
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div
+                            class="bg-white rounded-[3rem] shadow-sm border border-gray-100 p-6 md:p-8"
+                        >
+                            <h3 class="text-lg font-black text-gray-900 mb-5">
+                                Tóm tắt đơn hàng
+                            </h3>
+                            <div class="space-y-4">
+                                <div
+                                    v-for="item in orderData.items"
+                                    :key="item.id"
+                                    class="flex items-center gap-4"
+                                >
+                                    <div
+                                        class="w-16 h-16 rounded-2xl overflow-hidden border border-gray-100"
+                                    >
+                                        <img
+                                            :src="
+                                                '/storage/' + item.product.image
+                                            "
+                                            alt=""
+                                            class="w-full h-full object-cover"
+                                        />
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p
+                                            class="font-black text-gray-900 line-clamp-1"
+                                        >
+                                            {{ item.product.name }}
+                                        </p>
+                                        <p class="text-xs text-gray-400 mt-1">
+                                            {{ item.quantity }} x
+                                            {{ formatPrice(item.price) }}
+                                        </p>
+                                    </div>
+                                    <div
+                                        class="text-right font-black text-gray-900"
+                                    >
+                                        {{
+                                            formatPrice(
+                                                item.price * item.quantity,
+                                            )
+                                        }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-6 space-y-3 text-sm text-gray-600">
+                                <div class="flex justify-between">
+                                    <span>Giá món</span>
+                                    <span class="font-black text-gray-900">{{
+                                        formatPrice(orderData.subtotal)
+                                    }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Phí giao hàng</span>
+                                    <span class="font-black text-gray-900">{{
+                                        formatPrice(orderData.shipping_fee)
+                                    }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Phí áp dụng</span>
+                                    <span class="font-black text-gray-900">{{
+                                        formatPrice(orderData.discount_amount)
+                                    }}</span>
+                                </div>
+                                <div
+                                    class="border-t border-gray-100 pt-4 flex justify-between text-lg font-black"
+                                >
+                                    <span>Tổng cộng</span>
+                                    <span>{{
+                                        formatPrice(orderData.total)
+                                    }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            v-if="orderData.shipper"
+                            class="bg-white rounded-[3rem] shadow-sm border border-gray-100 p-6 md:p-8"
+                        >
+                            <h3 class="text-lg font-black text-gray-900 mb-5">
+                                Thông tin shipper
+                            </h3>
+                            <div class="flex items-center gap-4">
+                                <UserAvatar
+                                    :user="orderData.shipper.user"
+                                    class="w-16 h-16"
+                                />
+                                <div class="flex-1 min-w-0">
+                                    <p class="font-black text-gray-900">
+                                        {{ orderData.shipper.user.name }}
+                                    </p>
+                                    <p class="text-sm text-gray-500">
+                                        {{ orderData.shipper.user.phone }}
+                                    </p>
+                                    <p class="text-sm text-gray-500 mt-2">
+                                        {{
+                                            orderData.shipper.user
+                                                .license_plate ||
+                                            "Chưa có biển số"
+                                        }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div
-                    class="bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-gray-100"
+                    class="bg-white rounded-[3rem] overflow-hidden shadow-sm border border-gray-100"
                 >
                     <div
                         class="p-6 md:p-8 border-b border-gray-50 bg-gray-50/30"
@@ -200,7 +299,7 @@
                                 <div
                                     :class="[
                                         'w-8 h-8 rounded-full flex items-center justify-center text-sm font-black',
-                                        order.status === 'pending'
+                                        orderData.status === 'pending'
                                             ? 'bg-amber-100 text-amber-600'
                                             : 'bg-green-100 text-green-600',
                                     ]"
@@ -215,7 +314,7 @@
                                         Đơn hàng của bạn đã được tạo thành công
                                     </p>
                                     <p class="text-xs text-gray-400 mt-1">
-                                        {{ formatDate(order.created_at) }}
+                                        {{ formatDate(orderData.created_at) }}
                                     </p>
                                 </div>
                             </div>
@@ -230,7 +329,7 @@
                                             'shipping',
                                             'picked_up',
                                             'completed',
-                                        ].includes(order.status)
+                                        ].includes(orderData.status)
                                             ? 'bg-green-100 text-green-600'
                                             : 'bg-gray-100 text-gray-400',
                                     ]"
@@ -256,7 +355,7 @@
                                             'shipping',
                                             'picked_up',
                                             'completed',
-                                        ].includes(order.status)
+                                        ].includes(orderData.status)
                                             ? 'bg-green-100 text-green-600'
                                             : 'bg-gray-100 text-gray-400',
                                     ]"
@@ -282,7 +381,7 @@
                                             'shipping',
                                             'picked_up',
                                             'completed',
-                                        ].includes(order.status)
+                                        ].includes(orderData.status)
                                             ? 'bg-green-100 text-green-600'
                                             : 'bg-gray-100 text-gray-400',
                                     ]"
@@ -307,7 +406,7 @@
                                             'picked_up',
                                             'shipping',
                                             'completed',
-                                        ].includes(order.status)
+                                        ].includes(orderData.status)
                                             ? 'bg-green-100 text-green-600'
                                             : 'bg-gray-100 text-gray-400',
                                     ]"
@@ -328,7 +427,7 @@
                                 <div
                                     :class="[
                                         'w-8 h-8 rounded-full flex items-center justify-center text-sm font-black',
-                                        order.status === 'completed'
+                                        orderData.status === 'completed'
                                             ? 'bg-green-100 text-green-600'
                                             : 'bg-gray-100 text-gray-400',
                                     ]"
@@ -344,8 +443,9 @@
                                     </p>
                                     <button
                                         v-if="
-                                            order.status === 'picked_up' ||
-                                            order.status === 'shipping'
+                                            ['picked_up', 'shipping'].includes(
+                                                orderData.status,
+                                            )
                                         "
                                         @click="confirmDelivery"
                                         class="mt-3 px-6 py-2 bg-green-600 text-white rounded-2xl font-black text-sm hover:bg-green-700 transition"
@@ -363,7 +463,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from "vue";
+import { computed, ref, onMounted, watch, onUnmounted } from "vue";
 import { Head } from "@inertiajs/vue3";
 import GuestLayout from "@/Layouts/GuestLayout.vue";
 import UserAvatar from "@/Components/UserAvatar.vue";
@@ -378,6 +478,130 @@ const map = ref(null);
 const orderData = ref(props.order);
 const shipperMarker = ref(null);
 const refreshInterval = ref(null);
+
+const restaurant = computed(() => {
+    if (orderData.value.restaurant) return orderData.value.restaurant;
+    const productUser = orderData.value.items?.[0]?.product?.user;
+    return {
+        name: productUser?.restaurant_name ?? productUser?.name ?? "Nhà hàng",
+        address: productUser?.address ?? "",
+    };
+});
+
+const estimatedDeliveryTime = computed(() => {
+    if (!orderData.value.created_at) return "Đang cập nhật";
+    const created = new Date(orderData.value.created_at);
+    const start = new Date(created.getTime() + 20 * 60000);
+    const end = new Date(created.getTime() + 40 * 60000);
+    const formatTime = (date) =>
+        new Intl.DateTimeFormat("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit",
+        }).format(date);
+    return `${formatTime(start)} - ${formatTime(end)}`;
+});
+
+const progressSteps = computed(() => [
+    {
+        key: "pending",
+        icon: "📋",
+        title: "Đặt đơn",
+        label: "Đã đặt",
+        active: [
+            "pending",
+            "processing",
+            "confirmed",
+            "shipping",
+            "picked_up",
+            "completed",
+        ].includes(orderData.value.status),
+    },
+    {
+        key: "processing",
+        icon: "👨‍🍳",
+        title: "Chuẩn bị",
+        label: "Nhà hàng đang làm đồ",
+        active: [
+            "processing",
+            "confirmed",
+            "shipping",
+            "picked_up",
+            "completed",
+        ].includes(orderData.value.status),
+    },
+    {
+        key: "confirmed",
+        icon: "🛵",
+        title: "Gán shipper",
+        label: "Tài xế đang nhận đơn",
+        active: ["confirmed", "shipping", "picked_up", "completed"].includes(
+            orderData.value.status,
+        ),
+    },
+    {
+        key: "shipping",
+        icon: "🚚",
+        title: "Giao hàng",
+        label: "Shipper đang đến",
+        active: ["shipping", "picked_up", "completed"].includes(
+            orderData.value.status,
+        ),
+    },
+]);
+
+const progressPercent = computed(() => {
+    switch (orderData.value.status) {
+        case "pending":
+            return 12;
+        case "processing":
+            return 35;
+        case "confirmed":
+            return 60;
+        case "shipping":
+            return 80;
+        case "picked_up":
+            return 92;
+        case "completed":
+            return 100;
+        default:
+            return 0;
+    }
+});
+
+const showTrackingMap = computed(() => {
+    return (
+        ["shipping", "picked_up"].includes(orderData.value.status) &&
+        orderData.value.shipper?.current_latitude &&
+        orderData.value.shipper?.current_longitude &&
+        orderData.value.user?.latitude &&
+        orderData.value.user?.longitude
+    );
+});
+
+const getStatusHeadline = (status) => {
+    const headlines = {
+        pending: "Đang chờ xác nhận",
+        processing: "Đơn đang được chuẩn bị",
+        confirmed: "Tài xế đang lấy đơn…",
+        shipping: "Đơn đang được giao…",
+        picked_up: "Shipper đã lấy hàng",
+        completed: "Đã giao thành công",
+        cancelled: "Đã hủy đơn",
+    };
+    return headlines[status] || "Đang cập nhật";
+};
+
+const startOrderPolling = () => {
+    if (refreshInterval.value) return;
+    refreshInterval.value = setInterval(updateOrderData, 5000);
+};
+
+const stopOrderPolling = () => {
+    if (refreshInterval.value) {
+        clearInterval(refreshInterval.value);
+        refreshInterval.value = null;
+    }
+};
 
 const formatPrice = (p) =>
     new Intl.NumberFormat("vi-VN", {
@@ -446,7 +670,10 @@ const initMap = () => {
         zoomControl: false,
         attributionControl: false,
     }).setView(
-        [orderData.value.shipper.current_latitude, orderData.value.shipper.current_longitude],
+        [
+            orderData.value.shipper.current_latitude,
+            orderData.value.shipper.current_longitude,
+        ],
         15,
     );
 
@@ -475,7 +702,10 @@ const initMap = () => {
 
     // Add shipper marker
     shipperMarker.value = L.circleMarker(
-        [orderData.value.shipper.current_latitude, orderData.value.shipper.current_longitude],
+        [
+            orderData.value.shipper.current_latitude,
+            orderData.value.shipper.current_longitude,
+        ],
         {
             radius: 10,
             fillColor: "#ef4444",
@@ -490,13 +720,16 @@ const initMap = () => {
 
 const updateOrderData = async () => {
     try {
-        const response = await fetch(`/api/orders/${orderData.value.id}/details`, {
-            headers: {
-                Accept: "application/json",
-                "Content-Type": "application/json",
+        const response = await fetch(
+            `/api/orders/${orderData.value.id}/details`,
+            {
+                headers: {
+                    Accept: "application/json",
+                    "Content-Type": "application/json",
+                },
+                credentials: "include",
             },
-            credentials: 'include',
-        });
+        );
 
         if (response.ok) {
             const freshData = await response.json();
@@ -508,15 +741,38 @@ const updateOrderData = async () => {
 };
 
 // Watch shipper location changes to update map
-watch(() => orderData.value.shipper?.current_latitude, () => {
-    if (orderData.value.shipper && shipperMarker.value) {
-        const newLat = orderData.value.shipper.current_latitude;
-        const newLng = orderData.value.shipper.current_longitude;
-        
-        if (newLat && newLng) {
-            shipperMarker.value.setLatLng([newLat, newLng]);
-            map.value?.panTo([newLat, newLng]);
+watch(
+    () => [
+        orderData.value.shipper?.current_latitude,
+        orderData.value.shipper?.current_longitude,
+    ],
+    () => {
+        if (orderData.value.shipper && shipperMarker.value) {
+            const newLat = orderData.value.shipper.current_latitude;
+            const newLng = orderData.value.shipper.current_longitude;
+
+            if (newLat && newLng) {
+                shipperMarker.value.setLatLng([newLat, newLng]);
+                map.value?.panTo([newLat, newLng]);
+            }
         }
+    },
+);
+
+watch(
+    () => orderData.value.status,
+    (status) => {
+        if (["shipping", "picked_up"].includes(status)) {
+            startOrderPolling();
+        } else {
+            stopOrderPolling();
+        }
+    },
+);
+
+watch(showTrackingMap, (visible) => {
+    if (visible) {
+        initMap();
     }
 });
 
@@ -532,7 +788,7 @@ const confirmDelivery = async () => {
                     Accept: "application/json",
                     "Content-Type": "application/json",
                 },
-                credentials: 'include',
+                credentials: "include",
             },
         );
 
@@ -548,26 +804,20 @@ const confirmDelivery = async () => {
     }
 };
 
-import { onUnmounted } from "vue";
-
 onMounted(() => {
-    initMap();
+    if (showTrackingMap.value) {
+        initMap();
+    }
 
-    // Poll order details every 5 seconds when shipper is taking/delivering the order
-    if (orderData.value.status === "shipping" || orderData.value.status === "picked_up") {
-        refreshInterval.value = setInterval(() => {
-            updateOrderData();
-        }, 5000);
+    if (["shipping", "picked_up"].includes(orderData.value.status)) {
+        startOrderPolling();
     }
 });
 
 onUnmounted(() => {
-    if (refreshInterval.value) {
-        clearInterval(refreshInterval.value);
-    }
+    stopOrderPolling();
     if (map.value) {
         map.value.remove();
     }
 });
 </script>
-

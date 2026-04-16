@@ -2,16 +2,16 @@
     <ShipperLayout>
         <template #default>
             <section
-                class="mb-5 rounded-[28px] bg-slate-900/95 p-4 text-white shadow-sm ring-1 ring-white/10"
+                class="mb-5 rounded-[28px] bg-slate-900/95 p-3 text-white shadow-sm ring-1 ring-white/10"
             >
-                <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center justify-between gap-3">
                     <div>
                         <p
-                            class="text-xs uppercase tracking-[0.24em] text-slate-400"
+                            class="text-xs uppercase tracking-[0.2em] text-slate-400"
                         >
                             Trạng thái
                         </p>
-                        <p class="mt-2 text-xl font-semibold">
+                        <p class="mt-1 text-lg font-semibold">
                             {{
                                 shipper.status === "offline"
                                     ? "Offline"
@@ -25,7 +25,7 @@
                         @click="showStatusDialog"
                         :disabled="isCheckoutDisabled"
                         :class="[
-                            'rounded-3xl px-4 py-3 text-sm font-semibold shadow-lg shadow-slate-900/10 transition',
+                            'rounded-3xl px-3 py-2 text-xs font-semibold shadow-lg shadow-slate-900/10 transition',
                             shipper.status === 'offline'
                                 ? 'bg-white text-slate-900 hover:bg-slate-100'
                                 : isCheckoutDisabled
@@ -44,27 +44,27 @@
                 </div>
                 <div
                     v-if="isCheckoutDisabled"
-                    class="mt-3 rounded-3xl bg-amber-50 p-3 text-sm text-amber-700"
+                    class="mt-2 rounded-3xl bg-amber-50 p-2 text-xs text-amber-700"
                 >
                     Không thể check-out khi đang có đơn. Hoàn thành đơn hàng
                     trước khi nghỉ.
                 </div>
-                <div class="mt-4 grid grid-cols-3 gap-3 text-center text-sm">
-                    <div class="rounded-3xl bg-slate-800/80 p-3">
-                        <div class="text-3xl font-bold">
+                <div class="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+                    <div class="rounded-3xl bg-slate-800/80 p-2">
+                        <div class="text-2xl font-bold">
                             {{ currentOrders.length }}
                         </div>
-                        <div class="text-slate-400">Đang giao</div>
+                        <div class="text-slate-400 text-xs mt-1">Đang giao</div>
                     </div>
-                    <div class="rounded-3xl bg-slate-800/80 p-3">
-                        <div class="text-3xl font-bold">
+                    <div class="rounded-3xl bg-slate-800/80 p-2">
+                        <div class="text-2xl font-bold">
                             {{ availableOrders.length }}
                         </div>
-                        <div class="text-slate-400">Đơn có sẵn</div>
+                        <div class="text-slate-400 text-xs mt-1">Đơn có sẵn</div>
                     </div>
-                    <div class="rounded-3xl bg-slate-800/80 p-3">
-                        <div class="text-3xl font-bold">{{ statusText }}</div>
-                        <div class="text-slate-400">Bạn</div>
+                    <div class="rounded-3xl bg-slate-800/80 p-2">
+                        <div class="text-2xl font-bold">{{ statusText }}</div>
+                        <div class="text-slate-400 text-xs mt-1">Bạn</div>
                     </div>
                 </div>
             </section>
@@ -238,6 +238,92 @@
                 </div>
             </section>
 
+            <div
+                v-if="showAssignmentModal"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+            >
+                <div
+                    class="max-w-3xl w-full rounded-[2rem] bg-white p-8 shadow-2xl border border-white/80"
+                >
+                    <div class="flex flex-col gap-4 text-center">
+                        <div class="text-6xl">📣</div>
+                        <h2 class="text-3xl font-black text-slate-900">
+                            Đơn hàng mới đã được gán cho bạn!
+                        </h2>
+                        <p class="text-sm text-slate-500">
+                            Đơn #{{ selectedOrder && selectedOrder.order_code }}
+                            vừa được gán. Vui lòng xác nhận để bắt đầu nhận.
+                        </p>
+                    </div>
+                    <div class="mt-6 grid gap-4 md:grid-cols-2">
+                        <div
+                            class="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5 text-left"
+                        >
+                            <p
+                                class="text-xs uppercase tracking-[0.3em] text-slate-400 mb-3"
+                            >
+                                Quán
+                            </p>
+                            <p class="text-lg font-semibold text-slate-900">
+                                {{
+                                    selectedOrder && selectedOrder.restaurant
+                                        ? selectedOrder.restaurant.name
+                                        : "Quán chưa rõ"
+                                }}
+                            </p>
+                            <p class="text-sm text-slate-500 mt-2">
+                                Địa chỉ:
+                                {{
+                                    selectedOrder &&
+                                    selectedOrder.restaurant &&
+                                    selectedOrder.restaurant.latitude
+                                        ? selectedOrder.restaurant.latitude +
+                                          ", " +
+                                          selectedOrder.restaurant.longitude
+                                        : "Chưa có tọa độ"
+                                }}
+                            </p>
+                        </div>
+                        <div
+                            class="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5 text-left"
+                        >
+                            <p
+                                class="text-xs uppercase tracking-[0.3em] text-slate-400 mb-3"
+                            >
+                                Khách hàng
+                            </p>
+                            <p class="text-lg font-semibold text-slate-900">
+                                {{
+                                    selectedOrder && selectedOrder.user
+                                        ? selectedOrder.user.name
+                                        : "Khách hàng"
+                                }}
+                            </p>
+                            <p class="text-sm text-slate-500 mt-2">
+                                Địa chỉ giao:
+                                {{ selectedOrder && selectedOrder.address }}
+                            </p>
+                        </div>
+                    </div>
+                    <div
+                        class="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center"
+                    >
+                        <button
+                            @click="handleAcceptOrder"
+                            class="w-full rounded-3xl bg-emerald-600 px-6 py-4 text-sm font-black uppercase tracking-[0.2em] text-white shadow-xl hover:bg-emerald-700 transition"
+                        >
+                            Xác nhận nhận đơn
+                        </button>
+                        <button
+                            @click="closeAssignmentModal"
+                            class="w-full rounded-3xl border border-slate-200 bg-white px-6 py-4 text-sm font-black uppercase tracking-[0.2em] text-slate-700 hover:bg-slate-50 transition"
+                        >
+                            Xem sau
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Status Change Dialog -->
             <ConfirmDialog
                 ref="statusDialog"
@@ -287,7 +373,7 @@
 
 <script setup>
 import { ref, watch, computed, onMounted } from "vue";
-import { Link } from "@inertiajs/vue3";
+import { Link, router } from "@inertiajs/vue3";
 import { useToast } from "vue-toastification";
 import ShipperLayout from "@/Layouts/ShipperLayout.vue";
 import ConfirmDialog from "@/Components/ConfirmDialog.vue";
@@ -308,6 +394,10 @@ const trackingWatcherId = ref(null);
 const statusDialog = ref(null);
 const acceptDialog = ref(null);
 const selectedOrder = ref(null);
+const newAssignedOrder = ref(null);
+const showAssignmentModal = ref(false);
+const dismissedAssignedOrderId = ref(null);
+const hasPlayedAssignmentSound = ref(false);
 const hasAutoCheckedIn = ref(window.shipperHasAutoCheckedIn === true);
 
 const authHeaders = {
@@ -325,13 +415,86 @@ const fetchDashboard = async () => {
             throw new Error("Failed to load dashboard");
         }
         const data = await response.json();
+        console.log("📊 Dashboard data:", {
+            current_orders: data.current_orders,
+            available_orders: data.available_orders,
+            shipper: data.shipper,
+        });
         currentOrders.value = data.current_orders;
         availableOrders.value = data.available_orders;
         shipper.value = data.shipper;
         refreshMap();
+        handleNewAssignedOrders();
     } catch (error) {
         console.error("Error fetching dashboard:", error);
     }
+};
+
+const playNotificationSound = () => {
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const context = new AudioContext();
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(880, context.currentTime);
+        gain.gain.setValueAtTime(0.12, context.currentTime);
+
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+
+        oscillator.start();
+        setTimeout(() => {
+            oscillator.frequency.setValueAtTime(1200, context.currentTime);
+        }, 120);
+        setTimeout(() => {
+            gain.gain.exponentialRampToValueAtTime(
+                0.0001,
+                context.currentTime + 0.2,
+            );
+        }, 220);
+        setTimeout(() => {
+            oscillator.stop();
+            context.close();
+        }, 400);
+    } catch (error) {
+        console.warn("Notification sound unavailable:", error);
+    }
+};
+
+const handleNewAssignedOrders = () => {
+    const assignedOrder = currentOrders.value.find(
+        (order) => order.status === "assigned",
+    );
+
+    if (!assignedOrder || dismissedAssignedOrderId.value === assignedOrder.id) {
+        return;
+    }
+
+    if (
+        newAssignedOrder.value &&
+        newAssignedOrder.value.id === assignedOrder.id &&
+        showAssignmentModal.value
+    ) {
+        return;
+    }
+
+    selectedOrder.value = assignedOrder;
+    newAssignedOrder.value = assignedOrder;
+    showAssignmentModal.value = true;
+    if (!hasPlayedAssignmentSound.value) {
+        playNotificationSound();
+        hasPlayedAssignmentSound.value = true;
+    }
+};
+
+const closeAssignmentModal = () => {
+    if (selectedOrder.value) {
+        dismissedAssignedOrderId.value = selectedOrder.value.id;
+    }
+    showAssignmentModal.value = false;
+    hasPlayedAssignmentSound.value = false;
 };
 
 const autoCheckIn = async () => {
@@ -445,7 +608,59 @@ const renderOrderMarkers = () => {
             );
         }
 
-        if (
+        const shipperCoords =
+            shipper.value.current_latitude && shipper.value.current_longitude
+                ? [
+                      shipper.value.current_latitude,
+                      shipper.value.current_longitude,
+                  ]
+                : null;
+
+        if (order.status === "shipping" && shipperCoords && restaurantCoords) {
+            const line = L.polyline([shipperCoords, restaurantCoords], {
+                color: "#f97316",
+                weight: 3,
+                opacity: 0.8,
+                dashArray: "8, 6",
+            }).addTo(map.value);
+            polylines.value.push(line);
+        } else if (
+            order.status === "assigned" &&
+            shipperCoords &&
+            restaurantCoords
+        ) {
+            const line = L.polyline([shipperCoords, restaurantCoords], {
+                color: "#f97316",
+                weight: 3,
+                opacity: 0.8,
+                dashArray: "8, 6",
+            }).addTo(map.value);
+            polylines.value.push(line);
+        } else if (
+            order.status === "picked_up" &&
+            restaurantCoords &&
+            customerCoords
+        ) {
+            const line = L.polyline([restaurantCoords, customerCoords], {
+                color: "#2563eb",
+                weight: 3,
+                opacity: 0.8,
+                dashArray: "8, 6",
+            }).addTo(map.value);
+            polylines.value.push(line);
+        } else if (
+            order.status === "delivering" &&
+            shipperCoords &&
+            customerCoords
+        ) {
+            const line = L.polyline([shipperCoords, customerCoords], {
+                color: "#10b981",
+                weight: 3,
+                opacity: 0.8,
+                dashArray: "8, 6",
+            }).addTo(map.value);
+            polylines.value.push(line);
+        } else if (
             restaurantCoords &&
             customerCoords &&
             order.status !== "confirmed"
@@ -626,9 +841,11 @@ const hideAcceptDialog = () => {
 const handleAcceptOrder = async () => {
     if (!selectedOrder.value) return;
 
+    const orderId = selectedOrder.value.id;
+
     try {
         const response = await csrfFetch(
-            `/api/shipper/orders/${selectedOrder.value.id}/accept`,
+            `/api/shipper/orders/${orderId}/accept`,
             {
                 method: "POST",
                 headers: authHeaders,
@@ -636,8 +853,10 @@ const handleAcceptOrder = async () => {
         );
         if (response.ok) {
             toast.success("🎉 Đã nhận đơn hàng thành công!");
-            await fetchDashboard();
             hideAcceptDialog();
+            showAssignmentModal.value = false;
+            await fetchDashboard();
+            router.visit(`/shipper/orders/${orderId}/detail`);
         } else {
             const error = await response.json();
             toast.error(error?.error || "❌ Không thể nhận đơn hàng.");
@@ -653,9 +872,11 @@ const handleAcceptOrder = async () => {
 const getStatusText = (status) => {
     const statuses = {
         pending: "Chờ xác nhận",
+        assigned: "Đơn mới chưa nhận",
         confirmed: "Đã xác nhận",
-        shipping: "Đang giao",
+        shipping: "Đi tới quán",
         picked_up: "Đã lấy hàng",
+        delivering: "Đang giao tới khách",
         completed: "Hoàn thành",
         cancelled: "Đã hủy",
     };

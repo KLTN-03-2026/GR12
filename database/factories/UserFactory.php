@@ -27,6 +27,12 @@ class UserFactory extends Factory
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
+            'phone' => fake()->unique()->numerify('0#########'),
+            'gender' => fake()->randomElement(['Nam', 'Nữ', 'Khác']),
+            'birthday' => fake()->dateTimeBetween('-40 years', '-18 years')->format('Y-m-d'),
+            'occupation' => fake()->randomElement(['Sinh viên', 'Nhân viên văn phòng', 'Lao động tự do', 'Kinh doanh', 'Khác']),
+            'role' => 'customer',
+            'status' => 'active',
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),

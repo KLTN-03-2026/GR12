@@ -43,7 +43,7 @@ class RestaurantOrderController extends Controller
     {
         // 1. Validate dữ liệu đầu vào
         $request->validate([
-            'status' => 'required|in:pending,processing,shipping,completed,cancelled'
+            'status' => 'required|in:pending,processing,confirmed,assigned,shipping,completed,cancelled'
         ]);
 
         $restaurantId = Auth::id();
@@ -56,20 +56,22 @@ class RestaurantOrderController extends Controller
 
         $oldStatus = $order->status;
 
-        // 3. Cập nhật trạng thái
         $order->update([
             'status' => $request->status
         ]);
 
-        // 4. Nếu chuyển sang processing, tự động gán shipper
-        if ($oldStatus !== 'processing' && $request->status === 'processing') {
+        // 4. Nếu chuyển sang assigned, tự động gán shipper gần nhất
+        if ($oldStatus !== 'assigned' && $request->status === 'assigned') {
             $shipperController = new ShipperController();
             $shipperController->assignShipperToOrder($id);
         }
 
         // 5. Trả về thông báo thành công cho Toast
         $statusMap = [
-            'processing' => 'đã được xác nhận và đang chuẩn bị',
+            'pending'   => 'đang chờ xử lý',
+            'processing' => 'đang được xác nhận và chuẩn bị',
+            'confirmed' => 'đã sẵn sàng giao cho shipper',
+            'assigned' => 'đã gán shipper, chờ xác nhận',
             'shipping'   => 'đang được giao đến khách hàng',
             'completed'  => 'đã hoàn thành',
             'cancelled'  => 'đã bị hủy',

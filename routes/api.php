@@ -8,6 +8,70 @@ Route::get('/test', function () {
     return response()->json(['message' => 'API FoodXpress đã sẵn sàng!']);
 });
 
+Route::get('/debug/order/{orderId}', function ($orderId) {
+    $order = \App\Models\Order::with('items.product.user')->find($orderId);
+    if (!$order) {
+        return response()->json(['error' => 'Order not found'], 404);
+    }
+    return response()->json([
+        'order_id' => $order->id,
+        'order_code' => $order->order_code,
+        'items_count' => $order->items->count(),
+        'items' => $order->items->map(function ($item) {
+            return [
+                'id' => $item->id,
+                'product_id' => $item->product_id,
+                'product_name' => $item->product->name,
+                'restaurant' => $item->product->user->restaurant_name ?? $item->product->user->name,
+                'quantity' => $item->quantity,
+                'price' => $item->price,
+            ];
+        }),
+        'db_check' => [
+            'raw_items' => \DB::table('order_items')->where('order_id', $orderId)->count(),
+        ]
+    ]);
+});
+
+Route::get('/debug/shipper-dashboard', function () {
+    $user = \Illuminate\Support\Facades\Auth::user();
+    if (!$user) {
+        return response()->json(['error' => 'Not authenticated'], 401);
+    }
+
+    $shipper = \App\Models\Shipper::where('user_id', $user->id)->first();
+    if (!$shipper) {
+        return response()->json(['error' => 'Shipper not found for user ' . $user->id], 404);
+    }
+
+    $orders = \App\Models\Order::all();
+    $confirmedOrders = \App\Models\Order::where('status', 'confirmed')->get();
+    $assignedOrders = \App\Models\Order::where('status', 'assigned')->get();
+
+    return response()->json([
+        'authenticated_user' => $user->id,
+        'shipper' => [
+            'id' => $shipper->id,
+            'user_id' => $shipper->user_id,
+            'status' => $shipper->status,
+        ],
+        'total_orders' => $orders->count(),
+        'confirmed_orders' => $confirmedOrders->map(fn($o) => [
+            'id' => $o->id,
+            'code' => $o->order_code,
+            'status' => $o->status,
+            'shipper_id' => $o->shipper_id,
+            'items_count' => $o->items->count(),
+        ]),
+        'assigned_orders' => $assignedOrders->map(fn($o) => [
+            'id' => $o->id,
+            'code' => $o->order_code,
+            'status' => $o->status,
+            'shipper_id' => $o->shipper_id,
+        ]),
+    ]);
+})->middleware('auth:sanctum');
+
 // Route lấy danh sách món ăn: GET http://127.0.0.1:8000/api/products
 Route::get('/products', [ProductController::class, 'index']);
 

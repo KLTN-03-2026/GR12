@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 use App\Models\CartItem; // Nhớ import Model này vào nhé
+use App\Models\Order;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -36,6 +37,18 @@ class HandleInertiaRequests extends Middleware
                 return $user 
                     ? CartItem::where('user_id', $user->id)->sum('quantity') 
                     : 0;
+            },
+            
+            'newOrdersCount' => function () use ($user) {
+                if (! $user || $user->role !== 'restaurant') {
+                    return 0;
+                }
+
+                return Order::whereHas('items.product', function ($query) use ($user) {
+                    $query->where('user_id', $user->id);
+                })
+                ->whereIn('status', ['pending', 'processing'])
+                ->count();
             },
             
             'flash' => [

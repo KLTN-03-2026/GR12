@@ -32,7 +32,7 @@ class OrderController extends Controller
     public function show($id)
     {
         $order = Order::where('user_id', auth()->id())
-            ->with(['items.product', 'shipper.user'])
+            ->with(['items.product.user', 'shipper.user', 'user'])
             ->findOrFail($id);
 
         return Inertia::render('Customer/OrderDetail', [
@@ -58,11 +58,13 @@ class OrderController extends Controller
     {
         $order = Order::where('user_id', auth()->id())
             ->with([
-                'items.product',
+                'items.product.user',
                 'shipper.user',
                 'user'
             ])
             ->findOrFail($id);
+
+        $restaurantUser = $order->items->first()?->product?->user;
 
         return response()->json([
             'id' => $order->id,
@@ -77,6 +79,10 @@ class OrderController extends Controller
             'total' => $order->total,
             'payment_method' => $order->payment_method,
             'created_at' => $order->created_at,
+            'restaurant' => [
+                'name' => $restaurantUser?->restaurant_name ?? $restaurantUser?->name ?? 'Nhà hàng',
+                'address' => $restaurantUser?->address ?? '',
+            ],
             'items' => $order->items->map(fn($item) => [
                 'id' => $item->id,
                 'product' => [
@@ -169,6 +175,17 @@ class OrderController extends Controller
         $subtotal = $cartItems->sum(function ($item) {
             return $item->product->price * $item->quantity;
         });
+        
+        // Validate subtotal > 0
+        if ($subtotal <= 0) {
+            \Log::error('Invalid subtotal calculation', [
+                'user_id' => $user->id,
+                'cart_items_count' => $cartItems->count(),
+                'subtotal' => $subtotal,
+            ]);
+            return redirect()->back()->with('error', 'Lỗi tính toán giá, vui lòng thử lại.');
+        }
+        
         $shippingFee = 15000; // Phí ship cố định (Hoàng Anh có thể chỉnh lại)
         $voucherCode = $request->voucher_code;
         $discountAmount = 0;
@@ -233,6 +250,7 @@ class OrderController extends Controller
             }
 
             // 4. Xóa sạch giỏ hàng của user sau khi đặt thành công
+            // PHẢI nằm TRONG transaction để đảm bảo nếu có lỗi, cart items vẫn được giữ lại
             CartItem::where('user_id', $user->id)->delete();
 
             DB::commit();

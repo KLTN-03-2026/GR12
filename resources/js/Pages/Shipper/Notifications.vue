@@ -2,7 +2,7 @@
     <ShipperLayout>
         <template #default>
             <section
-                class="rounded-[32px] bg-white p-6 shadow-sm ring-1 ring-slate-200"
+                class="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-slate-200"
             >
                 <div class="flex flex-col items-center gap-6 text-center">
                     <div class="flex flex-col items-center gap-4 text-center">
