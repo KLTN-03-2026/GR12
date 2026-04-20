@@ -50,7 +50,7 @@ const handleAddToCart = (data) => {
     router.post(
         route("cart.add"),
         {
-            product_id: data.product.id,
+            product_id: data.product_id,
             quantity: data.quantity,
             options: data.options,
             note: data.note || "",

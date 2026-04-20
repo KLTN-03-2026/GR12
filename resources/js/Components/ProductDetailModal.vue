@@ -13,6 +13,7 @@ const emit = defineEmits(["close", "addToCart"]);
 const selectedOptions = ref([]);
 const quantity = ref(1);
 const note = ref(""); // Thêm trường ghi chú nếu khách muốn dặn dò
+const showSidebar = ref(false); // Ẩn/hiện phần sidebar thông tin bổ sung
 
 // 2. Tính tổng tiền (Giá gốc + Toppings) * Số lượng
 const totalPrice = computed(() => {
@@ -36,16 +37,11 @@ const toggleOption = (option) => {
 // 4. Gửi dữ liệu ra ngoài
 const handleAddToCart = () => {
     emit("addToCart", {
-        product: props.product,
-        options: selectedOptions.value, // Gửi nguyên mảng object toppings đã chọn
+        product_id: props.product.id,
+        options: selectedOptions.value.map((opt) => opt.id), // Gửi danh sách ID để backend xử lý chuẩn hơn
         quantity: quantity.value,
-        total: totalPrice.value,
         note: note.value,
     });
-
-    // Reset lại trạng thái sau khi thêm thành công để lần sau mở món khác không bị dính dữ liệu cũ
-    // quantity.value = 1;
-    // selectedOptions.value = [];
 
     emit("close");
 };
@@ -94,194 +90,205 @@ const handleAddToCart = () => {
                     </div>
                 </div>
 
-                <div class="p-8 space-y-6 pb-32">
-                    <div class="flex justify-between items-start">
-                        <div class="space-y-1">
-                            <span
-                                class="text-[10px] font-black text-orange-500 uppercase tracking-[0.2em] bg-orange-50 px-2 py-0.5 rounded"
-                            >
-                                {{ product.category?.name || "Món ăn" }}
-                            </span>
-                            <h2
-                                class="text-3xl font-black text-gray-900 leading-tight"
-                            >
-                                {{ product.name }}
-                            </h2>
-                        </div>
-                        <div class="text-right">
-                            <p
-                                class="text-2xl font-black text-gray-900 drop-shadow-sm"
-                            >
-                                {{ Number(product.price).toLocaleString() }}đ
-                            </p>
-                        </div>
-                    </div>
-
-                    <p
-                        class="text-sm text-gray-500 leading-relaxed italic border-l-4 border-orange-200 pl-4 bg-gray-50 py-2 rounded-r-xl"
-                    >
-                        {{
-                            product.description ||
-                            "Hương vị tuyệt vời đang chờ bạn khám phá."
-                        }}
-                    </p>
-
-                    <div v-if="product.options?.length" class="space-y-4 pt-4">
-                        <label
-                            class="text-xs font-black text-gray-800 uppercase tracking-widest italic flex items-center gap-2"
-                        >
-                            <span>Tùy chọn thêm</span>
-                            <span class="h-px flex-1 bg-gray-100"></span>
-                        </label>
-
-                        <div class="grid grid-cols-1 gap-3">
-                            <div
-                                v-for="opt in product.options"
-                                :key="opt.id"
-                                @click="toggleOption(opt)"
-                                :class="
-                                    selectedOptions.find((o) => o.id === opt.id)
-                                        ? 'border-orange-500 bg-orange-50 shadow-md translate-x-1'
-                                        : 'border-gray-100 bg-gray-50 hover:bg-white hover:border-orange-200'
-                                "
-                                class="flex items-center gap-4 p-4 rounded-[1.5rem] border-2 cursor-pointer transition-all duration-300 group"
-                            >
-                                <div
-                                    class="w-14 h-14 rounded-2xl overflow-hidden bg-white border border-gray-100 shadow-sm transition-transform group-hover:scale-105"
-                                >
-                                    <img
-                                        :src="'/storage/' + opt.image"
-                                        v-if="opt.image"
-                                        class="w-full h-full object-cover"
-                                    />
-                                    <div
-                                        v-else
-                                        class="w-full h-full flex items-center justify-center text-[10px] font-black text-gray-300"
+                <div class="p-8 space-y-6 pb-10">
+                    <div class="grid gap-6 md:grid-cols-[1.8fr_0.95fr] items-start">
+                        <div class="space-y-6">
+                            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                <div class="space-y-2">
+                                    <span
+                                        class="inline-flex items-center rounded-full bg-orange-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-orange-600"
                                     >
-                                        😋
+                                        {{ product.category?.name || 'Món ăn' }}
+                                    </span>
+                                    <h2 class="text-4xl font-black text-slate-900 leading-tight">
+                                        {{ product.name }}
+                                    </h2>
+                                    <p class="max-w-2xl text-sm text-slate-500 leading-relaxed">
+                                        {{
+                                            product.description ||
+                                            'Hương vị tuyệt vời đang chờ bạn khám phá.'
+                                        }}
+                                    </p>
+                                </div>
+
+                                <div class="flex flex-col items-start gap-3 sm:items-end">
+                                    <div class="rounded-[2rem] bg-slate-900 px-5 py-3 text-white shadow-xl">
+                                        <p class="text-xs uppercase tracking-[0.24em] text-slate-300">
+                                            Giá khởi điểm
+                                        </p>
+                                        <p class="text-3xl font-black leading-none">
+                                            {{ Number(product.price).toLocaleString() }}đ
+                                        </p>
                                     </div>
-                                </div>
-
-                                <div class="flex-1">
-                                    <p class="text-sm font-bold text-gray-800">
-                                        {{ opt.option_value }}
-                                    </p>
-                                    <p
-                                        class="text-[10px] text-orange-500 font-black"
+                                    <button
+                                        @click="showSidebar = !showSidebar"
+                                        class="rounded-full border border-slate-200 bg-white px-5 py-3 text-xs font-black uppercase tracking-[0.24em] text-slate-700 shadow-sm transition hover:border-orange-300 hover:text-orange-600"
                                     >
-                                        +{{
-                                            Number(
-                                                opt.additional_price,
-                                            ).toLocaleString()
-                                        }}đ
-                                    </p>
-                                </div>
-
-                                <div
-                                    :class="
-                                        selectedOptions.find(
-                                            (o) => o.id === opt.id,
-                                        )
-                                            ? 'bg-orange-500 scale-110'
-                                            : 'bg-white border-2 border-gray-200'
-                                    "
-                                    class="w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300"
-                                >
-                                    <svg
-                                        v-if="
-                                            selectedOptions.find(
-                                                (o) => o.id === opt.id,
-                                            )
-                                        "
-                                        class="w-4 h-4 text-white"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="4"
-                                            d="M5 13l4 4L19 7"
-                                        />
-                                    </svg>
+                                        {{ showSidebar ? 'Ẩn chi tiết' : 'Mở chi tiết' }}
+                                    </button>
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <div class="space-y-2">
-                        <label
-                            class="text-[10px] font-black text-gray-400 uppercase tracking-widest"
-                            >Ghi chú cho quán</label
-                        >
-                        <input
-                            v-model="note"
-                            type="text"
-                            placeholder="Ví dụ: Không hành, nhiều cay..."
-                            class="w-full border-none bg-gray-50 rounded-2xl p-4 text-sm focus:ring-orange-500"
-                        />
+                            <div class="grid gap-4 sm:grid-cols-2">
+                                <div class="rounded-[2rem] bg-slate-50 p-5 border border-slate-200 shadow-sm">
+                                    <p class="text-xs uppercase tracking-[0.24em] text-slate-400 mb-2">Khung giờ phục vụ</p>
+                                    <p class="font-black text-slate-900">{{ product.available_from }} - {{ product.available_to }}</p>
+                                </div>
+                                <div class="rounded-[2rem] bg-slate-50 p-5 border border-slate-200 shadow-sm">
+                                    <p class="text-xs uppercase tracking-[0.24em] text-slate-400 mb-2">Tùy chọn đã chọn</p>
+                                    <p class="font-black text-slate-900">{{ selectedOptions.length }} tùy chọn</p>
+                                </div>
+                            </div>
+
+                            <div v-if="product.options?.length" class="space-y-4">
+                                <div class="flex items-center justify-between gap-3">
+                                    <div>
+                                        <p class="text-xs uppercase tracking-[0.24em] text-slate-400">Tùy chọn thêm</p>
+                                        <p class="text-base font-black text-slate-900">Chọn thêm để tăng hương vị</p>
+                                    </div>
+                                    <span class="text-xs uppercase tracking-[0.24em] text-orange-500">Chạm để chọn</span>
+                                </div>
+
+                                <div class="grid gap-3">
+                                    <div
+                                        v-for="opt in product.options"
+                                        :key="opt.id"
+                                        @click="toggleOption(opt)"
+                                        :class="[
+                                            'flex items-center gap-4 rounded-[1.75rem] border p-4 transition-all duration-300 cursor-pointer',
+                                            selectedOptions.find((o) => o.id === opt.id)
+                                                ? 'border-orange-300 bg-orange-50 shadow-lg'
+                                                : 'border-slate-200 bg-white hover:border-orange-200 hover:shadow-sm'
+                                        ]"
+                                    >
+                                        <div
+                                            class="flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-100 overflow-hidden shadow-sm"
+                                        >
+                                            <img
+                                                v-if="opt.image"
+                                                :src="'/storage/' + opt.image"
+                                                class="h-full w-full object-cover"
+                                            />
+                                            <div
+                                                v-else
+                                                class="text-[10px] font-black text-slate-400"
+                                            >
+                                                😋
+                                            </div>
+                                        </div>
+
+                                        <div class="flex-1">
+                                            <p class="text-sm font-black text-slate-900">{{ opt.option_value }}</p>
+                                            <p class="text-xs uppercase tracking-[0.22em] text-orange-500">
+                                                +{{ Number(opt.additional_price).toLocaleString() }}đ
+                                            </p>
+                                        </div>
+
+                                        <div
+                                            :class="[
+                                                'flex h-8 w-8 items-center justify-center rounded-full transition-all',
+                                                selectedOptions.find((o) => o.id === opt.id)
+                                                    ? 'bg-orange-500 text-white'
+                                                    : 'bg-white border border-slate-200 text-slate-400'
+                                            ]"
+                                        >
+                                            <svg
+                                                v-if="selectedOptions.find((o) => o.id === opt.id)"
+                                                class="h-4 w-4"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="3"
+                                                    d="M5 13l4 4L19 7"
+                                                />
+                                            </svg>
+                                            <span v-else class="text-[12px] font-black">+</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.24em]">
+                                    Ghi chú cho quán
+                                </label>
+                                <input
+                                    v-model="note"
+                                    type="text"
+                                    placeholder="Ví dụ: Không hành, nhiều cay..."
+                                    class="w-full rounded-[1.75rem] border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-700 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100"
+                                />
+                            </div>
+                        </div>
+
+                        <Transition name="slide-fade">
+                            <aside
+                                v-if="showSidebar"
+                                class="rounded-[2rem] border border-slate-200 bg-slate-50 p-6 shadow-xl"
+                            >
+                                <p class="text-[10px] uppercase tracking-[0.3em] text-slate-500 font-black mb-4">
+                                    Thông tin nhanh
+                                </p>
+                                <div class="space-y-5 text-sm text-slate-600">
+                                    <div class="rounded-3xl bg-white p-4 border border-slate-200 shadow-sm">
+                                        <p class="text-xs uppercase tracking-[0.24em] text-slate-400 mb-2">Danh mục</p>
+                                        <p class="font-black text-slate-900">{{ product.category?.name || 'Món ăn' }}</p>
+                                    </div>
+                                    <div class="rounded-3xl bg-white p-4 border border-slate-200 shadow-sm">
+                                        <p class="text-xs uppercase tracking-[0.24em] text-slate-400 mb-2">Giờ phục vụ</p>
+                                        <p class="font-black text-slate-900">{{ product.available_from }} - {{ product.available_to }}</p>
+                                    </div>
+                                    <div class="rounded-3xl bg-white p-4 border border-slate-200 shadow-sm">
+                                        <p class="text-xs uppercase tracking-[0.24em] text-slate-400 mb-2">Tùy chọn đã chọn</p>
+                                        <p class="font-black text-slate-900">{{ selectedOptions.length }} mục</p>
+                                    </div>
+                                    <div class="rounded-3xl bg-white p-4 border border-slate-200 shadow-sm">
+                                        <p class="text-xs uppercase tracking-[0.24em] text-slate-400 mb-2">Tổng giá</p>
+                                        <p class="text-lg font-black text-orange-600">{{ totalPrice.toLocaleString() }}đ</p>
+                                    </div>
+                                </div>
+                            </aside>
+                        </Transition>
                     </div>
                 </div>
 
                 <div
-                    class="fixed bottom-0 left-0 right-0 md:absolute bg-white/90 backdrop-blur-xl p-6 border-t border-gray-100 flex items-center justify-between gap-6 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]"
+                    class="sticky bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl p-6 border-t border-gray-100 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shadow-[0_-10px_30px_rgba(0,0,0,0.05)]"
                 >
-                    <div
-                        class="flex items-center bg-gray-900 text-white rounded-[1.5rem] p-1.5 font-black shadow-lg"
-                    >
+                    <div class="flex items-center gap-3 rounded-[1.75rem] bg-slate-900 px-4 py-3 text-white shadow-lg">
                         <button
                             @click="quantity > 1 ? quantity-- : null"
-                            class="w-10 h-10 flex items-center justify-center hover:bg-white/10 rounded-xl transition-all"
+                            class="h-10 w-10 rounded-xl border border-white/10 bg-white/10 transition hover:bg-white/20"
                         >
-                            <svg
-                                class="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="3"
-                                    d="M20 12H4"
-                                />
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M20 12H4" />
                             </svg>
                         </button>
-                        <span class="w-8 text-center text-lg">{{
-                            quantity
-                        }}</span>
+                        <span class="w-10 text-center text-lg font-bold">{{ quantity }}</span>
                         <button
                             @click="quantity++"
-                            class="w-10 h-10 flex items-center justify-center hover:bg-white/10 rounded-xl transition-all"
+                            class="h-10 w-10 rounded-xl border border-white/10 bg-white/10 transition hover:bg-white/20"
                         >
-                            <svg
-                                class="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="3"
-                                    d="M12 4v16m8-8H4"
-                                />
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" />
                             </svg>
                         </button>
                     </div>
 
                     <button
                         @click="handleAddToCart"
-                        class="flex-1 bg-orange-500 text-white h-14 rounded-2xl font-black text-sm flex items-center justify-between px-8 shadow-xl shadow-orange-100 hover:bg-orange-600 transition-all active:scale-95 group"
+                        class="flex-1 rounded-[1.75rem] bg-orange-500 px-6 py-4 text-sm font-black uppercase tracking-[0.24em] text-white shadow-xl shadow-orange-200 transition hover:bg-orange-600 active:scale-[0.99]"
                     >
-                        <span
-                            class="tracking-widest group-hover:translate-x-1 transition-transform uppercase"
-                            >Thêm vào giỏ</span
-                        >
-                        <span class="text-lg bg-white/20 px-3 py-1 rounded-xl"
-                            >{{ totalPrice.toLocaleString() }}đ</span
-                        >
+                        <div class="flex items-center justify-between gap-4">
+                            <span>Thêm vào giỏ</span>
+                            <span class="rounded-full bg-white/15 px-4 py-2 text-base font-black text-white">
+                                {{ totalPrice.toLocaleString() }}đ
+                            </span>
+                        </div>
                     </button>
                 </div>
             </div>
@@ -304,12 +311,29 @@ const handleAddToCart = () => {
     }
 }
 .fade-enter-active,
-.fade-leave-active {
-    transition: opacity 0.4s ease;
+.fade-leave-active,
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+    transition: all 0.3s ease;
 }
 .fade-enter-from,
-.fade-leave-to {
+.fade-leave-to,
+.slide-fade-enter-from,
+.slide-fade-leave-to {
     opacity: 0;
+    transform: translateX(10px);
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+    opacity: 0;
+    transform: translateX(10px);
+}
+
+.slide-fade-enter-to,
+.slide-fade-leave-from {
+    opacity: 1;
+    transform: translateX(0);
 }
 
 /* Tùy chỉnh thanh cuộn cho Modal */

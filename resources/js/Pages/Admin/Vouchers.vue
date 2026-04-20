@@ -14,6 +14,8 @@ const form = useForm({
     discount_type: "fixed",
     discount_value: 0,
     expires_at: "",
+    max_uses: 0,
+    minimum_product_price: 0,
 });
 
 const activeVouchers = computed(() =>
@@ -26,7 +28,14 @@ const submitVoucher = () => {
     form.post(route("admin.vouchers.store"), {
         preserveScroll: true,
         onSuccess: () => {
-            form.reset("code", "discount_type", "discount_value", "expires_at");
+            form.reset(
+                "code",
+                "discount_type",
+                "discount_value",
+                "expires_at",
+                "max_uses",
+                "minimum_product_price",
+            );
         },
     });
 };
@@ -118,6 +127,51 @@ const submitVoucher = () => {
                         </div>
                     </div>
 
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label
+                                class="block text-sm font-bold text-gray-700 mb-2"
+                            >
+                                Giới hạn lượt sử dụng
+                            </label>
+                            <input
+                                v-model="form.max_uses"
+                                type="number"
+                                min="0"
+                                step="1"
+                                placeholder="0 = không giới hạn"
+                                class="w-full rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm font-semibold outline-none transition focus:border-orange-500"
+                            />
+                            <p
+                                v-if="form.errors.max_uses"
+                                class="text-red-500 text-xs mt-2"
+                            >
+                                {{ form.errors.max_uses }}
+                            </p>
+                        </div>
+                        <div>
+                            <label
+                                class="block text-sm font-bold text-gray-700 mb-2"
+                            >
+                                Giá sản phẩm tối thiểu
+                            </label>
+                            <input
+                                v-model="form.minimum_product_price"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="Áp dụng cho sản phẩm giá tối thiểu"
+                                class="w-full rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm font-semibold outline-none transition focus:border-orange-500"
+                            />
+                            <p
+                                v-if="form.errors.minimum_product_price"
+                                class="text-red-500 text-xs mt-2"
+                            >
+                                {{ form.errors.minimum_product_price }}
+                            </p>
+                        </div>
+                    </div>
+
                     <div>
                         <label
                             class="block text-sm font-bold text-gray-700 mb-2"
@@ -177,6 +231,34 @@ const submitVoucher = () => {
                                                       voucher.discount_value,
                                                   )
                                         }}
+                                    </div>
+                                    <div class="text-xs text-slate-500 mt-1">
+                                        Lượt dùng:
+                                        {{
+                                            voucher.max_uses
+                                                ? voucher.used_count +
+                                                  "/" +
+                                                  voucher.max_uses
+                                                : "Không giới hạn"
+                                        }}
+                                    </div>
+                                    <div
+                                        v-if="voucher.minimum_product_price"
+                                        class="text-xs text-slate-500 mt-1"
+                                    >
+                                        Áp dụng cho sản phẩm giá từ
+                                        {{
+                                            new Intl.NumberFormat("vi-VN", {
+                                                style: "currency",
+                                                currency: "VND",
+                                            }).format(
+                                                voucher.minimum_product_price,
+                                            )
+                                        }}
+                                        trở lên
+                                    </div>
+                                    <div class="text-xs text-slate-400 mt-1">
+                                        ID nội bộ: {{ voucher.uuid }}
                                     </div>
                                 </div>
                                 <div class="text-right text-xs text-gray-500">

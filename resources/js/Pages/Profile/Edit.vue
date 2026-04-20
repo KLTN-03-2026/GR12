@@ -1,10 +1,10 @@
 <script setup>
-import GuestLayout from '@/Layouts/GuestLayout.vue';
-import DeleteUserForm from './Partials/DeleteUserForm.vue';
-import UpdatePasswordForm from './Partials/UpdatePasswordForm.vue';
-import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm.vue';
-import { Head, usePage } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import GuestLayout from "@/Layouts/GuestLayout.vue";
+import DeleteUserForm from "./Partials/DeleteUserForm.vue";
+import UpdatePasswordForm from "./Partials/UpdatePasswordForm.vue";
+import UpdateProfileInformationForm from "./Partials/UpdateProfileInformationForm.vue";
+import { Head, usePage } from "@inertiajs/vue3";
+import { ref } from "vue";
 
 defineProps({
     mustVerifyEmail: {
@@ -16,14 +16,16 @@ defineProps({
 });
 
 const user = usePage().props.auth.user;
-const activeTab = ref('profile');
+const activeTab = ref("profile");
 </script>
 
 <template>
     <Head title="Hồ sơ cá nhân" />
 
     <GuestLayout>
-        <div class="py-12 bg-gradient-to-br from-orange-50 via-white to-red-50 min-h-screen">
+        <div
+            class="py-12 bg-gradient-to-br from-orange-50 via-white to-red-50 min-h-screen"
+        >
             <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
                 <!-- Header Profile Card -->
                 <div
@@ -33,9 +35,25 @@ const activeTab = ref('profile');
                         <!-- Avatar -->
                         <div class="relative">
                             <div
-                                class="w-24 h-24 rounded-full bg-white/20 border-4 border-white flex items-center justify-center text-5xl shadow-lg"
+                                class="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg"
                             >
-                                👤
+                                <img
+                                    v-if="user.avatar"
+                                    :src="
+                                        user.avatar.startsWith('/')
+                                            ? '/storage/' +
+                                              user.avatar.replace(/^\//, '')
+                                            : user.avatar
+                                    "
+                                    alt="Avatar"
+                                    class="w-full h-full object-cover"
+                                />
+                                <div
+                                    v-else
+                                    class="w-full h-full bg-white/20 flex items-center justify-center text-5xl"
+                                >
+                                    👤
+                                </div>
                             </div>
                         </div>
                         <!-- Info -->
@@ -47,7 +65,12 @@ const activeTab = ref('profile');
                                 📧 {{ user.email }}
                             </p>
                             <p class="text-white/70 text-sm">
-                                Thành viên từ {{ new Date(user.created_at).toLocaleDateString('vi-VN') }}
+                                Thành viên từ
+                                {{
+                                    new Date(
+                                        user.created_at,
+                                    ).toLocaleDateString("vi-VN")
+                                }}
                             </p>
                         </div>
                     </div>
@@ -61,7 +84,7 @@ const activeTab = ref('profile');
                             'pb-4 px-6 font-black text-lg transition-all duration-300 border-b-4',
                             activeTab === 'profile'
                                 ? 'text-orange-600 border-orange-500'
-                                : 'text-gray-500 border-transparent hover:text-gray-700'
+                                : 'text-gray-500 border-transparent hover:text-gray-700',
                         ]"
                     >
                         ℹ️ Thông tin
@@ -72,7 +95,7 @@ const activeTab = ref('profile');
                             'pb-4 px-6 font-black text-lg transition-all duration-300 border-b-4',
                             activeTab === 'security'
                                 ? 'text-orange-600 border-orange-500'
-                                : 'text-gray-500 border-transparent hover:text-gray-700'
+                                : 'text-gray-500 border-transparent hover:text-gray-700',
                         ]"
                     >
                         🔒 Bảo mật
@@ -83,7 +106,7 @@ const activeTab = ref('profile');
                             'pb-4 px-6 font-black text-lg transition-all duration-300 border-b-4',
                             activeTab === 'danger'
                                 ? 'text-red-600 border-red-500'
-                                : 'text-gray-500 border-transparent hover:text-gray-700'
+                                : 'text-gray-500 border-transparent hover:text-gray-700',
                         ]"
                     >
                         ⚠️ Nguy hiểm

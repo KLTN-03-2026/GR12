@@ -130,6 +130,9 @@ class OrderController extends Controller
             return redirect()->route('home')->with('error', 'Giỏ hàng của bạn đang trống, hãy chọn món trước nhé!');
         }
 
+        // Lấy thông tin quán ăn từ sản phẩm đầu tiên trong giỏ hàng
+        $restaurant = $cartItems->first()->product->user;
+
         $vouchers = Voucher::active()
             ->orderBy('expires_at', 'asc')
             ->get();
@@ -137,6 +140,7 @@ class OrderController extends Controller
         return Inertia::render('Customer/Checkout', [
             'cartItems' => $cartItems,
             'user' => $user,
+            'restaurant' => $restaurant,
             'vouchers' => $vouchers,
         ]);
     }
@@ -195,9 +199,17 @@ class OrderController extends Controller
                 ->where('expires_at', '>', now())
                 ->first();
 
-            if (!$voucher) {
+            if (!$voucher || !$voucher->isAvailable()) {
                 return redirect()->back()->withErrors([
-                    'voucher_code' => 'Mã voucher không hợp lệ hoặc đã hết hạn.',
+                    'voucher_code' => 'Mã voucher không hợp lệ, đã hết lượt sử dụng hoặc đã hết hạn.',
+                ])->withInput();
+            }
+
+            if ($voucher->minimum_product_price && !$cartItems->contains(function ($item) use ($voucher) {
+                return $item->product->price >= $voucher->minimum_product_price;
+            })) {
+                return redirect()->back()->withErrors([
+                    'voucher_code' => 'Voucher chỉ áp dụng cho sản phẩm có giá từ ' . number_format($voucher->minimum_product_price, 0, ',', '.') . ' trở lên.',
                 ])->withInput();
             }
 
@@ -237,6 +249,13 @@ class OrderController extends Controller
                 'payment_method' => $request->payment_method,
                 'status' => 'pending', // Trạng thái chờ xử lý
             ]);
+
+            if (isset($voucher)) {
+                $lockedVoucher = Voucher::where('id', $voucher->id)->lockForUpdate()->first();
+                if ($lockedVoucher && $lockedVoucher->isAvailable()) {
+                    $lockedVoucher->increment('used_count');
+                }
+            }
 
             // Lưu chi tiết từng món trong đơn hàng
             foreach ($cartItems as $cartItem) {

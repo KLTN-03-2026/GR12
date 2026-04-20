@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Mail; // <--- THÊM DÒNG NÀY
 use App\Mail\PartnerAccountStatus;  // <--- THÊM DÒNG NÀY
+use Illuminate\Support\Str;
 
 class AdminController extends Controller
 {
@@ -53,6 +54,8 @@ class AdminController extends Controller
             'discount_type' => 'required|in:fixed,percent',
             'discount_value' => 'required|numeric|min:1',
             'expires_at' => 'required|date|after:now',
+            'max_uses' => 'nullable|integer|min:1',
+            'minimum_product_price' => 'nullable|numeric|min:0',
         ], [
             'code.required' => 'Mã voucher không được để trống.',
             'code.unique' => 'Mã voucher đã tồn tại. Vui lòng sử dụng mã khác.',
@@ -64,6 +67,10 @@ class AdminController extends Controller
             'discount_type' => $request->discount_type,
             'discount_value' => $request->discount_value,
             'expires_at' => $request->expires_at,
+            'uuid' => (string) Str::uuid(),
+            'max_uses' => $request->input('max_uses', 0) ?: 0,
+            'used_count' => 0,
+            'minimum_product_price' => $request->input('minimum_product_price') ?: null,
         ]);
 
         return back()->with('success', 'Đã tạo voucher thành công.');

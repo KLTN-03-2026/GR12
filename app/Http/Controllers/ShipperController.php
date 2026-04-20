@@ -9,14 +9,25 @@ use Illuminate\Support\Facades\Auth;
 
 class ShipperController extends Controller
 {
+    protected function getShipper(): Shipper
+    {
+        return Shipper::firstOrCreate(
+            ['user_id' => Auth::id()],
+            [
+                'status' => 'available',
+                'current_latitude' => 0,
+                'current_longitude' => 0,
+                'vehicle_type' => 'xe máy',
+                'rating' => 0,
+                'total_deliveries' => 0,
+            ]
+        );
+    }
+
     public function index()
     {
         // Lấy shipper hiện tại
-        $shipper = Shipper::where('user_id', Auth::id())->first();
-
-        if (!$shipper) {
-            return response()->json(['error' => 'Shipper not found'], 404);
-        }
+        $shipper = $this->getShipper();
 
         $shipperLat = $shipper->current_latitude;
         $shipperLng = $shipper->current_longitude;
@@ -184,9 +195,9 @@ class ShipperController extends Controller
 
     public function acceptOrder(Request $request, $orderId)
     {
-        $shipper = Shipper::where('user_id', Auth::id())->first();
+        $shipper = $this->getShipper();
 
-        if (!$shipper || !in_array($shipper->status, ['available', 'online'], true)) {
+        if (!in_array($shipper->status, ['available', 'online'], true)) {
             return response()->json(['error' => 'Shipper not available'], 400);
         }
 
@@ -212,7 +223,7 @@ class ShipperController extends Controller
 
     public function confirmPickup($orderId)
     {
-        $shipper = Shipper::where('user_id', Auth::id())->first();
+        $shipper = $this->getShipper();
         $order = Order::where('id', $orderId)->where('shipper_id', $shipper->id)->firstOrFail();
 
         if ($order->status !== 'shipping') {
@@ -246,7 +257,7 @@ class ShipperController extends Controller
 
     public function startDelivery($orderId)
     {
-        $shipper = Shipper::where('user_id', Auth::id())->first();
+        $shipper = $this->getShipper();
         $order = Order::where('id', $orderId)->where('shipper_id', $shipper->id)->firstOrFail();
 
         if ($order->status !== 'picked_up') {
@@ -260,7 +271,7 @@ class ShipperController extends Controller
 
     public function completeOrder($orderId)
     {
-        $shipper = Shipper::where('user_id', Auth::id())->first();
+        $shipper = $this->getShipper();
         $order = Order::where('id', $orderId)->where('shipper_id', $shipper->id)->firstOrFail();
 
         if (! in_array($order->status, ['picked_up', 'delivering'], true)) {
@@ -319,7 +330,7 @@ class ShipperController extends Controller
             'longitude' => 'required|numeric'
         ]);
 
-        $shipper = Shipper::where('user_id', Auth::id())->firstOrFail();
+        $shipper = $this->getShipper();
 
         $shipper->update([
             'current_latitude' => $request->latitude,
@@ -331,7 +342,7 @@ class ShipperController extends Controller
 
     public function checkIn()
     {
-        $shipper = Shipper::where('user_id', Auth::id())->firstOrFail();
+        $shipper = $this->getShipper();
 
         if ($shipper->status === 'offline') {
             $shipper->update(['status' => 'available']);
@@ -345,7 +356,7 @@ class ShipperController extends Controller
 
     public function checkOut()
     {
-        $shipper = Shipper::where('user_id', Auth::id())->firstOrFail();
+        $shipper = $this->getShipper();
 
         if ($shipper->status === 'busy') {
             return response()->json(['error' => 'Cannot check out while delivering an order'], 400);
@@ -361,7 +372,7 @@ class ShipperController extends Controller
 
     public function show($orderId)
     {
-        $shipper = Shipper::where('user_id', Auth::id())->first();
+        $shipper = $this->getShipper();
         $order = Order::where('id', $orderId)->where('shipper_id', $shipper->id)
             ->with('items.product', 'user', 'shipper.user')
             ->firstOrFail();

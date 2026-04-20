@@ -149,7 +149,14 @@ class OrderShipperFlowTest extends TestCase
             ->assertJson(['message' => 'Delivery started']);
 
         $order->refresh();
-        $this->assertSame('shipping', $order->status);
+        $this->assertSame('delivering', $order->status);
+
+        // Update shipper location to be near customer for completion
+        $this->actingAs($shipperUser, 'sanctum')
+            ->postJson('/api/shipper/location', [
+                'latitude' => 10.7795000,
+                'longitude' => 106.6995000,
+            ]);
 
         $this->actingAs($shipperUser, 'sanctum')
             ->postJson("/api/shipper/orders/{$order->id}/complete")
