@@ -44,10 +44,24 @@ import UserAvatar from "@/Components/UserAvatar.vue";
                     🎟️ Quản lý voucher
                 </Link>
                 <Link
-                    href="#"
-                    class="block p-3 rounded-lg hover:bg-slate-800 transition text-gray-500 cursor-not-allowed"
+                    :href="route('admin.products.pending')"
+                    class="block p-3 rounded-lg hover:bg-slate-800 transition"
+                    :class="{
+                        'bg-orange-600 shadow-lg shadow-orange-900/50':
+                            $page.component === 'Admin/PendingProducts',
+                    }"
                 >
                     🍔 Quản lý món ăn
+                </Link>
+                <Link
+                    :href="route('admin.orders.index')"
+                    class="block p-3 rounded-lg hover:bg-slate-800 transition"
+                    :class="{
+                        'bg-orange-600 shadow-lg shadow-orange-900/50':
+                            $page.component === 'Admin/Orders/Index',
+                    }"
+                >
+                    📦 Quản lý đơn hàng
                 </Link>
 
                 <div class="pt-10">

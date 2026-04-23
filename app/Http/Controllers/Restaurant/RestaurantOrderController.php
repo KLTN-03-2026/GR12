@@ -60,10 +60,22 @@ class RestaurantOrderController extends Controller
             'status' => $request->status
         ]);
 
-        // 4. Nếu chuyển sang assigned, tự động gán shipper gần nhất
+        // Gửi thông báo cho khách hàng nếu status thay đổi
+        if ($oldStatus !== $request->status) {
+            $order->user->notify(new \App\Notifications\OrderStatusUpdated($order, $oldStatus, $request->status));
+        }
+
+        // 4. Nếu chuyển sang assigned, tự động gán shipper gần nhất.
+        // Nếu không có shipper đang online, trả về confirmed để đơn nằm trong danh sách sẵn sàng nhận.
         if ($oldStatus !== 'assigned' && $request->status === 'assigned') {
             $shipperController = new ShipperController();
-            $shipperController->assignShipperToOrder($id);
+            $assigned = $shipperController->assignShipperToOrder($id);
+
+            if (! $assigned) {
+                $order->refresh();
+                $order->update(['status' => 'confirmed']);
+                $request->status = 'confirmed';
+            }
         }
 
         // 5. Trả về thông báo thành công cho Toast

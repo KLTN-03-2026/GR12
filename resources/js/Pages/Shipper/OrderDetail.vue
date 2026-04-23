@@ -441,7 +441,9 @@
                             {{
                                 order.status === "pending"
                                     ? "Chờ quán xác nhận"
-                                    : "Chờ xác nhận"
+                                    : order.status === "assigned"
+                                      ? "Chờ tài xế xác nhận"
+                                      : "Chờ tài xế nhận đơn"
                             }}
                         </div>
                     </div>
@@ -478,6 +480,7 @@
                             'w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all',
                             [
                                 'confirmed',
+                                'assigned',
                                 'picked_up',
                                 'shipping',
                                 'delivered',
@@ -489,6 +492,40 @@
                         ]"
                     >
                         🏪
+                    </div>
+                    <div
+                        class="h-1 flex-1 mx-1 transition-all"
+                        :class="
+                            [
+                                'assigned',
+                                'picked_up',
+                                'shipping',
+                                'delivered',
+                                'completing',
+                                'completed',
+                            ].includes(order.status)
+                                ? 'bg-gradient-to-r from-green-500 to-gray-300'
+                                : 'bg-gray-300'
+                        "
+                    ></div>
+                </div>
+                <div class="flex-1 flex items-center">
+                    <div
+                        :class="[
+                            'w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all',
+                            [
+                                'assigned',
+                                'picked_up',
+                                'shipping',
+                                'delivered',
+                                'completing',
+                                'completed',
+                            ].includes(order.status)
+                                ? 'bg-gradient-to-br from-green-400 to-green-600 text-white shadow-lg'
+                                : 'bg-gray-200 text-gray-600',
+                        ]"
+                    >
+                        🛵
                     </div>
                     <div
                         class="h-1 flex-1 mx-1 transition-all"
@@ -1156,8 +1193,8 @@ const isMobile = () => {
 
 const getStatusText = (status) => {
     const statuses = {
-        pending: "Chờ xác nhận",
-        assigned: "Đã gán shipper",
+        pending: "Đang chờ xác nhận",
+        assigned: "Tài xế đang đến quán",
         confirmed: "Đã xác nhận",
         shipping: "Đi tới quán",
         picked_up: "Đã lấy hàng",

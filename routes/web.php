@@ -10,6 +10,8 @@ use App\Http\Controllers\Customer\CartController;
 use App\Http\Controllers\Customer\OrderController;
 use App\Http\Controllers\Customer\ReviewController;
 use App\Http\Controllers\Restaurant\RestaurantOrderController;
+use App\Http\Controllers\RestaurantProfileController;
+use App\Http\Controllers\AdminApprovalController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -84,14 +86,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // --- DÀNH CHO QUẢN TRỊ VIÊN (ADMIN) ---
-    Route::prefix('admin')->name('admin.')->group(function () {
+    Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'index'])->name('dashboard');
         Route::controller(AdminController::class)->group(function () {
             Route::get('/users-pending', 'pendingUsers')->name('pending');
+            Route::get('/products-pending', 'pendingProducts')->name('products.pending');
             Route::post('/users/{user}/approve', 'approve')->name('approve');
             Route::post('/users/{user}/reject', 'reject')->name('reject');
+            Route::post('/products/{product}/approve', 'approveProduct')->name('products.approve');
+            Route::post('/products/{product}/reject', 'rejectProduct')->name('products.reject');
             Route::get('/vouchers', 'vouchers')->name('vouchers.index');
             Route::post('/vouchers', 'storeVoucher')->name('vouchers.store');
+            Route::get('/orders', 'orders')->name('orders.index');
         });
     });
 
@@ -150,3 +156,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 require __DIR__.'/auth.php';
+    // Restaurant Profile Routes
+    Route::middleware('role:restaurant')->group(function () {
+        Route::get('/restaurant/profile', [RestaurantProfileController::class, 'edit'])->name('restaurant.profile.edit');
+        Route::post('/restaurant/profile/update', [RestaurantProfileController::class, 'update'])->name('restaurant.profile.update');
+    });
+
+    // Admin Approval Routes
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/admin/approvals', [AdminApprovalController::class, 'index'])->name('admin.approvals.index');
+        Route::post('/admin/approvals/{approvalRequest}/approve', [AdminApprovalController::class, 'approve'])->name('admin.approvals.approve');
+        Route::post('/admin/approvals/{approvalRequest}/reject', [AdminApprovalController::class, 'reject'])->name('admin.approvals.reject');
+    });
+
+
+// VNPay Routes
+Route::get('/payment/vnpay-return', [App\Http\Controllers\PaymentController::class, 'vnpayReturn'])->name('payment.vnpay.return');
+Route::post('/payment/vnpay-ipn', [App\Http\Controllers\PaymentController::class, 'vnpayIPN'])->name('payment.vnpay.ipn');
+
+    Route::delete('/my-orders/{id}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');

@@ -25,6 +25,7 @@ const statusLabel = {
     pending: "Đang chờ",
     processing: "Đang nấu",
     confirmed: "Sẵn sàng giao",
+    assigned: "Đã gán shipper",
     shipping: "Đang giao",
     completed: "Hoàn tất",
     cancelled: "Đã hủy",
@@ -40,6 +41,8 @@ const getStatusStyle = (status) => {
             return base + "bg-blue-50 text-blue-600 border-blue-200";
         case "confirmed":
             return base + "bg-emerald-50 text-emerald-600 border-emerald-200";
+        case "assigned":
+            return base + "bg-yellow-50 text-yellow-700 border-yellow-200";
         case "shipping":
             return base + "bg-purple-50 text-purple-600 border-purple-200";
         case "completed":
@@ -190,10 +193,18 @@ const getStatusStyle = (status) => {
 
                         <button
                             v-if="order.status === 'processing'"
-                            @click="changeStatus(order.id, 'assigned')"
+                            @click="changeStatus(order.id, 'confirmed')"
                             class="w-full bg-orange-500 text-white font-black py-4 rounded-[1.5rem] shadow-xl shadow-orange-200 hover:scale-105 transition-all uppercase text-[10px] tracking-widest"
                         >
-                            Gán cho Shipper ngay 🛵
+                            Xác nhận hoàn thành món ✅
+                        </button>
+
+                        <button
+                            v-if="order.status === 'confirmed'"
+                            @click="changeStatus(order.id, 'assigned')"
+                            class="w-full bg-emerald-600 text-white font-black py-4 rounded-[1.5rem] shadow-xl shadow-emerald-200 hover:scale-105 transition-all uppercase text-[10px] tracking-widest"
+                        >
+                            Gán cho shipper 🛵
                         </button>
 
                         <div

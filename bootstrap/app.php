@@ -25,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'checkStatus' => \App\Http\Middleware\CheckUserStatus::class,
             'role' => \App\Http\Middleware\RoleMiddleware::class,
+            'admin' => \App\Http\Middleware\AdminMiddleware::class,
         ]);
         
     })

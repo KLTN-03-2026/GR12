@@ -38,6 +38,17 @@ defineOptions({ layout: AdminLayout });
         </div>
 
         <div
+            class="bg-white p-6 rounded-xl shadow-sm border-b-4 border-yellow-500"
+        >
+            <div class="text-gray-500 text-sm font-bold uppercase">
+                Món ăn chờ duyệt
+            </div>
+            <div class="text-3xl font-black mt-2 text-yellow-600">
+                {{ stats.pending_products || 0 }}
+            </div>
+        </div>
+
+        <div
             class="bg-white p-6 rounded-xl shadow-sm border-b-4 border-green-500"
         >
             <div class="text-gray-500 text-sm font-bold uppercase">

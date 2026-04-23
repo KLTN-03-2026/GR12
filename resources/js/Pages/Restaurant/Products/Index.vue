@@ -1,147 +1,124 @@
 <script setup>
 import RestaurantLayout from "@/Layouts/RestaurantLayout.vue";
-import { Head, Link, router } from "@inertiajs/vue3";
+import { Head, Link, router } from "@inertiajs/vue3"; // Xóa usePage
+import Swal from "sweetalert2";
+// Xóa import watch, computed, useToast từ đây vì Layout sẽ lo
 
 const props = defineProps({
     products: Array,
 });
 
-// Hàm định dạng tiền tệ Việt Nam
+// --- HÀM XÓA SẢN PHẨM VỚI SWEETALERT2 ---
+const deleteProduct = (id) => {
+    Swal.fire({
+        title: '<span class="font-black uppercase tracking-tighter text-gray-800">Tạm ngưng món này?</span>',
+        html: '<p class="text-sm text-gray-500 font-medium">Món ăn sẽ được chuyển sang trạng thái <b>Tạm ẩn</b> để bảo vệ dữ liệu đơn hàng cũ.</p>',
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#ef4444",
+        cancelButtonColor: "#94a3b8",
+        confirmButtonText: "ĐÚNG, TẠM ẨN!",
+        cancelButtonText: "HỦY",
+        background: "#ffffff",
+        customClass: {
+            popup: "rounded-[2.5rem] p-8",
+            confirmButton:
+                "rounded-xl font-black text-[10px] uppercase tracking-widest px-6 py-4 transition-all",
+            cancelButton:
+                "rounded-xl font-black text-[10px] uppercase tracking-widest px-6 py-4",
+        },
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(route("restaurant.products.destroy", id), {
+                preserveScroll: true,
+                // Không gọi toast.success ở đây nữa
+            });
+        }
+    });
+};
+
 const formatPrice = (price) => {
     return new Intl.NumberFormat("vi-VN", {
         style: "currency",
         currency: "VND",
     }).format(price);
 };
-
-// Hàm xóa sản phẩm
-const deleteProduct = (id) => {
-    if (confirm("Bạn có chắc chắn muốn xóa món ăn này không?")) {
-        router.delete(route("restaurant.products.destroy", id));
-    }
-};
 </script>
 
 <template>
     <RestaurantLayout>
-        <Head title="Quản lý món ăn" />
-        <template>
-            <div
-                v-if="$page.props.flash.success"
-                class="max-w-7xl mx-auto mb-6 p-4 bg-green-50 border border-green-200 rounded-2xl text-green-700 font-bold flex items-center gap-3 shadow-sm animate-fade-in"
-            >
-                <svg
-                    class="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                </svg>
-                <span>{{ $page.props.flash.success }}</span>
-            </div>
-        </template>
+        <Head title="Quản lý thực đơn" />
 
-        <template #header>
-            <div class="flex justify-between items-center w-full">
-                <span>Thực đơn của quán</span>
+        <div class="space-y-8 animate-in fade-in duration-700">
+            <div
+                class="flex flex-col md:flex-row md:items-end justify-between gap-6"
+            >
+                <div>
+                    <h2
+                        class="text-5xl font-black text-gray-900 italic tracking-tighter uppercase leading-none"
+                    >
+                        Thực đơn 🍱
+                    </h2>
+                    <p
+                        class="text-[10px] font-black text-orange-400 uppercase tracking-[0.3em] mt-3 bg-orange-50 w-fit px-3 py-1 rounded-lg"
+                    >
+                        Danh sách món ăn đang kinh doanh
+                    </p>
+                </div>
                 <Link
                     :href="route('restaurant.products.create')"
-                    class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-orange-200 transition-all active:scale-95 flex items-center gap-2"
+                    class="bg-orange-500 hover:bg-gray-900 text-white px-8 py-4 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl shadow-orange-100 transition-all active:scale-95 flex items-center gap-3"
                 >
-                    <svg
-                        class="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            d="M12 4v16m8-8H4"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                        />
-                    </svg>
-                    Thêm món mới
+                    <span class="text-xl">+</span> Thêm món mới
                 </Link>
             </div>
-        </template>
 
-        <div
-            v-if="products.length > 0"
-            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-        >
             <div
-                v-for="product in products"
-                :key="product.id"
-                class="bg-white rounded-3xl border border-orange-100 overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 group"
+                v-if="products.length > 0"
+                class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8"
             >
-                <div class="relative h-48 overflow-hidden">
-                    <img
-                        v-if="product.image"
-                        :src="'/storage/' + product.image"
-                        class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                    <div
-                        v-else
-                        class="w-full h-full bg-orange-50 flex items-center justify-center text-orange-300"
-                    >
-                        <svg
-                            class="w-12 h-12"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                <div
+                    v-for="product in products"
+                    :key="product.id"
+                    class="bg-white rounded-[2.5rem] border border-gray-100 overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 group relative"
+                >
+                    <div class="relative h-56 overflow-hidden">
+                        <img
+                            v-if="product.image"
+                            :src="'/storage/' + product.image"
+                            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                        />
+                        <div
+                            v-else
+                            class="w-full h-full bg-orange-50 flex items-center justify-center text-orange-200"
                         >
-                            <path
-                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                stroke-width="2"
-                            />
-                        </svg>
-                    </div>
-
-                    <div class="absolute top-3 right-3">
-                        <span
-                            :class="
-                                product.is_available
-                                    ? 'bg-green-500'
-                                    : 'bg-gray-500'
-                            "
-                            class="text-white text-[10px] font-black px-2 py-1 rounded-lg uppercase shadow-sm"
-                        >
-                            {{ product.is_available ? "Đang bán" : "Hết hàng" }}
-                        </span>
-                    </div>
-                </div>
-
-                <div class="p-5">
-                    <h3
-                        class="font-black text-gray-800 text-lg line-clamp-1 capitalize"
-                    >
-                        {{ product.name }}
-                    </h3>
-                    <p class="text-gray-400 text-xs mt-1 line-clamp-2 h-8">
-                        {{
-                            product.description ||
-                            "Chưa có mô tả cho món ăn này."
-                        }}
-                    </p>
-
-                    <div class="mt-4 flex justify-between items-end">
-                        <div>
-                            <p
-                                class="text-[10px] text-gray-400 font-bold uppercase tracking-widest"
-                            >
-                                Giá bán
-                            </p>
-                            <p class="text-orange-600 font-black text-xl">
-                                {{ formatPrice(product.price) }}
-                            </p>
+                            <span class="text-4xl">🍕</span>
                         </div>
-                        <div class="flex gap-2">
+
+                        <div class="absolute top-4 left-4 flex flex-col gap-2">
+                            <span
+                                :class="
+                                    product.is_available
+                                        ? 'bg-green-500'
+                                        : 'bg-red-500'
+                                "
+                                class="text-white text-[9px] font-black px-3 py-1.5 rounded-full uppercase shadow-lg"
+                            >
+                                {{
+                                    product.is_available ? "Đang bán" : "Tạm ẩn"
+                                }}
+                            </span>
+                            <span
+                                v-if="product.status === 'pending'"
+                                class="bg-orange-400 text-white text-[9px] font-black px-3 py-1.5 rounded-full uppercase shadow-lg animate-pulse"
+                            >
+                                Chờ duyệt
+                            </span>
+                        </div>
+
+                        <div
+                            class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3"
+                        >
                             <Link
                                 :href="
                                     route(
@@ -149,7 +126,7 @@ const deleteProduct = (id) => {
                                         product.id,
                                     )
                                 "
-                                class="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-colors"
+                                class="p-3 bg-white text-gray-900 rounded-full hover:bg-blue-500 hover:text-white transition-all"
                             >
                                 <svg
                                     class="w-5 h-5"
@@ -158,14 +135,16 @@ const deleteProduct = (id) => {
                                     viewBox="0 0 24 24"
                                 >
                                     <path
-                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
                                         stroke-width="2"
+                                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
                                     />
                                 </svg>
                             </Link>
                             <button
                                 @click="deleteProduct(product.id)"
-                                class="p-2 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-colors"
+                                class="p-3 bg-white text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all"
                             >
                                 <svg
                                     class="w-5 h-5"
@@ -174,45 +153,111 @@ const deleteProduct = (id) => {
                                     viewBox="0 0 24 24"
                                 >
                                     <path
-                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
                                         stroke-width="2"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                                     />
                                 </svg>
                             </button>
                         </div>
                     </div>
+
+                    <div class="p-6 space-y-4">
+                        <div class="flex justify-between items-start gap-2">
+                            <div class="flex-1 min-w-0">
+                                <p
+                                    class="text-[9px] font-black text-orange-400 uppercase tracking-widest truncate"
+                                >
+                                    {{
+                                        product.category?.name ||
+                                        "Chưa phân loại"
+                                    }}
+                                </p>
+                                <h3
+                                    class="font-black text-gray-800 text-lg leading-tight uppercase mt-1 truncate"
+                                >
+                                    {{ product.name }}
+                                </h3>
+                            </div>
+                            <p
+                                class="text-orange-600 font-black text-lg italic whitespace-nowrap"
+                            >
+                                {{ formatPrice(product.price) }}
+                            </p>
+                        </div>
+
+                        <div
+                            class="flex items-center gap-4 border-t border-gray-50 pt-4"
+                        >
+                            <div class="flex items-center gap-1">
+                                <span class="text-xs">🕒</span>
+                                <span
+                                    class="text-[10px] font-bold text-gray-400 uppercase"
+                                >
+                                    {{ product.available_from }} -
+                                    {{ product.available_to }}
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <span class="text-xs">📦</span>
+                                <span
+                                    class="text-[10px] font-bold text-gray-400 uppercase"
+                                >
+                                    {{ product.stock_quantity }} suất
+                                </span>
+                            </div>
+                        </div>
+
+                        <div
+                            v-if="product.options?.length"
+                            class="flex flex-wrap gap-1"
+                        >
+                            <span
+                                class="text-[8px] font-black text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md uppercase"
+                            >
+                                +{{ product.options.length }} Topping
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div
-            v-else
-            class="bg-white rounded-3xl p-20 border-2 border-dashed border-orange-100 flex flex-col items-center justify-center text-center"
-        >
-            <div class="bg-orange-50 p-6 rounded-full mb-4">
-                <svg
-                    class="w-16 h-16 text-orange-200"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
-                    <path
-                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                        stroke-width="2"
-                    />
-                </svg>
-            </div>
-            <h3 class="text-xl font-bold text-gray-800">Thực đơn còn trống</h3>
-            <p class="text-gray-500 mb-8 max-w-sm">
-                Hãy bắt đầu thêm những món ăn ngon nhất của bạn để khách hàng có
-                thể đặt mua ngay nhé!
-            </p>
-            <Link
-                :href="route('restaurant.products.create')"
-                class="bg-orange-500 text-white px-8 py-3 rounded-2xl font-bold shadow-lg shadow-orange-200 hover:bg-orange-600 transition-all"
+            <div
+                v-else
+                class="bg-white rounded-[3rem] p-24 border-2 border-dashed border-orange-100 flex flex-col items-center justify-center text-center shadow-inner"
             >
-                Thêm món đầu tiên
-            </Link>
+                <div
+                    class="bg-orange-50 w-24 h-24 rounded-full flex items-center justify-center mb-6 animate-bounce"
+                >
+                    <span class="text-5xl">🥙</span>
+                </div>
+                <h3
+                    class="text-2xl font-black text-gray-800 uppercase tracking-tighter italic"
+                >
+                    Gian hàng đang trống
+                </h3>
+                <p
+                    class="text-gray-400 mt-2 mb-8 max-w-xs font-medium text-sm leading-relaxed"
+                >
+                    Bạn chưa có món ăn nào. Hãy thêm những món "best-seller" của
+                    quán nhé!
+                </p>
+                <Link
+                    :href="route('restaurant.products.create')"
+                    class="bg-gray-900 text-white px-10 py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl hover:bg-orange-500 transition-all active:scale-95"
+                >
+                    Bắt đầu ngay
+                </Link>
+            </div>
         </div>
     </RestaurantLayout>
 </template>
+
+<style scoped>
+.truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+</style>

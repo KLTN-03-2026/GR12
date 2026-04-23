@@ -2,457 +2,331 @@
     <GuestLayout>
         <Head :title="`Đơn hàng ${orderData.order_code} - FoodXpress`" />
 
-        <div class="min-h-screen bg-[#f8f9fb] py-12 px-4">
-            <div class="max-w-4xl mx-auto space-y-8">
+        <div
+            class="min-h-screen bg-[#f4f7f9] py-8 md:py-12 px-4 font-sans text-slate-900"
+        >
+            <div class="max-w-5xl mx-auto space-y-6">
                 <div
-                    class="bg-white rounded-[3rem] overflow-hidden shadow-sm border border-gray-100"
+                    class="bg-white rounded-[2.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.03)] border border-white overflow-hidden p-8 md:p-12 transition-all"
                 >
-                    <div class="p-6 md:p-8">
-                        <div
-                            class="flex flex-col gap-6 md:flex-row md:items-start md:justify-between"
-                        >
-                            <div class="max-w-2xl">
-                                <p
-                                    class="text-[10px] uppercase tracking-[0.3em] text-gray-400 mb-2"
-                                >
-                                    Thời gian giao dự kiến
-                                </p>
-                                <h2
-                                    class="text-3xl sm:text-4xl font-black text-gray-900"
-                                >
-                                    {{ estimatedDeliveryTime }}
-                                </h2>
-                                <p class="mt-3 text-sm text-gray-500">
-                                    ShopeeFood sẽ thông báo khi đơn bắt đầu được
-                                    giao đến bạn.
-                                </p>
-                            </div>
-                            <div
-                                class="rounded-full bg-orange-50 border border-orange-100 px-5 py-3 text-orange-700 font-black uppercase tracking-[0.18em] text-sm text-center"
+                    <div
+                        class="flex flex-col md:flex-row justify-between items-start gap-6 mb-12"
+                    >
+                        <div class="space-y-2">
+                            <p
+                                class="text-[11px] uppercase tracking-[0.3em] text-orange-500 font-black flex items-center gap-2"
                             >
-                                {{ getStatusHeadline(orderData.status) }}
-                            </div>
+                                <span class="relative flex h-2 w-2">
+                                    <span
+                                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"
+                                    ></span>
+                                    <span
+                                        class="relative inline-flex rounded-full h-2 w-2 bg-orange-500"
+                                    ></span>
+                                </span>
+                                Thời gian giao dự kiến
+                            </p>
+                            <h2
+                                class="text-4xl md:text-5xl font-black tracking-tight italic"
+                            >
+                                {{ estimatedDeliveryTime }}
+                            </h2>
+                            <p class="text-slate-400 text-sm font-medium">
+                                FoodXpress sẽ cập nhật thông báo khi Shipper di
+                                chuyển.
+                            </p>
+                        </div>
+                        <div
+                            class="px-8 py-4 bg-orange-50 text-orange-600 rounded-full font-black uppercase tracking-widest text-sm shadow-sm border border-orange-100"
+                        >
+                            {{ getStatusHeadline(orderData.status) }}
+                        </div>
+                    </div>
+
+                    <div class="relative px-4 pb-4">
+                        <div
+                            class="absolute top-7 left-0 w-full h-[4px] bg-slate-100 rounded-full z-0"
+                        >
+                            <div
+                                class="h-full bg-orange-500 transition-all duration-1000 shadow-[0_0_15px_rgba(249,115,22,0.4)]"
+                                :style="{ width: `${progressPercent}%` }"
+                            ></div>
                         </div>
 
-                        <div class="mt-8 space-y-5">
-                            <div class="grid grid-cols-2 gap-4">
-                                <div
-                                    v-for="step in progressSteps"
-                                    :key="step.key"
-                                    class="rounded-[2rem] border p-4 text-center transition"
-                                >
-                                    <div
-                                        :class="
-                                            step.active
-                                                ? 'bg-orange-500 text-white'
-                                                : 'bg-gray-100 text-gray-500'
-                                        "
-                                        class="mx-auto flex h-10 w-10 items-center justify-center rounded-full text-lg"
-                                    >
-                                        {{ step.icon }}
-                                    </div>
-                                    <p
-                                        class="mt-3 text-xs uppercase tracking-[0.2em] font-black"
-                                    >
-                                        {{ step.title }}
-                                    </p>
-                                    <p
-                                        class="mt-1 text-[11px] text-gray-500 leading-tight"
-                                    >
-                                        {{ step.label }}
-                                    </p>
-                                </div>
-                            </div>
-
+                        <div
+                            class="relative z-10 flex justify-between items-start"
+                        >
                             <div
-                                class="h-2 rounded-full bg-slate-100 overflow-hidden"
+                                v-for="step in progressSteps"
+                                :key="step.key"
+                                class="flex flex-col items-center group flex-1"
                             >
                                 <div
-                                    class="h-full rounded-full bg-orange-500 transition-all duration-500"
-                                    :style="{ width: `${progressPercent}%` }"
-                                ></div>
+                                    :class="[
+                                        'w-14 h-14 rounded-2xl flex items-center justify-center text-2xl transition-all duration-500 border-4 border-white shadow-md',
+                                        step.active
+                                            ? 'bg-orange-500 text-white scale-110 shadow-orange-200'
+                                            : 'bg-slate-100 text-slate-400',
+                                    ]"
+                                >
+                                    {{ step.icon }}
+                                </div>
+                                <span
+                                    :class="[
+                                        'mt-4 text-[10px] md:text-[11px] uppercase tracking-[0.15em] font-black text-center px-2',
+                                        step.active
+                                            ? 'text-slate-900'
+                                            : 'text-slate-300',
+                                    ]"
+                                >
+                                    {{ step.title }}
+                                </span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="grid gap-6 lg:grid-cols-[1.8fr_1fr]">
+                <div class="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
                     <div class="space-y-6">
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div
+                                class="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-50"
+                            >
+                                <p
+                                    class="text-[10px] uppercase tracking-[0.2em] text-slate-400 mb-4 font-black"
+                                >
+                                    Từ nhà hàng
+                                </p>
+                                <h3 class="font-black text-lg mb-2">
+                                    {{ restaurant.name }}
+                                </h3>
+                                <p
+                                    class="text-sm text-slate-500 leading-relaxed"
+                                >
+                                    {{ restaurant.address }}
+                                </p>
+                            </div>
+                            <div
+                                class="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-50 relative"
+                            >
+                                <span
+                                    class="absolute top-4 right-6 text-[9px] font-black px-2 py-1 bg-slate-100 rounded-lg uppercase tracking-tighter"
+                                    >Bạn</span
+                                >
+                                <p
+                                    class="text-[10px] uppercase tracking-[0.2em] text-slate-400 mb-4 font-black"
+                                >
+                                    Giao đến
+                                </p>
+                                <h3
+                                    class="font-black text-lg mb-2 line-clamp-1"
+                                >
+                                    {{ orderData.address }}
+                                </h3>
+                                <p
+                                    class="text-sm text-slate-500 font-bold tracking-widest italic"
+                                >
+                                    {{ orderData.phone }}
+                                </p>
+                            </div>
+                        </div>
+
                         <div
-                            class="bg-white rounded-[3rem] shadow-sm border border-gray-100 p-6 md:p-8"
+                            class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden"
                         >
                             <div
-                                class="flex items-center justify-between gap-4 mb-5"
+                                class="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/20"
                             >
-                                <div>
-                                    <p
-                                        class="text-xs uppercase tracking-[0.25em] text-gray-400 mb-2"
-                                    >
-                                        Từ
-                                    </p>
-                                    <h3
-                                        class="text-lg font-black text-gray-900"
-                                    >
-                                        {{ restaurant.name }}
-                                    </h3>
-                                    <p class="mt-2 text-sm text-gray-500">
-                                        {{
-                                            restaurant.address ||
-                                            "Địa chỉ nhà hàng chưa có"
-                                        }}
-                                    </p>
-                                </div>
+                                <h3
+                                    class="font-black text-slate-800 flex items-center gap-2 text-xs uppercase tracking-[0.2em]"
+                                >
+                                    📍 Live Tracking
+                                </h3>
                                 <span
-                                    class="inline-flex items-center rounded-full bg-orange-50 px-3 py-2 text-xs font-black uppercase tracking-[0.2em] text-orange-700"
-                                >
-                                    {{ orderData.items?.length || 0 }} món
-                                </span>
+                                    v-if="showTrackingMap"
+                                    class="flex h-2 w-2 rounded-full bg-green-500 animate-pulse"
+                                ></span>
                             </div>
-                        </div>
-
-                        <div
-                            class="bg-white rounded-[3rem] shadow-sm border border-gray-100 p-6 md:p-8"
-                        >
-                            <div class="flex items-start justify-between gap-4">
-                                <div>
-                                    <p
-                                        class="text-xs uppercase tracking-[0.25em] text-gray-400 mb-2"
-                                    >
-                                        Đến
-                                    </p>
-                                    <h3
-                                        class="text-lg font-black text-gray-900"
-                                    >
-                                        {{ orderData.address }}
-                                    </h3>
-                                    <p class="mt-2 text-sm text-gray-500">
-                                        {{ orderData.phone }}
-                                    </p>
-                                </div>
-                                <div
-                                    class="rounded-full bg-slate-100 px-3 py-2 text-xs font-black uppercase tracking-[0.18em] text-slate-600"
-                                >
-                                    Khách hàng
-                                </div>
+                            <div
+                                v-if="showTrackingMap"
+                                id="order-map"
+                                class="h-[400px] w-full"
+                            ></div>
+                            <div
+                                v-else
+                                class="h-[250px] flex flex-col items-center justify-center bg-slate-50 text-slate-400 p-8 text-center italic"
+                            >
+                                <p class="font-bold text-sm">
+                                    Shipper chưa bắt đầu di chuyển hoặc đang
+                                    chuẩn bị hàng.
+                                </p>
                             </div>
-                        </div>
-
-                        <div
-                            v-if="showTrackingMap"
-                            class="bg-white rounded-[3rem] overflow-hidden shadow-sm border border-gray-100"
-                        >
-                            <div class="p-6 md:p-8">
-                                <div
-                                    class="flex items-center justify-between gap-4 mb-4"
-                                >
-                                    <div>
-                                        <p
-                                            class="text-xs uppercase tracking-[0.25em] text-gray-400"
-                                        >
-                                            Bản đồ theo dõi
-                                        </p>
-                                        <h3
-                                            class="text-lg font-black text-gray-900"
-                                        >
-                                            Shipper đang giao đến bạn
-                                        </h3>
-                                    </div>
-                                </div>
-                                <div
-                                    id="order-map"
-                                    class="h-72 w-full rounded-3xl border border-gray-100"
-                                ></div>
-                            </div>
-                        </div>
-
-                        <div
-                            v-else-if="orderData.shipper"
-                            class="bg-white rounded-[3rem] shadow-sm border border-gray-100 p-6 md:p-8 text-center text-gray-500"
-                        >
-                            Bản đồ sẽ hiển thị khi shipper bắt đầu giao đơn.
                         </div>
                     </div>
 
                     <div class="space-y-6">
                         <div
-                            class="bg-white rounded-[3rem] shadow-sm border border-gray-100 p-6 md:p-8"
+                            class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 p-8"
                         >
-                            <h3 class="text-lg font-black text-gray-900 mb-5">
-                                Tóm tắt đơn hàng
+                            <h3 class="text-xl font-black mb-8 italic">
+                                Đơn hàng của bạn
                             </h3>
-                            <div class="space-y-4">
+                            <div class="space-y-6 mb-8">
                                 <div
                                     v-for="item in orderData.items"
                                     :key="item.id"
-                                    class="flex items-center gap-4"
+                                    class="flex items-center gap-4 group"
                                 >
                                     <div
-                                        class="w-16 h-16 rounded-2xl overflow-hidden border border-gray-100"
+                                        class="w-16 h-16 rounded-2xl overflow-hidden shadow-sm border border-slate-50"
                                     >
                                         <img
                                             :src="
                                                 '/storage/' + item.product.image
                                             "
-                                            alt=""
-                                            class="w-full h-full object-cover"
+                                            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                         />
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <p
-                                            class="font-black text-gray-900 line-clamp-1"
+                                            class="font-black text-slate-900 text-sm truncate"
                                         >
                                             {{ item.product.name }}
                                         </p>
-                                        <p class="text-xs text-gray-400 mt-1">
-                                            {{ item.quantity }} x
+                                        <p
+                                            class="text-xs text-slate-400 font-bold mt-1 uppercase"
+                                        >
+                                            {{ item.quantity }} phần •
                                             {{ formatPrice(item.price) }}
                                         </p>
                                     </div>
-                                    <div
-                                        class="text-right font-black text-gray-900"
+                                    <p
+                                        class="font-black text-slate-900 text-sm italic"
                                     >
                                         {{
                                             formatPrice(
                                                 item.price * item.quantity,
                                             )
                                         }}
-                                    </div>
+                                    </p>
                                 </div>
                             </div>
 
-                            <div class="mt-6 space-y-3 text-sm text-gray-600">
-                                <div class="flex justify-between">
-                                    <span>Giá món</span>
-                                    <span class="font-black text-gray-900">{{
+                            <div
+                                class="space-y-4 pt-6 border-t border-slate-50"
+                            >
+                                <div
+                                    class="flex justify-between text-sm font-medium text-slate-500"
+                                >
+                                    <span>Tạm tính</span>
+                                    <span class="font-bold text-slate-900">{{
                                         formatPrice(orderData.subtotal)
                                     }}</span>
                                 </div>
-                                <div class="flex justify-between">
+                                <div
+                                    class="flex justify-between text-sm font-medium text-slate-500"
+                                >
                                     <span>Phí giao hàng</span>
-                                    <span class="font-black text-gray-900">{{
+                                    <span class="font-bold text-slate-900">{{
                                         formatPrice(orderData.shipping_fee)
                                     }}</span>
                                 </div>
-                                <div class="flex justify-between">
-                                    <span>Phí áp dụng</span>
-                                    <span class="font-black text-gray-900">{{
-                                        formatPrice(orderData.discount_amount)
-                                    }}</span>
-                                </div>
                                 <div
-                                    class="border-t border-gray-100 pt-4 flex justify-between text-lg font-black"
+                                    class="flex justify-between text-sm font-bold text-green-600"
+                                >
+                                    <span>Giảm giá</span>
+                                    <span
+                                        >-{{
+                                            formatPrice(
+                                                orderData.discount_amount,
+                                            )
+                                        }}</span
+                                    >
+                                </div>
+
+                                <div
+                                    class="flex justify-between items-center py-4 px-5 bg-slate-50 rounded-2xl my-6 border border-slate-100"
+                                >
+                                    <span
+                                        class="text-[10px] font-black text-slate-400 uppercase tracking-widest"
+                                        >Thanh toán bằng</span
+                                    >
+                                    <p
+                                        class="font-black text-slate-900 text-sm italic"
+                                    >
+                                        {{
+                                            orderData.payment_method === "cod"
+                                                ? "💵 Tiền mặt"
+                                                : "💳 VNPay"
+                                        }}
+                                    </p>
+                                </div>
+
+                                <div
+                                    class="flex justify-between text-2xl font-black text-slate-900 pt-2 border-t border-slate-100 italic"
                                 >
                                     <span>Tổng cộng</span>
-                                    <span>{{
+                                    <span class="text-orange-600">{{
                                         formatPrice(orderData.total)
                                     }}</span>
                                 </div>
+                            </div>
+
+                            <div
+                                v-if="
+                                    ['picked_up', 'shipping'].includes(
+                                        orderData.status,
+                                    )
+                                "
+                                class="mt-8"
+                            >
+                                <button
+                                    @click="confirmDelivery"
+                                    class="w-full py-4 bg-green-600 hover:bg-green-700 text-white rounded-2xl font-black text-sm transition-all shadow-xl shadow-green-100 flex items-center justify-center gap-2"
+                                >
+                                    ✅ ĐÃ NHẬN ĐƯỢC HÀNG
+                                </button>
+                            </div>
+
+                            <div v-if="canCancelOrder" class="mt-4">
+                                <button
+                                    @click="cancelOrder"
+                                    class="w-full py-3 text-red-400 hover:text-red-600 font-black text-xs uppercase tracking-widest transition-all"
+                                >
+                                    Hủy đơn hàng
+                                </button>
                             </div>
                         </div>
 
                         <div
                             v-if="orderData.shipper"
-                            class="bg-white rounded-[3rem] shadow-sm border border-gray-100 p-6 md:p-8"
+                            class="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-xl shadow-slate-200"
                         >
-                            <h3 class="text-lg font-black text-gray-900 mb-5">
-                                Thông tin shipper
-                            </h3>
-                            <div class="flex items-center gap-4">
+                            <div class="flex items-center gap-5">
                                 <UserAvatar
                                     :user="orderData.shipper.user"
-                                    class="w-16 h-16"
+                                    class="w-16 h-16 ring-4 ring-slate-800"
                                 />
-                                <div class="flex-1 min-w-0">
-                                    <p class="font-black text-gray-900">
+                                <div class="flex-1">
+                                    <p
+                                        class="text-[10px] font-black uppercase text-orange-400 tracking-widest mb-1"
+                                    >
+                                        Tài xế đang giao
+                                    </p>
+                                    <p class="font-black text-lg">
                                         {{ orderData.shipper.user.name }}
                                     </p>
-                                    <p class="text-sm text-gray-500">
+                                    <p class="text-slate-400 text-xs italic">
                                         {{ orderData.shipper.user.phone }}
                                     </p>
-                                    <p class="text-sm text-gray-500 mt-2">
-                                        {{
-                                            orderData.shipper.user
-                                                .license_plate ||
-                                            "Chưa có biển số"
-                                        }}
-                                    </p>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div
-                    class="bg-white rounded-[3rem] overflow-hidden shadow-sm border border-gray-100"
-                >
-                    <div
-                        class="p-6 md:p-8 border-b border-gray-50 bg-gray-50/30"
-                    >
-                        <h3 class="font-black text-gray-800">
-                            Quy trình giao hàng
-                        </h3>
-                    </div>
-
-                    <div class="p-6 md:p-8">
-                        <div class="space-y-6">
-                            <div class="flex items-start gap-4">
-                                <div
-                                    :class="[
-                                        'w-8 h-8 rounded-full flex items-center justify-center text-sm font-black',
-                                        orderData.status === 'pending'
-                                            ? 'bg-amber-100 text-amber-600'
-                                            : 'bg-green-100 text-green-600',
-                                    ]"
+                                <a
+                                    :href="
+                                        'tel:' + orderData.shipper.user.phone
+                                    "
+                                    class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center hover:bg-orange-500 transition-all"
+                                    >📞</a
                                 >
-                                    📋
-                                </div>
-                                <div class="flex-1">
-                                    <p class="font-black text-gray-800">
-                                        Đơn hàng đã đặt
-                                    </p>
-                                    <p class="text-sm text-gray-500">
-                                        Đơn hàng của bạn đã được tạo thành công
-                                    </p>
-                                    <p class="text-xs text-gray-400 mt-1">
-                                        {{ formatDate(orderData.created_at) }}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div class="flex items-start gap-4">
-                                <div
-                                    :class="[
-                                        'w-8 h-8 rounded-full flex items-center justify-center text-sm font-black',
-                                        [
-                                            'processing',
-                                            'confirmed',
-                                            'shipping',
-                                            'picked_up',
-                                            'completed',
-                                        ].includes(orderData.status)
-                                            ? 'bg-green-100 text-green-600'
-                                            : 'bg-gray-100 text-gray-400',
-                                    ]"
-                                >
-                                    👨‍🍳
-                                </div>
-                                <div class="flex-1">
-                                    <p class="font-black text-gray-800">
-                                        Quán đang chuẩn bị
-                                    </p>
-                                    <p class="text-sm text-gray-500">
-                                        Nhà hàng đang chuẩn bị món ăn cho bạn
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div class="flex items-start gap-4">
-                                <div
-                                    :class="[
-                                        'w-8 h-8 rounded-full flex items-center justify-center text-sm font-black',
-                                        [
-                                            'confirmed',
-                                            'shipping',
-                                            'picked_up',
-                                            'completed',
-                                        ].includes(orderData.status)
-                                            ? 'bg-green-100 text-green-600'
-                                            : 'bg-gray-100 text-gray-400',
-                                    ]"
-                                >
-                                    🛵
-                                </div>
-                                <div class="flex-1">
-                                    <p class="font-black text-gray-800">
-                                        Shipper đã nhận đơn
-                                    </p>
-                                    <p class="text-sm text-gray-500">
-                                        Shipper đang trên đường đến quán lấy
-                                        hàng
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div class="flex items-start gap-4">
-                                <div
-                                    :class="[
-                                        'w-8 h-8 rounded-full flex items-center justify-center text-sm font-black',
-                                        [
-                                            'shipping',
-                                            'picked_up',
-                                            'completed',
-                                        ].includes(orderData.status)
-                                            ? 'bg-green-100 text-green-600'
-                                            : 'bg-gray-100 text-gray-400',
-                                    ]"
-                                >
-                                    🏪
-                                </div>
-                                <div class="flex-1">
-                                    <p class="font-black text-gray-800">
-                                        Đã lấy hàng
-                                    </p>
-                                    <p class="text-sm text-gray-500">
-                                        Shipper đã lấy hàng và đang giao đến bạn
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div class="flex items-start gap-4">
-                                <div
-                                    :class="[
-                                        'w-8 h-8 rounded-full flex items-center justify-center text-sm font-black',
-                                        [
-                                            'picked_up',
-                                            'shipping',
-                                            'completed',
-                                        ].includes(orderData.status)
-                                            ? 'bg-green-100 text-green-600'
-                                            : 'bg-gray-100 text-gray-400',
-                                    ]"
-                                >
-                                    🚚
-                                </div>
-                                <div class="flex-1">
-                                    <p class="font-black text-gray-800">
-                                        Đang giao hàng
-                                    </p>
-                                    <p class="text-sm text-gray-500">
-                                        Món ăn đang trên đường đến bạn
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div class="flex items-start gap-4">
-                                <div
-                                    :class="[
-                                        'w-8 h-8 rounded-full flex items-center justify-center text-sm font-black',
-                                        orderData.status === 'completed'
-                                            ? 'bg-green-100 text-green-600'
-                                            : 'bg-gray-100 text-gray-400',
-                                    ]"
-                                >
-                                    ✅
-                                </div>
-                                <div class="flex-1">
-                                    <p class="font-black text-gray-800">
-                                        Đã giao thành công
-                                    </p>
-                                    <p class="text-sm text-gray-500">
-                                        Món ăn đã được giao đến bạn thành công
-                                    </p>
-                                    <button
-                                        v-if="
-                                            ['picked_up', 'shipping'].includes(
-                                                orderData.status,
-                                            )
-                                        "
-                                        @click="confirmDelivery"
-                                        class="mt-3 px-6 py-2 bg-green-600 text-white rounded-2xl font-black text-sm hover:bg-green-700 transition"
-                                    >
-                                        Xác nhận đã nhận hàng
-                                    </button>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -469,10 +343,9 @@ import GuestLayout from "@/Layouts/GuestLayout.vue";
 import UserAvatar from "@/Components/UserAvatar.vue";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import Swal from "sweetalert2";
 
-const props = defineProps({
-    order: Object,
-});
+const props = defineProps({ order: Object });
 
 const map = ref(null);
 const orderData = ref(props.order);
@@ -484,12 +357,12 @@ const restaurant = computed(() => {
     const productUser = orderData.value.items?.[0]?.product?.user;
     return {
         name: productUser?.restaurant_name ?? productUser?.name ?? "Nhà hàng",
-        address: productUser?.address ?? "",
+        address: productUser?.address ?? "Đang cập nhật địa chỉ...",
     };
 });
 
 const estimatedDeliveryTime = computed(() => {
-    if (!orderData.value.created_at) return "Đang cập nhật";
+    if (!orderData.value.created_at) return "--:--";
     const created = new Date(orderData.value.created_at);
     const start = new Date(created.getTime() + 20 * 60000);
     const end = new Date(created.getTime() + 40 * 60000);
@@ -506,11 +379,11 @@ const progressSteps = computed(() => [
         key: "pending",
         icon: "📋",
         title: "Đặt đơn",
-        label: "Đã đặt",
         active: [
             "pending",
             "processing",
             "confirmed",
+            "assigned",
             "shipping",
             "picked_up",
             "completed",
@@ -520,10 +393,10 @@ const progressSteps = computed(() => [
         key: "processing",
         icon: "👨‍🍳",
         title: "Chuẩn bị",
-        label: "Nhà hàng đang làm đồ",
         active: [
             "processing",
             "confirmed",
+            "assigned",
             "shipping",
             "picked_up",
             "completed",
@@ -531,10 +404,21 @@ const progressSteps = computed(() => [
     },
     {
         key: "confirmed",
+        icon: "🍱",
+        title: "Sẵn sàng",
+        active: [
+            "confirmed",
+            "assigned",
+            "shipping",
+            "picked_up",
+            "completed",
+        ].includes(orderData.value.status),
+    },
+    {
+        key: "assigned",
         icon: "🛵",
-        title: "Gán shipper",
-        label: "Tài xế đang nhận đơn",
-        active: ["confirmed", "shipping", "picked_up", "completed"].includes(
+        title: "Gán Shipper",
+        active: ["assigned", "shipping", "picked_up", "completed"].includes(
             orderData.value.status,
         ),
     },
@@ -542,7 +426,6 @@ const progressSteps = computed(() => [
         key: "shipping",
         icon: "🚚",
         title: "Giao hàng",
-        label: "Shipper đang đến",
         active: ["shipping", "picked_up", "completed"].includes(
             orderData.value.status,
         ),
@@ -550,122 +433,152 @@ const progressSteps = computed(() => [
 ]);
 
 const progressPercent = computed(() => {
-    switch (orderData.value.status) {
-        case "pending":
-            return 12;
-        case "processing":
-            return 35;
-        case "confirmed":
-            return 60;
-        case "shipping":
-            return 80;
-        case "picked_up":
-            return 92;
-        case "completed":
-            return 100;
-        default:
-            return 0;
-    }
+    const s = orderData.value.status;
+    const stepWidth = 100 / (progressSteps.value.length - 1);
+    if (s === "pending") return 0;
+    if (s === "processing") return stepWidth * 1;
+    if (s === "confirmed") return stepWidth * 2;
+    if (s === "assigned") return stepWidth * 3;
+    if (s === "shipping") return stepWidth * 4;
+    if (s === "picked_up") return stepWidth * 4.5;
+    if (s === "completed") return 100;
+    return 0;
 });
 
 const showTrackingMap = computed(() => {
     return (
         ["shipping", "picked_up"].includes(orderData.value.status) &&
-        orderData.value.shipper?.current_latitude &&
-        orderData.value.shipper?.current_longitude &&
-        orderData.value.user?.latitude &&
-        orderData.value.user?.longitude
+        orderData.value.shipper?.current_latitude
     );
 });
 
 const getStatusHeadline = (status) => {
     const headlines = {
-        pending: "Đang chờ xác nhận",
-        processing: "Đơn đang được chuẩn bị",
-        confirmed: "Tài xế đang lấy đơn…",
-        shipping: "Đơn đang được giao…",
-        picked_up: "Shipper đã lấy hàng",
-        completed: "Đã giao thành công",
-        cancelled: "Đã hủy đơn",
+        pending: "Chờ xác nhận",
+        processing: "Quán đang chuẩn bị",
+        confirmed: "Đã sẵn sàng",
+        assigned: "Đã tìm thấy shipper",
+        shipping: "Đang giao đến bạn",
+        picked_up: "Đã lấy hàng",
+        completed: "Giao thành công",
+        cancelled: "Đã hủy",
     };
-    return headlines[status] || "Đang cập nhật";
+    return headlines[status] || "Đang xử lý";
 };
 
+// Polling & API
 const startOrderPolling = () => {
-    if (refreshInterval.value) return;
-    refreshInterval.value = setInterval(updateOrderData, 5000);
+    if (!refreshInterval.value)
+        refreshInterval.value = setInterval(updateOrderData, 5000);
 };
-
 const stopOrderPolling = () => {
     if (refreshInterval.value) {
         clearInterval(refreshInterval.value);
         refreshInterval.value = null;
     }
 };
-
 const formatPrice = (p) =>
     new Intl.NumberFormat("vi-VN", {
         style: "currency",
         currency: "VND",
     }).format(p);
-
 const formatDate = (date) => new Date(date).toLocaleString("vi-VN");
 
-const getStatusStyle = (status) => {
-    switch (status) {
-        case "pending":
-            return "bg-amber-100 text-amber-600 border-amber-200";
-        case "processing":
-            return "bg-blue-100 text-blue-600 border-blue-200";
-        case "confirmed":
-            return "bg-purple-100 text-purple-600 border-purple-200";
-        case "shipping":
-            return "bg-indigo-100 text-indigo-600 border-indigo-200";
-        case "picked_up":
-            return "bg-orange-100 text-orange-600 border-orange-200";
-        case "completed":
-            return "bg-green-100 text-green-600 border-green-200";
-        case "cancelled":
-            return "bg-red-100 text-red-600 border-red-200";
-        default:
-            return "bg-gray-100 text-gray-600";
+const updateOrderData = async () => {
+    try {
+        const response = await fetch(
+            `/api/orders/${orderData.value.id}/details`,
+            { headers: { Accept: "application/json" }, credentials: "include" },
+        );
+        if (response.ok) orderData.value = await response.json();
+    } catch (e) {
+        console.error(e);
     }
 };
 
-const getStatusText = (status) => {
-    const statuses = {
-        pending: "⏳ Đang chờ xác nhận",
-        processing: "👨‍🍳 Đang chuẩn bị món",
-        confirmed: "🛵 Đã gán shipper",
-        shipping: "🚚 Đang giao hàng",
-        picked_up: "📦 Đã lấy hàng",
-        completed: "✅ Đã giao thành công",
-        cancelled: "❌ Đã hủy",
-    };
-    return statuses[status] || status;
+const confirmDelivery = async () => {
+    const result = await Swal.fire({
+        title: "Bạn đã nhận đủ món?",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonColor: "#10b981",
+        confirmButtonText: "Đúng, đã nhận!",
+        cancelButtonText: "Chưa",
+        customClass: { popup: "rounded-[2rem]" },
+    });
+
+    if (result.isConfirmed) {
+        try {
+            const response = await fetch(
+                `/api/orders/${orderData.value.id}/confirm-delivery`,
+                {
+                    method: "POST",
+                    headers: {
+                        Accept: "application/json",
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": document
+                            .querySelector('meta[name="csrf-token"]')
+                            .getAttribute("content"),
+                    },
+                    credentials: "include",
+                },
+            );
+            if (response.ok)
+                Swal.fire(
+                    "Thành công!",
+                    "Chúc bạn ngon miệng!",
+                    "success",
+                ).then(() => window.location.reload());
+        } catch (e) {
+            Swal.fire("Lỗi", "Vui lòng thử lại", "error");
+        }
+    }
 };
 
-const getShipperStatus = (status) => {
-    const statuses = {
-        available: "Sẵn sàng",
-        busy: "Đang giao hàng",
-        offline: "Offline",
-    };
-    return statuses[status] || status;
+const cancelOrder = async () => {
+    const result = await Swal.fire({
+        title: "Hủy đơn hàng?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#ef4444",
+        confirmButtonText: "Hủy đơn",
+        cancelButtonText: "Quay lại",
+    });
+    if (result.isConfirmed) {
+        try {
+            const response = await fetch(
+                `/my-orders/${orderData.value.id}/cancel`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        Accept: "application/json",
+                        "X-CSRF-TOKEN": document
+                            .querySelector('meta[name="csrf-token"]')
+                            .getAttribute("content"),
+                    },
+                    credentials: "include",
+                },
+            );
+            if (response.ok)
+                Swal.fire(
+                    "Đã hủy!",
+                    "Đơn hàng đã hủy thành công.",
+                    "success",
+                ).then(() => window.location.reload());
+            else {
+                const err = await response.json();
+                Swal.fire("Thất bại", err.error, "error");
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
 };
 
+// Map
 const initMap = () => {
-    if (
-        !orderData.value.shipper ||
-        !orderData.value.shipper.current_latitude ||
-        !orderData.value.shipper.current_longitude
-    )
-        return;
-
-    if (map.value) {
-        map.value.remove();
-    }
-
+    if (!orderData.value.shipper?.current_latitude) return;
+    if (map.value) map.value.remove();
     map.value = L.map("order-map", {
         zoomControl: false,
         attributionControl: false,
@@ -676,148 +589,90 @@ const initMap = () => {
         ],
         15,
     );
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(
+        map.value,
+    );
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 18,
-        minZoom: 10,
-        attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(map.value);
-
-    // Add customer marker
-    if (orderData.value.user.latitude && orderData.value.user.longitude) {
+    if (orderData.value.user.latitude) {
         L.circleMarker(
             [orderData.value.user.latitude, orderData.value.user.longitude],
             {
-                radius: 8,
+                radius: 10,
                 fillColor: "#2563eb",
-                color: "#ffffff",
-                weight: 2,
-                fillOpacity: 0.9,
+                color: "#fff",
+                weight: 4,
+                fillOpacity: 1,
             },
         )
             .addTo(map.value)
-            .bindPopup("Vị trí khách hàng");
+            .bindPopup("Bạn");
     }
-
-    // Add shipper marker
     shipperMarker.value = L.circleMarker(
         [
             orderData.value.shipper.current_latitude,
             orderData.value.shipper.current_longitude,
         ],
         {
-            radius: 10,
-            fillColor: "#ef4444",
-            color: "#ffffff",
-            weight: 2,
-            fillOpacity: 0.95,
+            radius: 12,
+            fillColor: "#f97316",
+            color: "#fff",
+            weight: 4,
+            fillOpacity: 1,
         },
     )
         .addTo(map.value)
-        .bindPopup("Vị trí shipper hiện tại");
+        .bindPopup("Shipper");
 };
 
-const updateOrderData = async () => {
-    try {
-        const response = await fetch(
-            `/api/orders/${orderData.value.id}/details`,
-            {
-                headers: {
-                    Accept: "application/json",
-                    "Content-Type": "application/json",
-                },
-                credentials: "include",
-            },
-        );
-
-        if (response.ok) {
-            const freshData = await response.json();
-            orderData.value = freshData;
-        }
-    } catch (error) {
-        console.error("Error fetching order details:", error);
-    }
-};
-
-// Watch shipper location changes to update map
 watch(
     () => [
         orderData.value.shipper?.current_latitude,
         orderData.value.shipper?.current_longitude,
     ],
-    () => {
-        if (orderData.value.shipper && shipperMarker.value) {
-            const newLat = orderData.value.shipper.current_latitude;
-            const newLng = orderData.value.shipper.current_longitude;
-
-            if (newLat && newLng) {
-                shipperMarker.value.setLatLng([newLat, newLng]);
-                map.value?.panTo([newLat, newLng]);
-            }
+    ([lat, lng]) => {
+        if (shipperMarker.value && lat && lng) {
+            shipperMarker.value.setLatLng([lat, lng]);
+            map.value?.panTo([lat, lng]);
         }
     },
 );
 
-watch(
-    () => orderData.value.status,
-    (status) => {
-        if (["shipping", "picked_up"].includes(status)) {
-            startOrderPolling();
-        } else {
-            stopOrderPolling();
-        }
-    },
-);
-
-watch(showTrackingMap, (visible) => {
-    if (visible) {
-        initMap();
-    }
+watch(showTrackingMap, (v) => {
+    if (v) setTimeout(initMap, 500);
 });
 
-const confirmDelivery = async () => {
-    if (!confirm("Bạn xác nhận đã nhận được hàng?")) return;
-
-    try {
-        const response = await fetch(
-            `/api/orders/${orderData.value.id}/confirm-delivery`,
-            {
-                method: "POST",
-                headers: {
-                    Accept: "application/json",
-                    "Content-Type": "application/json",
-                },
-                credentials: "include",
-            },
-        );
-
-        if (response.ok) {
-            alert("Cảm ơn bạn đã xác nhận!");
-            window.location.reload();
-        } else {
-            alert("Có lỗi xảy ra, vui lòng thử lại.");
-        }
-    } catch (error) {
-        console.error("Error confirming delivery:", error);
-        alert("Có lỗi xảy ra, vui lòng thử lại.");
-    }
-};
-
 onMounted(() => {
-    if (showTrackingMap.value) {
-        initMap();
-    }
-
-    if (["shipping", "picked_up"].includes(orderData.value.status)) {
+    if (showTrackingMap.value) setTimeout(initMap, 500);
+    if (["shipping", "picked_up"].includes(orderData.value.status))
         startOrderPolling();
-    }
 });
 
 onUnmounted(() => {
     stopOrderPolling();
-    if (map.value) {
-        map.value.remove();
-    }
+    if (map.value) map.value.remove();
+});
+
+const canCancelOrder = computed(() => {
+    return ![
+        "shipping",
+        "picked_up",
+        "delivering",
+        "completed",
+        "cancelled",
+    ].includes(orderData.value.status);
 });
 </script>
+
+<style scoped>
+:deep(.leaflet-container) {
+    border-radius: 0;
+    font-family: inherit;
+}
+/* Đảm bảo chữ ko bị vỡ trên mobile */
+.line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+</style>

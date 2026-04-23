@@ -11,7 +11,7 @@ class ProductController extends Controller
     // Lấy danh sách tất cả món ăn (kèm theo danh mục)
     public function index()
     {
-        $products = Product::with('category')->where('is_available', true)->get();
+        $products = Product::with('category')->visible()->get();
         return response()->json([
             'success' => true,
             'data' => $products
@@ -21,7 +21,10 @@ class ProductController extends Controller
     // Lấy chi tiết một món ăn (kèm theo các lựa chọn Topping/Size)
     public function show($id)
     {
-        $product = Product::with(['category', 'options'])->find($id);
+        $product = Product::with(['category', 'options'])
+            ->approved()
+            ->where('is_available', true)
+            ->find($id);
 
         if (!$product) {
             return response()->json(['success' => false, 'message' => 'Không tìm thấy món ăn'], 404);

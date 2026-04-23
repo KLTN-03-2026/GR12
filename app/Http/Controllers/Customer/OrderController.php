@@ -22,7 +22,7 @@ class OrderController extends Controller
         $orders = Order::where('user_id', auth()->id())
             ->with(['items.product.reviews.user']) // Lấy kèm chi tiết món ăn và đánh giá
             ->latest() // Đơn hàng mới nhất lên đầu
-            ->get();
+            ->paginate(5); // Phân trang 5 đơn hàng mỗi trang
 
         return Inertia::render('Customer/Orders', [
             'orders' => $orders
@@ -78,6 +78,7 @@ class OrderController extends Controller
             'discount_amount' => $order->discount_amount,
             'total' => $order->total,
             'payment_method' => $order->payment_method,
+            'payment_status' => $order->payment_status,
             'created_at' => $order->created_at,
             'restaurant' => [
                 'name' => $restaurantUser?->restaurant_name ?? $restaurantUser?->name ?? 'Nhà hàng',
@@ -150,14 +151,15 @@ class OrderController extends Controller
      */
     public function store(Request $request)
     {
+        \Log::info('Order store request', $request->all());
         // 1. Validate thông tin khách hàng nhập
             $request->validate([
             'address' => 'required|string|min:10',
             'phone' => 'required|numeric|digits_between:10,11',
-            'payment_method' => 'required|in:cod,cash',
+            'payment_method' => 'required|in:cod,cash,vnpay',
             'voucher_code' => 'nullable|string|exists:vouchers,code',
         ], [
-            'address.required' => 'Hoàng Anh ơi, quên nhập địa chỉ rồi!',
+            'address.required' => 'Bạn quên nhập địa chỉ rồi!',
             'address.min' => 'Địa chỉ cần chi tiết hơn một chút nhé.',
             'phone.required' => 'Số điện thoại là bắt buộc để shipper gọi bạn.',
             'phone.numeric' => 'Số điện thoại chỉ được chứa chữ số thôi.',
@@ -190,7 +192,22 @@ class OrderController extends Controller
             return redirect()->back()->with('error', 'Lỗi tính toán giá, vui lòng thử lại.');
         }
         
-        $shippingFee = 15000; // Phí ship cố định (Hoàng Anh có thể chỉnh lại)
+        // Tính phí ship dựa trên khoảng cách từ quán đến khách hàng
+        $restaurant = $cartItems->first()->product->user;
+        $customerLat = $request->latitude;
+        $customerLng = $request->longitude;
+        $restaurantLat = $restaurant->latitude;
+        $restaurantLng = $restaurant->longitude;
+
+        if ($customerLat && $customerLng && $restaurantLat && $restaurantLng) {
+            $distance = $this->distanceBetweenCoordinates($restaurantLat, $restaurantLng, $customerLat, $customerLng);
+            $baseFee = 15000; // 15k cơ bản
+            $additionalFee = max(0, $distance - 2) * 3000; // 3k/km từ km thứ 3
+            $shippingFee = $baseFee + $additionalFee;
+        } else {
+            $shippingFee = 15000; // Fallback nếu không có vị trí
+        }
+
         $voucherCode = $request->voucher_code;
         $discountAmount = 0;
 
@@ -247,6 +264,7 @@ class OrderController extends Controller
                 'discount_amount' => $discountAmount,
                 'total' => $total,
                 'payment_method' => $request->payment_method,
+                'payment_status' => $request->payment_method === 'vnpay' ? 'pending' : 'paid',
                 'status' => 'pending', // Trạng thái chờ xử lý
             ]);
 
@@ -274,8 +292,22 @@ class OrderController extends Controller
 
             DB::commit();
 
-            // 5. Điều hướng về trang chủ và hiện Toast "hàng hiệu"
-            return redirect()->route('home')->with('success', 'Đơn hàng ' . $order->order_code . ' đã được đặt thành công! Chờ shipper nhé 🛵');
+            // 5. Xử lý thanh toán
+            \Log::info('Order created', ['order_id' => $order->id, 'payment_method' => $order->payment_method]);
+            if ($order->payment_method === 'vnpay') {
+                \Log::info('Processing VNPay for order ' . $order->id);
+                try {
+                    $paymentUrl = $this->createVNPayUrl($order);
+                    \Log::info('VNPay URL generated: ' . $paymentUrl);
+                    return redirect($paymentUrl);
+                } catch (\Exception $e) {
+                    \Log::error('VNPay error: ' . $e->getMessage());
+                    return redirect()->back()->with('error', 'Lỗi tạo thanh toán VNPay. Vui lòng thử lại.');
+                }
+            } else {
+                // 5. Điều hướng về trang chủ và hiện Toast "hàng hiệu"
+                return redirect()->route('home')->with('success', 'Đơn hàng ' . $order->order_code . ' đã được đặt thành công! Chờ shipper nhé 🛵');
+            }
 
         } catch (\Exception $e) {
             // Nếu có bất kỳ lỗi nào, hủy bỏ toàn bộ quá trình lưu
@@ -283,5 +315,119 @@ class OrderController extends Controller
             
             return redirect()->back()->with('error', 'Rất tiếc, đã có lỗi xảy ra khi tạo đơn hàng. Vui lòng thử lại!');
         }
+    }
+
+    /**
+     * Tính khoảng cách giữa hai điểm tọa độ bằng công thức Haversine (km)
+     */
+    private function distanceBetweenCoordinates($lat1, $lon1, $lat2, $lon2)
+    {
+        $earthRadiusKm = 6371;
+
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
+
+        $a = sin($dLat / 2) * sin($dLat / 2) +
+            cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
+            sin($dLon / 2) * sin($dLon / 2);
+
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+        $distance = $earthRadiusKm * $c;
+
+        return $distance;
+    }
+
+    public function cancel(Request $request, $id)
+    {
+        $order = Order::where('user_id', auth()->id())->findOrFail($id);
+
+        // Chỉ cho phép hủy nếu chưa giao
+        if (in_array($order->status, ['shipping', 'picked_up', 'delivering', 'completed'])) {
+            return response()->json(['error' => 'Không thể hủy đơn hàng đã giao.'], 400);
+        }
+
+        $oldStatus = $order->status;
+        $order->update(['status' => 'cancelled']);
+
+        // Gửi thông báo
+        $order->user->notify(new \App\Notifications\OrderStatusUpdated($order, $oldStatus, 'cancelled'));
+
+        // Nếu đã thanh toán, xử lý hoàn tiền (tạm thời log)
+        if ($order->payment_status === 'paid') {
+            \Log::info('Refund needed for order ' . $order->order_code);
+            // Thêm logic hoàn tiền VNPay nếu cần
+        }
+
+        return response()->json(['message' => 'Đơn hàng đã được hủy.']);
+    }
+
+    private function createVNPayUrl($order)
+    {
+        $vnp_TmnCode = config('vnpay.tmn_code');
+        $vnp_HashSecret = config('vnpay.hash_secret');
+        $vnp_Url = config('vnpay.url');
+        $vnp_Returnurl = config('vnpay.return_url');
+        $vnp_IpnUrl = config('vnpay.ipn_url');
+
+        \Log::info('VNPay config', [
+            'tmn_code' => $vnp_TmnCode,
+            'hash_secret' => $vnp_HashSecret ? 'set' : 'not set',
+            'url' => $vnp_Url,
+            'return_url' => $vnp_Returnurl,
+        ]);
+
+        if (!$vnp_TmnCode || !$vnp_HashSecret) {
+            throw new \Exception('VNPay config missing');
+        }
+
+        $vnp_TxnRef = $order->order_code;
+        $vnp_OrderInfo = 'Thanh toan don hang ' . $order->order_code;
+        $vnp_OrderType = 'billpayment';
+        $vnp_Amount = $order->total * 100;
+        $vnp_Locale = 'vn';
+        $vnp_BankCode = '';
+        $vnp_IpAddr = request()->ip();
+
+        $inputData = array(
+            "vnp_Version" => "2.1.0",
+            "vnp_TmnCode" => $vnp_TmnCode,
+            "vnp_Amount" => $vnp_Amount,
+            "vnp_Command" => "pay",
+            "vnp_CreateDate" => date('YmdHis'),
+            "vnp_CurrCode" => "VND",
+            "vnp_IpAddr" => $vnp_IpAddr,
+            "vnp_Locale" => $vnp_Locale,
+            "vnp_OrderInfo" => $vnp_OrderInfo,
+            "vnp_OrderType" => $vnp_OrderType,
+            "vnp_ReturnUrl" => $vnp_Returnurl,
+            "vnp_TxnRef" => $vnp_TxnRef,
+            "vnp_ExpireDate" => date('YmdHis', strtotime('+15 minutes')),
+        );
+
+        if (isset($vnp_BankCode) && $vnp_BankCode != "") {
+            $inputData['vnp_BankCode'] = $vnp_BankCode;
+        }
+
+        ksort($inputData);
+        $query = "";
+        $i = 0;
+        $hashdata = "";
+        foreach ($inputData as $key => $value) {
+            if ($i == 1) {
+                $hashdata .= '&' . urlencode($key) . "=" . urlencode($value);
+            } else {
+                $hashdata .= urlencode($key) . "=" . urlencode($value);
+                $i = 1;
+            }
+            $query .= urlencode($key) . "=" . urlencode($value) . '&';
+        }
+
+        $vnp_Url = $vnp_Url . "?" . $query;
+        if (isset($vnp_HashSecret)) {
+            $vnpSecureHash = hash_hmac('sha512', $hashdata, $vnp_HashSecret);
+            $vnp_Url .= 'vnp_SecureHash=' . $vnpSecureHash;
+        }
+
+        return $vnp_Url;
     }
 }

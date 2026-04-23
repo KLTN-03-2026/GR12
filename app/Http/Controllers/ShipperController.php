@@ -73,16 +73,15 @@ class ShipperController extends Controller
                 ];
             });
 
-        // Đơn hàng available (chưa nhận) - có thể chưa có shipper hoặc đã gán nhưng chưa shipper xác nhận
-        $availableOrders = Order::where(function ($query) {
-                $query->whereNull('shipper_id')
-                    ->where('status', 'confirmed')
-                    ->orWhere('status', 'assigned');
-            })
+        // Đơn hàng available (chưa nhận) - chỉ lấy confirmed và chưa có shipper gán
+        $availableOrders = Order::whereNull('shipper_id')
+            ->where('status', 'confirmed')
             ->with('items.product.user', 'user')
-            ->get()            ->filter(function ($order) {
+            ->get()
+            ->filter(function ($order) {
                 return $order->items->count() > 0;
-            })            ->map(function ($order) use ($shipperLat, $shipperLng) {
+            })
+            ->map(function ($order) use ($shipperLat, $shipperLng) {
                 $restaurantUser = $order->items->first()->product?->user;
                 $restaurantLat = $restaurantUser?->latitude;
                 $restaurantLng = $restaurantUser?->longitude;
@@ -133,9 +132,51 @@ class ShipperController extends Controller
             })
             ->values();
 
+        // Đơn hàng đã gán cho shipper này (chờ accept)
+        $assignedOrders = Order::where('shipper_id', $shipper->id)
+            ->where('status', 'assigned')
+            ->with('items.product.user', 'user')
+            ->get()
+            ->filter(function ($order) {
+                return $order->items->count() > 0;
+            })
+            ->map(function ($order) {
+                $restaurantUser = $order->items->first()?->product?->user;
+
+                return [
+                    'id' => $order->id,
+                    'order_code' => $order->order_code,
+                    'address' => $order->address,
+                    'phone' => $order->phone,
+                    'status' => $order->status,
+                    'total' => $order->total,
+                    'user' => [
+                        'name' => $order->user?->name,
+                        'latitude' => $order->user?->latitude,
+                        'longitude' => $order->user?->longitude,
+                    ],
+                    'restaurant' => [
+                        'name' => $restaurantUser?->restaurant_name ?? $restaurantUser?->name,
+                        'latitude' => $restaurantUser?->latitude,
+                        'longitude' => $restaurantUser?->longitude,
+                    ],
+                    'items' => $order->items->map(function ($item) {
+                        return [
+                            'id' => $item->id,
+                            'product' => [
+                                'name' => $item->product?->name,
+                            ],
+                            'quantity' => $item->quantity,
+                            'price' => $item->price,
+                        ];
+                    }),
+                ];
+            });
+
         return response()->json([
             'current_orders' => $currentOrders,
             'available_orders' => $availableOrders,
+            'assigned_orders' => $assignedOrders,
             'shipper' => [
                 'id' => $shipper->id,
                 'user_id' => $shipper->user_id,
@@ -146,12 +187,17 @@ class ShipperController extends Controller
         ]);
     }
 
-    public function findNearestShipper($restaurantLat, $restaurantLng, $maxDistance = 2)
+    public function findNearestShipper($restaurantLat, $restaurantLng, $maxDistance = 2, array $excludeShipperIds = [])
     {
         $shippers = Shipper::where('status', 'available')
             ->whereNotNull('current_latitude')
-            ->whereNotNull('current_longitude')
-            ->get();
+            ->whereNotNull('current_longitude');
+
+        if (!empty($excludeShipperIds)) {
+            $shippers->whereNotIn('id', $excludeShipperIds);
+        }
+
+        $shippers = $shippers->get();
 
         $nearestShipper = null;
         $minDistance = PHP_FLOAT_MAX;
@@ -173,24 +219,36 @@ class ShipperController extends Controller
         return $nearestShipper;
     }
 
-    public function assignShipperToOrder($orderId)
+    public function assignShipperToOrder($orderId, array $excludeShipperIds = []): bool
     {
-        $order = Order::with('items.product.user')->findOrFail($orderId);
+        $order = Order::with('items.product.user')->lockForUpdate()->find($orderId);
 
         if ($order->shipper_id) {
-            return; // Already assigned
+            return false; // Already assigned to someone
         }
 
         $restaurantUser = $order->items->first()->product?->user;
         if (!$restaurantUser || !$restaurantUser->latitude || !$restaurantUser->longitude) {
-            return; // No restaurant location
+            return false; // No restaurant location
         }
 
-        $shipper = $this->findNearestShipper($restaurantUser->latitude, $restaurantUser->longitude);
+        $shipper = $this->findNearestShipper(
+            $restaurantUser->latitude,
+            $restaurantUser->longitude,
+            2,
+            $excludeShipperIds,
+        );
 
         if ($shipper) {
-            $order->update(['shipper_id' => $shipper->id, 'status' => 'assigned']);
+            // Lock shipper để tránh race condition
+            $lockedShipper = Shipper::where('id', $shipper->id)->lockForUpdate()->first();
+            if ($lockedShipper && $lockedShipper->status === 'available') {
+                $order->update(['shipper_id' => $shipper->id, 'status' => 'assigned']);
+                return true;
+            }
         }
+
+        return false;
     }
 
     public function acceptOrder(Request $request, $orderId)
@@ -219,6 +277,34 @@ class ShipperController extends Controller
         $shipper->update(['status' => 'busy']);
 
         return response()->json(['message' => 'Order accepted']);
+    }
+
+    public function rejectOrder(Request $request, $orderId)
+    {
+        $shipper = $this->getShipper();
+
+        $order = Order::where('id', $orderId)
+            ->where('shipper_id', $shipper->id)
+            ->firstOrFail();
+
+        if ($order->status !== 'assigned') {
+            return response()->json(['error' => 'Order không ở trạng thái assigned'], 400);
+        }
+
+        $order->update([
+            'shipper_id' => null,
+            'status' => 'confirmed',
+        ]);
+
+        $this->assignShipperToOrder($orderId, [$shipper->id]);
+
+        $order->refresh();
+
+        return response()->json([
+            'message' => 'Đã hoãn đơn. Hệ thống sẽ tìm shipper khác.',
+            'status' => $order->status,
+            'shipper_id' => $order->shipper_id,
+        ]);
     }
 
     public function confirmPickup($orderId)

@@ -2,269 +2,182 @@
 import RestaurantLayout from "@/Layouts/RestaurantLayout.vue";
 import { Head, useForm, Link } from "@inertiajs/vue3";
 import { ref } from "vue";
+import InputError from "@/Components/InputError.vue";
 
-defineProps({
-    categories: Array,
+defineOptions({ layout: RestaurantLayout });
+
+const props = defineProps({
     product: Object,
+    categories: Array,
 });
+
+// Previews cho ảnh chính
+const imagePreview = ref(
+    props.product.image ? `/storage/${props.product.image}` : null,
+);
+
+// Previews cho Album ảnh
+const galleryPreviews = ref(
+    props.product.gallery?.map((img) => ({
+        id: img.id,
+        url: `/storage/${img.image_path}`,
+        isExisting: true,
+    })) || [],
+);
 
 const form = useForm({
-    name: product.name || "",
-    category_id: product.category_id || "",
-    price: product.price || 0,
-    description: product.description || "",
-    stock_quantity: product.stock_quantity || 0,
-    is_available: !!product.is_available,
+    _method: "PUT",
+    name: props.product.name,
+    category_id: props.product.category_id,
+    price: props.product.price,
+    description: props.product.description || "",
     image: null,
+    stock_quantity: props.product.stock_quantity ?? 999,
+    is_available: Boolean(props.product.is_available),
+    available_from: props.product.available_from || "06:00",
+    available_to: props.product.available_to || "22:00",
     gallery: [],
-    options: product.options.map((opt) => ({
-        option_name: opt.option_name,
-        option_value: opt.option_value,
-        additional_price: opt.additional_price,
-        image: null,
-        preview: opt.image ? `/storage/${opt.image}` : null,
-        existing_image: opt.image || null,
-    })),
+    delete_gallery: [],
+    options:
+        props.product.options?.map((opt) => ({
+            option_name: opt.option_name,
+            option_value: opt.option_value,
+            additional_price: opt.additional_price,
+            existing_image: opt.image,
+            preview: opt.image ? `/storage/${opt.image}` : null,
+            image: null,
+        })) || [],
 });
 
-const mainPreview = ref(product.image ? `/storage/${product.image}` : null);
-const handleMainImage = (e) => {
+// 1. Thay đổi ảnh chính
+const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
         form.image = file;
-        mainPreview.value = URL.createObjectURL(file);
+        if (imagePreview.value && !imagePreview.value.startsWith("/storage")) {
+            URL.revokeObjectURL(imagePreview.value);
+        }
+        imagePreview.value = URL.createObjectURL(file);
     }
 };
-const removeMainImage = () => {
-    form.image = null;
-    mainPreview.value = null;
-};
 
-const galleryPreviews = ref([]);
-const existingGallery = ref(
-    product.gallery.map((item) => ({
-        id: item.id,
-        src: `/storage/${item.image_path}`,
-    }))
-);
-
-const handleGalleryImages = (e) => {
+// 2. Album Gallery Logic
+const handleGalleryChange = (e) => {
     const files = Array.from(e.target.files);
     form.gallery = [...form.gallery, ...files];
-    const newPreviews = files.map((file) => URL.createObjectURL(file));
-    galleryPreviews.value = [...galleryPreviews.value, ...newPreviews];
+    files.forEach((file) => {
+        galleryPreviews.value.push({
+            url: URL.createObjectURL(file),
+            isExisting: false,
+        });
+    });
 };
+
 const removeGalleryImage = (index) => {
-    form.gallery.splice(index, 1);
+    const item = galleryPreviews.value[index];
+    if (item.isExisting) {
+        form.delete_gallery.push(item.id);
+    } else {
+        const fileIndex = form.gallery.findIndex(
+            (f) => URL.createObjectURL(f) === item.url,
+        );
+        if (fileIndex > -1) form.gallery.splice(fileIndex, 1);
+    }
     galleryPreviews.value.splice(index, 1);
 };
 
+// 3. Toppings Logic
 const addOption = () => {
     form.options.push({
-        option_name: "Topping",
+        option_name: "",
         option_value: "",
         additional_price: 0,
         image: null,
         preview: null,
-        existing_image: null,
     });
 };
 
-const handleOptionImage = (index, e) => {
+const handleOptionImage = (e, index) => {
     const file = e.target.files[0];
     if (file) {
         form.options[index].image = file;
         form.options[index].preview = URL.createObjectURL(file);
-        form.options[index].existing_image = null;
     }
-};
-
-const removeOptionImage = (index) => {
-    form.options[index].image = null;
-    form.options[index].preview = null;
-    form.options[index].existing_image = null;
 };
 
 const removeOption = (index) => form.options.splice(index, 1);
 
-const submitForm = () => {
-    form.patch(route("restaurant.products.update", product.id), {
+const submit = () => {
+    form.post(route("restaurant.products.update", props.product.id), {
         forceFormData: true,
         preserveScroll: true,
+        onError: () => {
+            toast.error("Cập nhật thất bại, hãy kiểm tra lại các ô nhập! 😥");
+        },
     });
 };
 </script>
 
 <template>
-    <RestaurantLayout>
-        <Head title="Chỉnh sửa món ăn" />
+    <Head :title="'Chỉnh sửa: ' + product.name" />
 
-        <div class="max-w-6xl mx-auto px-4 pb-20 mt-8">
-            <form
-                @submit.prevent="submitForm"
-                class="grid grid-cols-1 lg:grid-cols-12 gap-8"
-            >
-                <div class="lg:col-span-4 space-y-6">
-                    <div
-                        class="bg-white p-5 rounded-[2.5rem] border border-orange-100 shadow-sm relative"
-                    >
-                        <label
-                            class="block text-[10px] font-black text-gray-400 uppercase mb-4 text-center tracking-widest"
-                            >Ảnh đại diện chính</label
-                        >
-                        <div
-                            class="relative h-64 bg-orange-50 rounded-[2rem] border-2 border-dashed border-orange-200 overflow-hidden group"
-                        >
-                            <template v-if="mainPreview">
-                                <img
-                                    :src="mainPreview"
-                                    class="w-full h-full object-cover"
-                                />
-                                <button
-                                    type="button"
-                                    @click="removeMainImage"
-                                    class="absolute top-4 right-4 bg-red-500 text-white p-2 rounded-full shadow-lg hover:bg-red-600 transition scale-90"
-                                >
-                                    <svg
-                                        class="w-4 h-4"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                            d="M6 18L18 6M6 6l12 12"
-                                        />
-                                    </svg>
-                                </button>
-                            </template>
-                            <label
-                                v-else
-                                class="flex flex-col items-center justify-center h-full cursor-pointer hover:bg-orange-100 transition"
-                            >
-                                <svg
-                                    class="w-10 text-orange-300 mb-2"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                        stroke-width="2"
-                                    />
-                                </svg>
-                                <span
-                                    class="text-[10px] font-bold text-orange-400 uppercase"
-                                    >Chọn ảnh chính</span
-                                >
-                                <input
-                                    type="file"
-                                    @change="handleMainImage"
-                                    class="hidden"
-                                />
-                            </label>
-                        </div>
-                    </div>
-
-                    <div
-                        class="bg-white p-5 rounded-[2.5rem] border border-orange-100 shadow-sm"
-                    >
-                        <label
-                            class="block text-[10px] font-black text-gray-400 uppercase mb-4 px-2 tracking-widest"
-                            >Gallery Ảnh chi tiết</label
-                        >
-                        <div class="grid grid-cols-3 gap-2">
-                            <div
-                                v-for="(src, idx) in galleryPreviews"
-                                :key="`new-${idx}`"
-                                class="relative aspect-square rounded-xl overflow-hidden border group"
-                            >
-                                <img
-                                    :src="src"
-                                    class="w-full h-full object-cover"
-                                />
-                                <button
-                                    type="button"
-                                    @click="removeGalleryImage(idx)"
-                                    class="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition"
-                                >
-                                    <svg
-                                        class="w-3 h-3"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                            d="M6 18L18 6M6 6l12 12"
-                                        />
-                                    </svg>
-                                </button>
-                            </div>
-                            <label
-                                class="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-orange-200 rounded-xl cursor-pointer hover:bg-orange-50 transition"
-                            >
-                                <span class="text-xl text-orange-400 font-light">+</span>
-                                <span class="text-[10px] uppercase text-gray-400 mt-1">Thêm ảnh</span>
-                                <input
-                                    type="file"
-                                    multiple
-                                    @change="handleGalleryImages"
-                                    class="hidden"
-                                />
-                            </label>
-                        </div>
-
-                        <div v-if="existingGallery.length" class="mt-4">
-                            <p class="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-2">Ảnh gallery hiện có</p>
-                            <div class="grid grid-cols-3 gap-2">
-                                <div
-                                    v-for="item in existingGallery"
-                                    :key="item.id"
-                                    class="aspect-square rounded-xl overflow-hidden border"
-                                >
-                                    <img
-                                        :src="item.src"
-                                        class="w-full h-full object-cover"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div
-                    class="lg:col-span-8 bg-white p-10 rounded-[3rem] border border-orange-100 shadow-sm space-y-8"
+    <div class="space-y-10 pb-20 animate-in fade-in duration-700">
+        <div
+            class="flex flex-col md:flex-row md:items-end justify-between gap-4"
+        >
+            <div>
+                <h2
+                    class="text-5xl font-black text-gray-900 italic tracking-tighter uppercase leading-none"
                 >
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="md:col-span-2">
+                    Chỉnh sửa món 🛠️
+                </h2>
+                <p
+                    class="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] mt-3 bg-blue-50 w-fit px-3 py-1 rounded-lg"
+                >
+                    Đang điều chỉnh: {{ product.name }}
+                </p>
+            </div>
+            <Link
+                :href="route('restaurant.products.index')"
+                class="group flex items-center gap-3 px-6 py-3 bg-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-900 hover:text-white transition-all shadow-sm border border-gray-100"
+            >
+                <span class="group-hover:-translate-x-1 transition-transform"
+                    >←</span
+                >
+                Quay lại
+            </Link>
+        </div>
+
+        <form
+            @submit.prevent="submit"
+            class="grid grid-cols-1 lg:grid-cols-3 gap-8"
+        >
+            <div class="lg:col-span-2 space-y-8">
+                <div
+                    class="bg-white p-10 rounded-[3rem] shadow-sm border border-gray-50 space-y-8"
+                >
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div class="space-y-3">
                             <label
-                                class="text-xs font-bold text-gray-400 uppercase tracking-widest"
+                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2"
                                 >Tên món ăn</label
                             >
                             <input
                                 v-model="form.name"
                                 type="text"
-                                class="w-full border-none bg-gray-50 rounded-2xl p-4 mt-1 focus:ring-orange-500"
+                                class="w-full bg-gray-50 border-none rounded-2xl p-5 font-bold text-gray-800 focus:ring-4 focus:ring-blue-100 transition-all"
                             />
-                            <div v-if="form.errors.name" class="text-red-500 text-[10px] mt-1">
-                                {{ form.errors.name }}
-                            </div>
+                            <InputError :message="form.errors.name" />
                         </div>
-                        <div>
+                        <div class="space-y-3">
                             <label
-                                class="text-xs font-bold text-gray-400 uppercase tracking-widest"
+                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2"
                                 >Danh mục</label
                             >
                             <select
                                 v-model="form.category_id"
-                                class="w-full border-none bg-gray-50 rounded-2xl p-4 mt-1 focus:ring-orange-500"
+                                class="w-full bg-gray-50 border-none rounded-2xl p-5 font-bold text-gray-800 focus:ring-4 focus:ring-blue-100 transition-all h-[64px]"
                             >
-                                <option value="">Chọn loại</option>
                                 <option
                                     v-for="cat in categories"
                                     :key="cat.id"
@@ -273,185 +186,320 @@ const submitForm = () => {
                                     {{ cat.name }}
                                 </option>
                             </select>
-                            <div v-if="form.errors.category_id" class="text-red-500 text-[10px] mt-1">
-                                {{ form.errors.category_id }}
-                            </div>
                         </div>
-                        <div>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div class="space-y-3">
                             <label
-                                class="text-xs font-bold text-gray-400 uppercase tracking-widest"
-                                >Giá (VNĐ)</label
+                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2"
+                                >Giá bán (đ)</label
                             >
                             <input
                                 v-model="form.price"
                                 type="number"
-                                class="w-full border-none bg-gray-50 rounded-2xl p-4 mt-1 focus:ring-orange-500"
+                                class="w-full bg-gray-50 border-none rounded-2xl p-5 font-black text-xl text-orange-600 focus:ring-4 focus:ring-blue-100 transition-all"
                             />
-                            <div v-if="form.errors.price" class="text-red-500 text-[10px] mt-1">
-                                {{ form.errors.price }}
-                            </div>
+                            <InputError :message="form.errors.price" />
                         </div>
-                        <div>
+
+                        <div class="space-y-3">
                             <label
-                                class="text-xs font-bold text-gray-400 uppercase tracking-widest"
-                                >Số lượng</label
+                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2"
+                                >Trạng thái phục vụ</label
                             >
-                            <input
-                                v-model="form.stock_quantity"
-                                type="number"
-                                min="0"
-                                class="w-full border-none bg-gray-50 rounded-2xl p-4 mt-1 focus:ring-orange-500"
-                            />
-                            <div v-if="form.errors.stock_quantity" class="text-red-500 text-[10px] mt-1">
-                                {{ form.errors.stock_quantity }}
+                            <div
+                                @click="form.is_available = !form.is_available"
+                                :class="
+                                    form.is_available
+                                        ? 'bg-green-50 border-green-200 text-green-600'
+                                        : 'bg-red-50 border-red-200 text-red-600'
+                                "
+                                class="flex items-center justify-between p-4 rounded-2xl border-2 border-dashed cursor-pointer transition-all h-[64px]"
+                            >
+                                <div class="flex items-center gap-3">
+                                    <span class="text-xl">{{
+                                        form.is_available ? "✅" : "❌"
+                                    }}</span>
+                                    <span
+                                        class="font-black text-[10px] uppercase tracking-widest"
+                                    >
+                                        {{
+                                            form.is_available
+                                                ? "Đang bán"
+                                                : "Tạm ngưng"
+                                        }}
+                                    </span>
+                                </div>
+                                <div
+                                    :class="
+                                        form.is_available
+                                            ? 'bg-green-500'
+                                            : 'bg-red-500'
+                                    "
+                                    class="w-10 h-5 rounded-full relative transition-colors"
+                                >
+                                    <div
+                                        :class="
+                                            form.is_available
+                                                ? 'translate-x-5'
+                                                : 'translate-x-1'
+                                        "
+                                        class="absolute top-1 bg-white w-3 h-3 rounded-full transition-transform shadow-sm"
+                                    ></div>
+                                </div>
                             </div>
-                        </div>
-                        <div class="md:col-span-2 flex items-center gap-3 mt-1">
-                            <input
-                                id="is_available"
-                                type="checkbox"
-                                v-model="form.is_available"
-                                class="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-                            />
-                            <label for="is_available" class="text-sm font-semibold text-gray-600">
-                                Cho phép khách hàng đặt món
-                            </label>
                         </div>
                     </div>
 
-                    <div class="space-y-2">
+                    <div class="space-y-3">
                         <label
-                            class="text-xs font-bold text-gray-400 uppercase tracking-widest"
-                            >Mô tả hương vị</label
+                            class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2"
+                            >Mô tả</label
                         >
                         <textarea
                             v-model="form.description"
                             rows="4"
-                            placeholder="Nhập mô tả hấp dẫn cho món ăn..."
-                            class="w-full border-none bg-gray-50 rounded-[1.5rem] p-5 focus:ring-orange-500 outline-none shadow-inner text-sm"
+                            class="w-full bg-gray-50 border-none rounded-[2rem] p-6 font-medium text-sm text-gray-600 focus:ring-4 focus:ring-blue-100 transition-all"
                         ></textarea>
-                        <div
-                            v-if="form.errors.description"
-                            class="text-red-500 text-[10px]"
-                        >
-                            {{ form.errors.description }}
-                        </div>
-                    </div>
-
-                    <div class="pt-6 border-t border-dashed border-gray-100">
-                        <div class="flex items-center justify-between mb-6">
-                            <label
-                                class="text-sm font-black text-gray-800 uppercase italic tracking-widest"
-                                >Topping & Tùy chọn</label
-                            >
-                            <button
-                                type="button"
-                                @click="addOption"
-                                class="bg-orange-500 text-white px-5 py-2 rounded-full text-[10px] font-black shadow-lg hover:bg-orange-600 transition"
-                            >
-                                + THÊM MỚI
-                            </button>
-                        </div>
-
-                        <div class="space-y-4">
-                            <div
-                                v-for="(opt, index) in form.options"
-                                :key="index"
-                                class="flex items-center gap-4 p-4 bg-gray-50 rounded-[2rem] border border-gray-100 group transition-all hover:bg-white hover:shadow-xl relative"
-                            >
-                                <div
-                                    class="relative w-14 h-14 bg-white rounded-2xl border-2 border-orange-50 overflow-hidden flex-shrink-0 group-hover:border-orange-200 cursor-pointer"
-                                >
-                                    <template v-if="opt.preview">
-                                        <img
-                                            :src="opt.preview"
-                                            class="w-full h-full object-cover"
-                                        />
-                                        <button
-                                            type="button"
-                                            @click="removeOptionImage(index)"
-                                            class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                                        >
-                                            <span
-                                                class="text-[8px] text-white font-bold uppercase tracking-tighter"
-                                                >Xóa ảnh</span
-                                            >
-                                        </button>
-                                    </template>
-                                    <div
-                                        v-else
-                                        class="flex items-center justify-center h-full text-[8px] text-gray-400 font-bold uppercase"
-                                    >
-                                        ẢNH
-                                    </div>
-                                    <input
-                                        type="file"
-                                        @change="
-                                            (e) => handleOptionImage(index, e)
-                                        "
-                                        class="absolute inset-0 opacity-0 cursor-pointer"
-                                    />
-                                </div>
-
-                                <input
-                                    v-model="opt.option_name"
-                                    type="text"
-                                    placeholder="Nhóm"
-                                    class="w-24 border-none bg-white rounded-xl text-xs font-bold"
-                                />
-                                <input
-                                    v-model="opt.option_value"
-                                    type="text"
-                                    placeholder="Tên topping"
-                                    class="flex-1 border-none bg-white rounded-xl text-xs"
-                                />
-                                <input
-                                    v-model="opt.additional_price"
-                                    type="number"
-                                    class="w-24 border-none bg-white rounded-xl text-xs font-black text-orange-500"
-                                />
-
-                                <button
-                                    @click="removeOption(index)"
-                                    type="button"
-                                    class="text-gray-300 hover:text-red-500 px-2 transition"
-                                >
-                                    <svg
-                                        class="w-5 h-5"
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
-                                    >
-                                        <path
-                                            fill-rule="evenodd"
-                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z"
-                                            clip-rule="evenodd"
-                                        />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center justify-between pt-6">
-                        <Link
-                            :href="route('restaurant.products.index')"
-                            class="text-xs font-bold text-gray-400 hover:text-red-500 transition"
-                            >HỦY BỎ</Link
-                        >
-                        <button
-                            type="submit"
-                            :disabled="form.processing"
-                            class="bg-gray-900 text-white px-12 py-5 rounded-[2.5rem] font-black text-sm shadow-2xl hover:bg-orange-600 transition active:scale-95 disabled:opacity-50 tracking-[0.2em]"
-                        >
-                            {{
-                                form.processing
-                                    ? "ĐANG CẬP NHẬT..."
-                                    : "LƯU THAY ĐỔI"
-                            }}
-                        </button>
                     </div>
                 </div>
-            </form>
-        </div>
-    </RestaurantLayout>
+
+                <div
+                    class="bg-white p-10 rounded-[3rem] shadow-sm border border-gray-50"
+                >
+                    <div class="flex justify-between items-center mb-8">
+                        <h3
+                            class="font-black text-xl italic uppercase tracking-tighter text-gray-800"
+                        >
+                            Toppings & Lựa chọn
+                        </h3>
+                        <button
+                            type="button"
+                            @click="addOption"
+                            class="bg-blue-50 text-blue-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-all shadow-sm"
+                        >
+                            + Thêm tùy chọn
+                        </button>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div
+                            v-for="(opt, index) in form.options"
+                            :key="index"
+                            class="flex flex-wrap md:flex-nowrap gap-4 items-center bg-gray-50/50 p-5 rounded-[2rem] border border-dashed border-gray-200 group"
+                        >
+                            <div class="relative w-14 h-14 flex-shrink-0">
+                                <div
+                                    @click="
+                                        $refs['optImage' + index][0].click()
+                                    "
+                                    class="w-full h-full bg-white rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center cursor-pointer overflow-hidden hover:border-blue-400 transition-all"
+                                >
+                                    <img
+                                        v-if="opt.preview"
+                                        :src="opt.preview"
+                                        class="w-full h-full object-cover"
+                                    />
+                                    <span v-else class="text-xl">📸</span>
+                                </div>
+                                <input
+                                    type="file"
+                                    :ref="'optImage' + index"
+                                    class="hidden"
+                                    @change="handleOptionImage($event, index)"
+                                    accept="image/*"
+                                />
+                            </div>
+                            <input
+                                v-model="opt.option_name"
+                                placeholder="Tên (VD: Size)"
+                                class="flex-1 bg-white border-none rounded-xl p-3 text-xs font-bold shadow-sm"
+                            />
+                            <input
+                                v-model="opt.option_value"
+                                placeholder="Giá trị (VD: Lớn)"
+                                class="flex-1 bg-white border-none rounded-xl p-3 text-xs font-bold shadow-sm"
+                            />
+                            <input
+                                v-model="opt.additional_price"
+                                type="number"
+                                placeholder="+ Giá"
+                                class="w-28 bg-white border-none rounded-xl p-3 text-xs font-black text-orange-600 shadow-sm"
+                            />
+                            <button
+                                @click="removeOption(index)"
+                                type="button"
+                                class="w-10 h-10 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all flex items-center justify-center"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-8">
+                <div
+                    class="bg-white p-8 rounded-[3rem] shadow-sm border border-gray-50 text-center"
+                >
+                    <label
+                        class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6 block italic"
+                        >Ảnh đại diện hiện tại</label
+                    >
+                    <div
+                        @click="$refs.mainImage.click()"
+                        class="aspect-square bg-gray-50 rounded-[2.5rem] border-4 border-dashed border-gray-100 flex flex-col items-center justify-center cursor-pointer overflow-hidden relative group"
+                    >
+                        <img
+                            v-if="imagePreview"
+                            :src="imagePreview"
+                            class="w-full h-full object-cover animate-in fade-in duration-500"
+                        />
+                        <div
+                            class="absolute inset-0 bg-blue-600/80 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center text-white font-black text-[10px] uppercase tracking-widest"
+                        >
+                            Thay đổi ảnh
+                        </div>
+                    </div>
+                    <input
+                        type="file"
+                        ref="mainImage"
+                        class="hidden"
+                        @change="handleImageChange"
+                        accept="image/*"
+                    />
+                </div>
+
+                <div
+                    class="bg-white p-8 rounded-[3rem] shadow-sm border border-gray-50"
+                >
+                    <label
+                        class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6 block italic"
+                        >Album chi tiết</label
+                    >
+                    <div class="grid grid-cols-3 gap-3">
+                        <div
+                            v-for="(img, i) in galleryPreviews"
+                            :key="i"
+                            class="relative group aspect-square rounded-2xl overflow-hidden shadow-sm border-2 border-white"
+                        >
+                            <img
+                                :src="img.url"
+                                class="w-full h-full object-cover"
+                            />
+                            <button
+                                type="button"
+                                @click="removeGalleryImage(i)"
+                                class="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-all text-[8px]"
+                            >
+                                Xóa
+                            </button>
+                        </div>
+                        <button
+                            type="button"
+                            @click="$refs.galleryInput.click()"
+                            class="aspect-square bg-gray-50 text-gray-300 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center text-2xl hover:bg-blue-50"
+                        >
+                            +
+                        </button>
+                    </div>
+                    <input
+                        type="file"
+                        ref="galleryInput"
+                        class="hidden"
+                        @change="handleGalleryChange"
+                        multiple
+                        accept="image/*"
+                    />
+                </div>
+
+                <div
+                    class="bg-gray-900 p-8 rounded-[3rem] shadow-xl text-white space-y-6"
+                >
+                    <h3
+                        class="font-black text-sm italic uppercase tracking-[0.2em] text-blue-400 text-center"
+                    >
+                        Giờ phục vụ
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-2">
+                            <label
+                                class="text-[9px] font-black text-gray-500 uppercase"
+                                >Mở cửa</label
+                            >
+                            <input
+                                v-model="form.available_from"
+                                type="time"
+                                class="w-full bg-white/10 border-none rounded-xl p-3 font-black text-sm text-white focus:ring-blue-500"
+                            />
+                        </div>
+                        <div class="space-y-2">
+                            <label
+                                class="text-[9px] font-black text-gray-500 uppercase"
+                                >Đóng cửa</label
+                            >
+                            <input
+                                v-model="form.available_to"
+                                type="time"
+                                class="w-full bg-white/10 border-none rounded-xl p-3 font-black text-sm text-white focus:ring-blue-500"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="bg-white p-8 rounded-[3rem] shadow-sm border border-gray-50"
+                >
+                    <details class="group">
+                        <summary
+                            class="list-none flex justify-between items-center cursor-pointer"
+                        >
+                            <h3
+                                class="font-black text-[10px] italic uppercase tracking-widest text-gray-400"
+                            >
+                                Giới hạn suất ăn (Nếu có)
+                            </h3>
+                            <span
+                                class="text-gray-300 group-open:rotate-180 transition-transform"
+                                >▼</span
+                            >
+                        </summary>
+                        <div class="mt-6 space-y-4">
+                            <div class="space-y-2">
+                                <label
+                                    class="text-[9px] font-black text-gray-400 uppercase"
+                                    >Số lượng suất tối đa/ngày</label
+                                >
+                                <input
+                                    v-model="form.stock_quantity"
+                                    type="number"
+                                    class="w-full bg-gray-50 border-none rounded-xl p-4 font-bold text-sm focus:ring-2 focus:ring-blue-100"
+                                />
+                            </div>
+                        </div>
+                    </details>
+                </div>
+
+                <button
+                    :disabled="form.processing"
+                    type="submit"
+                    class="w-full bg-blue-600 text-white py-6 rounded-[2.5rem] font-black text-sm uppercase tracking-[0.4em] shadow-2xl shadow-blue-100 hover:bg-gray-900 transition-all active:scale-95"
+                >
+                    {{ form.processing ? "ĐANG LƯU..." : "LƯU THAY ĐỔI ✅" }}
+                </button>
+            </div>
+        </form>
+    </div>
 </template>
+
+<style scoped>
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+details summary::-webkit-details-marker {
+    display: none;
+}
+</style>

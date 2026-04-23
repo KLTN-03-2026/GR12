@@ -45,6 +45,8 @@ class ProductController extends Controller
             'image' => 'nullable|image|max:2048',
             'stock_quantity' => 'required|integer|min:0',
             'is_available' => 'boolean',
+            'available_from' => 'required|date_format:H:i',
+            'available_to' => 'required|date_format:H:i|after:available_from',
             'gallery' => 'nullable|array',
             'gallery.*' => 'image|max:2048',
             'options' => 'nullable|array',
@@ -58,10 +60,11 @@ class ProductController extends Controller
             DB::transaction(function () use ($request) {
                 $data = $request->only([
                     'name', 'category_id', 'price', 'description',
-                    'stock_quantity', 'is_available'
+                    'stock_quantity', 'is_available', 'available_from', 'available_to'
                 ]);
                 $data['user_id'] = auth()->id();
                 $data['slug'] = Str::slug($request->name) . '-' . time();
+                $data['status'] = 'pending';
 
                 if ($request->hasFile('image')) {
                     $data['image'] = $request->file('image')->store('products', 'public');
@@ -104,29 +107,19 @@ class ProductController extends Controller
     }
 
     // 4. Xóa món ăn
+    // ... các phần trên giữ nguyên ...
+
     public function destroy(Product $product)
     {
         if ($product->user_id !== auth()->id()) abort(403);
-        
-        if ($product->image) Storage::disk('public')->delete($product->image);
-        
-        // Xóa thêm ảnh trong gallery nếu có
-        foreach($product->gallery as $img) {
-            Storage::disk('public')->delete($img->image_path);
+
+        try {
+            // Logic: Ẩn món ăn thay vì xóa để bảo vệ toàn vẹn dữ liệu đơn hàng
+            $product->update(['is_available' => false]);
+            return back()->with('success', 'Đã tạm ngưng món ăn "' . $product->name . '" thành công! 🛑');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Lỗi: ' . $e->getMessage());
         }
-
-        $product->delete();
-        return back()->with('success', 'Đã xóa món ăn và toàn bộ hình ảnh.');
-    }
-
-    public function edit(Product $product)
-    {
-        if ($product->user_id !== auth()->id()) abort(403);
-
-        return Inertia::render('Restaurant/Products/Edit', [
-            'product' => $product->load(['category', 'options', 'gallery']),
-            'categories' => Category::where('is_active', true)->get(),
-        ]);
     }
 
     public function update(Request $request, Product $product)
@@ -141,33 +134,45 @@ class ProductController extends Controller
             'image' => 'nullable|image|max:2048',
             'stock_quantity' => 'required|integer|min:0',
             'is_available' => 'boolean',
+            'available_from' => 'nullable|date_format:H:i',
+            'available_to' => 'nullable|date_format:H:i',
             'gallery' => 'nullable|array',
             'gallery.*' => 'image|max:2048',
+            'delete_gallery' => 'nullable|array',
             'options' => 'nullable|array',
-            'options.*.option_name' => 'required|string',
-            'options.*.option_value' => 'required|string',
-            'options.*.additional_price' => 'required|numeric|min:0',
-            'options.*.image' => 'nullable|image|max:1024',
         ]);
 
         try {
             DB::transaction(function () use ($request, $product) {
-                $data = $request->only([
-                    'name', 'category_id', 'price', 'description',
-                    'stock_quantity', 'is_available'
-                ]);
+                $data = $request->only(['name', 'category_id', 'price', 'description', 'stock_quantity', 'is_available']);
+                
+                if ($request->filled('available_from')) $data['available_from'] = $request->available_from;
+                if ($request->filled('available_to')) $data['available_to'] = $request->available_to;
 
+                // Xử lý ảnh chính
                 if ($request->hasFile('image')) {
-                    if ($product->image) {
-                        Storage::disk('public')->delete($product->image);
-                    }
+                    if ($product->image) Storage::disk('public')->delete($product->image);
                     $data['image'] = $request->file('image')->store('products', 'public');
                 }
 
                 $product->update($data);
 
+                // Xóa ảnh gallery được chỉ định trong View Edit
+                if ($request->has('delete_gallery')) {
+                    foreach ($request->delete_gallery as $imageId) {
+                        $image = $product->gallery()->find($imageId);
+                        if ($image) {
+                            Storage::disk('public')->delete($image->image_path);
+                            $image->delete();
+                        }
+                    }
+                }
+
+                // Cập nhật Toppings (Xóa cũ tạo mới nhưng có kiểm tra ảnh)
                 if ($request->has('options')) {
-                    $product->options()->delete();
+                    // Trước khi xóa bản ghi, nên xóa file ảnh topping cũ nếu cần (tùy logic quản lý ảnh của bạn)
+                    $product->options()->delete(); 
+                    
                     foreach ($request->options as $index => $optionData) {
                         $optionImage = $optionData['existing_image'] ?? null;
                         if ($request->hasFile("options.$index.image")) {
@@ -181,10 +186,9 @@ class ProductController extends Controller
                             'image' => $optionImage,
                         ]);
                     }
-                } else {
-                    $product->options()->delete();
                 }
 
+                // Thêm ảnh mới vào Gallery
                 if ($request->hasFile('gallery')) {
                     foreach ($request->file('gallery') as $image) {
                         $path = $image->store('products/gallery', 'public');
@@ -194,9 +198,9 @@ class ProductController extends Controller
             });
 
             return redirect()->route('restaurant.products.index')
-                ->with('success', 'Món ăn đã được cập nhật thành công.');
+                ->with('success', 'Đã cập nhật món ăn "' . $request->name . '" thành công! ✨');
         } catch (\Exception $e) {
-            return back()->with('error', 'Lỗi: ' . $e->getMessage());
+            return back()->with('error', 'Lỗi hệ thống: ' . $e->getMessage());
         }
     }
 

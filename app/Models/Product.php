@@ -7,9 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class Product extends Model
 {
     protected $fillable = [
-    'user_id', 'category_id', 'name', 'slug', 'description', 
-    'price', 'discount_price', 'image', 'stock_quantity', 'is_available'
-];
+        'user_id', 'category_id', 'name', 'slug', 'description',
+        'price', 'discount_price', 'image', 'stock_quantity', 'is_available', 'available_from', 'available_to', 'status'
+    ];
 
     public function category()
     {
@@ -33,12 +33,24 @@ class Product extends Model
     }
 
     // app/Models/Product.php
-    public function reviews() {
+    public function reviews()
+    {
         return $this->hasMany(Review::class);
     }
 
+    public function scopeApproved($query)
+    {
+        return $query->where('status', 'approved');
+    }
+
+    public function scopeVisible($query)
+    {
+        return $query->where('status', 'approved')->where('is_available', true);
+    }
+
     // Hàm tính số sao trung bình
-    public function getAverageRatingAttribute() {
+    public function getAverageRatingAttribute()
+    {
         return round($this->reviews()->avg('rating') ?: 5, 1);
     }
 }

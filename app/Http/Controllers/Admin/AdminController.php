@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Product;
 use App\Models\User;
 use App\Models\Voucher;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\Mail; // <--- THÊM DÒNG NÀY
-use App\Mail\PartnerAccountStatus;  // <--- THÊM DÒNG NÀY
+use Illuminate\Support\Facades\Mail;
+use App\Mail\PartnerAccountStatus;
+use App\Mail\ProductApprovalStatus;
 use Illuminate\Support\Str;
 
 class AdminController extends Controller
@@ -20,6 +22,7 @@ class AdminController extends Controller
             'stats' => [
                 'total_customers' => User::where('role', 'customer')->count(),
                 'pending_partners' => User::where('status', 'pending')->count(),
+                'pending_products' => Product::where('status', 'pending')->count(),
                 'active_restaurants' => User::where('role', 'restaurant')->where('status', 'active')->count(),
                 'active_shippers' => User::where('role', 'shipper')->where('status', 'active')->count(),
             ]
@@ -36,6 +39,34 @@ class AdminController extends Controller
         return Inertia::render('Admin/PendingUsers', [
             'users' => $users
         ]);
+    }
+
+    public function pendingProducts()
+    {
+        $products = Product::with(['user', 'category'])
+            ->where('status', 'pending')
+            ->latest()
+            ->get();
+
+        return Inertia::render('Admin/PendingProducts', [
+            'products' => $products,
+        ]);
+    }
+
+    public function approveProduct(Product $product)
+    {
+        $product->update(['status' => 'approved', 'is_available' => true]);
+        Mail::to($product->user->email)->send(new ProductApprovalStatus($product, 'approved'));
+
+        return back()->with('message', "Đã duyệt món ăn '{$product->name}' thành công.");
+    }
+
+    public function rejectProduct(Product $product)
+    {
+        $product->update(['status' => 'rejected', 'is_available' => false]);
+        Mail::to($product->user->email)->send(new ProductApprovalStatus($product, 'rejected'));
+
+        return back()->with('message', "Đã từ chối món ăn '{$product->name}'.");
     }
 
     public function vouchers()
@@ -74,6 +105,38 @@ class AdminController extends Controller
         ]);
 
         return back()->with('success', 'Đã tạo voucher thành công.');
+    }
+
+    // Quản lý đơn hàng cho admin
+    public function orders(Request $request)
+    {
+        $query = \App\Models\Order::with(['user', 'items']);
+
+        // Tìm kiếm theo mã đơn hoặc số điện thoại
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('order_code', 'like', "%{$search}%")
+                  ->orWhereHas('user', function ($userQuery) use ($search) {
+                      $userQuery->where('phone', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Lọc theo trạng thái
+        if ($request->has('status') && $request->status) {
+            $query->where('status', $request->status);
+        }
+
+        // Sắp xếp theo thời gian đặt giảm dần
+        $orders = $query->orderBy('created_at', 'desc')
+                        ->paginate($request->get('pageSize', 10))
+                        ->appends($request->query());
+
+        return Inertia::render('Admin/Orders/Index', [
+            'orders' => $orders,
+            'filters' => $request->only(['search', 'status']),
+        ]);
     }
 
     // Hàm duyệt tài khoản

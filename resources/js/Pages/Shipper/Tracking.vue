@@ -58,13 +58,19 @@
                     </div>
                     <div class="rounded-3xl bg-slate-800/80 p-2">
                         <div class="text-2xl font-bold">
-                            {{ availableOrders.length }}
+                            {{ assignedOrders.length }}
                         </div>
-                        <div class="text-slate-400 text-xs mt-1">Đơn có sẵn</div>
+                        <div class="text-slate-400 text-xs mt-1">
+                            Đơn mới
+                        </div>
                     </div>
                     <div class="rounded-3xl bg-slate-800/80 p-2">
-                        <div class="text-2xl font-bold">{{ statusText }}</div>
-                        <div class="text-slate-400 text-xs mt-1">Bạn</div>
+                        <div class="text-2xl font-bold">
+                            {{ availableOrders.length }}
+                        </div>
+                        <div class="text-slate-400 text-xs mt-1">
+                            Có sẵn
+                        </div>
                     </div>
                 </div>
             </section>
@@ -166,6 +172,79 @@
                                 >
                                     Xem chi tiết
                                 </Link>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Assigned Orders Section -->
+            <section
+                class="mb-5 rounded-[28px] bg-white p-4 shadow-sm ring-1 ring-slate-200"
+            >
+                <div class="mb-4 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-semibold text-slate-900">
+                            Đơn đã gán cho bạn
+                        </p>
+                        <p class="text-xs text-slate-500">
+                            Đơn hàng đang chờ bạn xác nhận nhận
+                        </p>
+                    </div>
+                    <span
+                        class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700"
+                    >
+                        {{ assignedOrders.length }}
+                    </span>
+                </div>
+                <div class="space-y-3">
+                    <div
+                        v-if="assignedOrders.length === 0"
+                        class="rounded-3xl border border-dashed border-slate-300 p-4 text-center text-sm text-slate-500"
+                    >
+                        Không có đơn hàng nào được gán
+                    </div>
+                    <div v-else class="space-y-3">
+                        <div
+                            v-for="order in assignedOrders"
+                            :key="order.id"
+                            class="rounded-3xl border border-amber-200 bg-amber-50 p-4"
+                        >
+                            <div class="flex items-start justify-between gap-3">
+                                <div>
+                                    <p
+                                        class="text-sm font-semibold text-slate-900"
+                                    >
+                                        {{ order.order_code }}
+                                    </p>
+                                    <p class="mt-1 text-xs text-slate-500">
+                                        {{ order.address }}
+                                    </p>
+                                    <p class="mt-1 text-xs text-amber-600 font-medium">
+                                        Đang chờ xác nhận
+                                    </p>
+                                </div>
+                                <div class="text-right">
+                                    <p
+                                        class="text-sm font-semibold text-slate-900"
+                                    >
+                                        {{ formatCurrency(order.total) }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <button
+                                    @click="showAcceptDialog(order)"
+                                    class="rounded-3xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700"
+                                >
+                                    Nhận đơn
+                                </button>
+                                <button
+                                    @click="handleRejectOrder(order)"
+                                    class="rounded-3xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                                >
+                                    Từ chối
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -384,6 +463,7 @@ const toast = useToast();
 
 const currentOrders = ref([]);
 const availableOrders = ref([]);
+const assignedOrders = ref([]);
 const shipper = ref({});
 const map = ref(null);
 const shipperMarker = ref(null);
@@ -418,10 +498,12 @@ const fetchDashboard = async () => {
         console.log("📊 Dashboard data:", {
             current_orders: data.current_orders,
             available_orders: data.available_orders,
+            assigned_orders: data.assigned_orders,
             shipper: data.shipper,
         });
         currentOrders.value = data.current_orders;
         availableOrders.value = data.available_orders;
+        assignedOrders.value = data.assigned_orders;
         shipper.value = data.shipper;
         refreshMap();
         handleNewAssignedOrders();
@@ -489,10 +571,38 @@ const handleNewAssignedOrders = () => {
     }
 };
 
-const closeAssignmentModal = () => {
+const rejectAssignedOrder = async (orderId) => {
+    if (!orderId) return;
+
+    const response = await csrfFetch(`/api/shipper/orders/${orderId}/reject`, {
+        method: "POST",
+        headers: authHeaders,
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error?.error || "Không thể hoãn đơn.");
+    }
+
+    await fetchDashboard();
+};
+
+const closeAssignmentModal = async () => {
+    if (selectedOrder.value?.status === "assigned") {
+        try {
+            await rejectAssignedOrder(selectedOrder.value.id);
+            toast.success("Đã hoãn đơn. Hệ thống sẽ tìm shipper khác.");
+        } catch (error) {
+            console.error("Error rejecting assigned order:", error);
+            toast.error(error.message || "❌ Không thể hoãn đơn. Vui lòng thử lại.");
+            return;
+        }
+    }
+
     if (selectedOrder.value) {
         dismissedAssignedOrderId.value = selectedOrder.value.id;
     }
+    selectedOrder.value = null;
     showAssignmentModal.value = false;
     hasPlayedAssignmentSound.value = false;
 };
@@ -866,6 +976,30 @@ const handleAcceptOrder = async () => {
         console.error("Error accepting order:", error);
         toast.error("❌ Có lỗi xảy ra. Vui lòng thử lại.");
         acceptDialog.value?.setLoading(false);
+    }
+};
+
+const handleRejectOrder = async (order) => {
+    const orderId = order.id;
+
+    try {
+        const response = await csrfFetch(
+            `/api/shipper/orders/${orderId}/reject`,
+            {
+                method: "POST",
+                headers: authHeaders,
+            },
+        );
+        if (response.ok) {
+            toast.success("Đã từ chối đơn hàng. Hệ thống sẽ tìm shipper khác.");
+            await fetchDashboard();
+        } else {
+            const error = await response.json();
+            toast.error(error?.error || "❌ Không thể từ chối đơn hàng.");
+        }
+    } catch (error) {
+        console.error("Error rejecting order:", error);
+        toast.error("❌ Có lỗi xảy ra. Vui lòng thử lại.");
     }
 };
 

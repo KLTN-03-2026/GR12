@@ -32,7 +32,7 @@ class HomeController extends Controller
 
         // 3. Lấy sản phẩm (Bản fix logic lọc)
         $products = Product::with(['user', 'category', 'options'])
-            ->where('is_available', true)
+            ->visible()
             ->when($search, function($query) use ($search) {
                 $query->where(function ($query) use ($search) {
                     $query->where('name', 'like', "%{$search}%")

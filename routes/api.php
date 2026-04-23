@@ -91,7 +91,15 @@ Route::middleware(['auth:sanctum', 'role:shipper'])->prefix('shipper')->group(fu
     Route::post('/check-out', [ShipperController::class, 'checkOut']);
     Route::post('/location', [ShipperController::class, 'updateLocation']);
     Route::post('/orders/{orderId}/accept', [ShipperController::class, 'acceptOrder']);
+    Route::post('/orders/{orderId}/reject', [ShipperController::class, 'rejectOrder']);
     Route::post('/orders/{orderId}/confirm-pickup', [ShipperController::class, 'confirmPickup']);
     Route::post('/orders/{orderId}/start-delivery', [ShipperController::class, 'startDelivery']);
     Route::post('/orders/{orderId}/complete', [ShipperController::class, 'completeOrder']);
 });
+
+// Payment routes
+Route::middleware('auth:sanctum')->prefix('payment')->group(function () {
+    Route::post('/vnpay/{orderId}', [App\Http\Controllers\PaymentController::class, 'createVNPayPayment']);
+});
+
+    Route::get('/{id}/details', [App\Http\Controllers\Customer\OrderController::class, 'show']);
