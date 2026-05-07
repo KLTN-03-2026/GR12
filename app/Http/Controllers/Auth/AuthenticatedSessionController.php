@@ -35,6 +35,15 @@ class AuthenticatedSessionController extends Controller
         $user = $request->user();
 
         // 1. KIỂM TRA TRẠNG THÁI TÀI KHOẢN
+        if ($user->status === 'blocked') {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return redirect()->route('login')->withErrors([
+                'email' => 'Tài khoản của bạn đã bị khóa do vi phạm chính sách.'
+            ]);
+        }
+
         if ($user->role !== 'customer' && $user->status !== 'active') {
             return redirect()->route('wait.approval');
         }

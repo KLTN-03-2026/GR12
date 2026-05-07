@@ -1,244 +1,218 @@
 <template>
     <ShipperLayout>
         <template #default>
-            <section
-                class="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-slate-200 min-h-[400px]"
-            >
-                <div class="space-y-5 text-slate-700">
-                    <div class="flex items-start gap-4">
+            <div class="pb-24">
+                <!-- Header Card -->
+                <section
+                    class="rounded-[2rem] bg-gradient-to-br from-indigo-900 to-slate-800 p-6 text-white shadow-[0_10px_30px_-10px_rgba(15,23,42,0.6)] relative overflow-hidden ring-1 ring-white/10 mb-6"
+                >
+                    <div class="absolute -right-10 -top-10 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
+                    <div class="absolute -left-10 -bottom-10 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+                    <div class="flex items-center gap-5 relative z-10">
                         <div
-                            class="flex h-14 w-14 items-center justify-center rounded-3xl bg-slate-900 text-2xl text-white shadow-lg"
+                            class="flex h-16 w-16 items-center justify-center rounded-[1.25rem] bg-white/10 text-3xl shadow-xl ring-1 ring-white/20 shrink-0 backdrop-blur-sm"
                         >
                             {{ pageIcon }}
                         </div>
-                        <div class="space-y-2">
+                        <div>
                             <p
-                                class="text-sm uppercase tracking-[0.24em] text-slate-400"
+                                class="text-[10px] uppercase font-bold tracking-[0.2em] text-indigo-200 mb-1"
                             >
                                 Chi tiết mục
                             </p>
-                            <h1 class="text-xl font-bold text-slate-900">
+                            <h1 class="text-2xl font-black text-white tracking-tight">
                                 {{ pageTitle }}
                             </h1>
-                            <p class="text-sm text-slate-500">
-                                {{ pageDescription }}
+                        </div>
+                    </div>
+                </section>
+
+                <div class="space-y-4">
+                    <div
+                        class="rounded-[2rem] bg-white p-5 shadow-sm border border-slate-100"
+                    >
+                        <p class="font-bold text-slate-900 mb-1 text-sm flex items-center gap-2">
+                            <span class="text-indigo-500">ℹ️</span> Tổng quan
+                        </p>
+                        <p class="text-xs text-slate-500 leading-relaxed">
+                            {{ pageDescription }}
+                        </p>
+                    </div>
+
+                    <div v-if="item === 'destination'" class="space-y-4">
+                        <div
+                            class="rounded-[2rem] bg-indigo-50 border border-indigo-100 p-5 relative overflow-hidden"
+                        >
+                            <div class="absolute left-0 top-0 w-1.5 h-full bg-indigo-500"></div>
+                            <p class="font-bold text-indigo-900 text-sm mb-1">
+                                Điểm đến tiếp theo
+                            </p>
+                            <p class="text-xs text-indigo-700/80 leading-relaxed">
+                                Lộ trình sẽ được cập nhật khi bạn nhận đơn.
+                                Giữ GPS bật để hệ thống định vị chính xác.
+                            </p>
+                        </div>
+                        <div
+                            class="rounded-[2rem] bg-white border border-slate-100 p-5 shadow-sm"
+                        >
+                            <p class="font-bold text-slate-900 text-sm mb-1 flex items-center gap-2">
+                                <span class="text-emerald-500">📍</span> Tình trạng lộ trình
+                            </p>
+                            <p class="text-xs text-slate-500 leading-relaxed">
+                                Chờ đơn hàng mới hoặc đơn đã sẵn sàng nhận.
                             </p>
                         </div>
                     </div>
 
-                    <div class="grid gap-4">
+                    <div
+                        v-else-if="item === 'notifications'"
+                        class="space-y-4"
+                    >
                         <div
-                            class="rounded-3xl bg-slate-50 p-4 text-sm text-slate-600"
+                            class="rounded-[2rem] bg-orange-50 border border-orange-100 p-5 relative overflow-hidden"
                         >
-                            <p class="font-semibold text-slate-900 mb-2">
-                                Tổng quan
+                            <div class="absolute left-0 top-0 w-1.5 h-full bg-orange-500"></div>
+                            <p class="font-bold text-orange-900 text-sm mb-1">
+                                Thông báo mới
                             </p>
-                            <p>
-                                Các nội dung trong mục này được thiết kế để đồng
-                                bộ với giao diện Shipper khác: card tròn, khoảng
-                                cách đều và nền tươi sáng.
+                            <p class="text-xs text-orange-700/80 leading-relaxed">
+                                Những tin nhắn và cập nhật đơn hàng sẽ hiện
+                                ở đây ngay khi có thay đổi.
                             </p>
                         </div>
-
-                        <div v-if="item === 'destination'" class="grid gap-4">
-                            <div
-                                class="rounded-3xl bg-white border border-slate-200 p-4 shadow-sm"
-                            >
-                                <p class="font-semibold text-slate-900">
-                                    Điểm đến tiếp theo
-                                </p>
-                                <p class="mt-2 text-sm text-slate-500">
-                                    Lộ trình sẽ được cập nhật khi bạn nhận đơn.
-                                    Giữ GPS bật để hệ thống định vị chính xác.
-                                </p>
-                            </div>
-                            <div
-                                class="rounded-3xl bg-slate-50 p-4 text-slate-600"
-                            >
-                                <p class="font-semibold text-slate-900">
-                                    Tình trạng lộ trình
-                                </p>
-                                <p class="mt-2 text-sm">
-                                    Chờ đơn hàng mới hoặc đơn đã sẵn sàng nhận.
-                                </p>
-                            </div>
-                        </div>
-
                         <div
-                            v-else-if="item === 'notifications'"
-                            class="grid gap-4"
+                            class="rounded-[2rem] bg-white border border-slate-100 p-5 shadow-sm"
                         >
-                            <div
-                                class="rounded-3xl bg-white border border-slate-200 p-4 shadow-sm"
-                            >
-                                <p class="font-semibold text-slate-900">
-                                    Thông báo mới
-                                </p>
-                                <p class="mt-2 text-sm text-slate-500">
-                                    Những tin nhắn và cập nhật đơn hàng sẽ hiện
-                                    ở đây ngay khi có thay đổi.
-                                </p>
-                            </div>
-                            <div
-                                class="rounded-3xl bg-slate-50 p-4 text-slate-600"
-                            >
-                                <p class="font-semibold text-slate-900">
-                                    Gợi ý
-                                </p>
-                                <p class="mt-2 text-sm">
-                                    Vuốt sang trái để xem chi tiết nếu có nhiều
-                                    thông báo hơn.
-                                </p>
-                            </div>
+                            <p class="font-bold text-slate-900 text-sm mb-1 flex items-center gap-2">
+                                <span class="text-sky-500">💡</span> Gợi ý
+                            </p>
+                            <p class="text-xs text-slate-500 leading-relaxed">
+                                Xem lại trang Thông báo từ Menu để quản lý chi tiết.
+                            </p>
                         </div>
+                    </div>
 
-                        <div v-else-if="item === 'income'" class="grid gap-4">
-                            <div
-                                class="rounded-3xl bg-white border border-slate-200 p-4 shadow-sm"
+                    <div v-else-if="item === 'income'" class="space-y-4">
+                        <div
+                            class="rounded-[2rem] bg-emerald-50 border border-emerald-100 p-6 text-center shadow-sm relative overflow-hidden"
+                        >
+                            <div class="absolute -right-4 -top-4 text-7xl opacity-10 blur-sm pointer-events-none">💰</div>
+                            <p class="font-bold text-emerald-900 text-sm uppercase tracking-wider mb-2">
+                                Thu nhập hiện tại
+                            </p>
+                            <p
+                                class="text-4xl font-black text-emerald-600 tracking-tight"
                             >
-                                <p class="font-semibold text-slate-900">
-                                    Thu nhập hiện tại
-                                </p>
-                                <p
-                                    class="mt-2 text-3xl font-bold text-slate-900"
-                                >
-                                    {{ formatCurrency(estimatedIncome) }}
-                                </p>
-                                <p class="mt-2 text-sm text-slate-500">
-                                    Thu nhập ước tính theo các đơn đã giao và
-                                    đơn hiện tại.
-                                </p>
-                            </div>
-                            <div
-                                class="rounded-3xl bg-slate-50 p-4 text-slate-600"
-                            >
-                                <p class="font-semibold text-slate-900">
-                                    Mẹo tăng thu nhập
-                                </p>
-                                <p class="mt-2 text-sm">
-                                    Ưu tiên đơn gần, giao nhanh và nhận đánh giá
-                                    tốt để tăng cơ hội nhận đơn cao hơn.
-                                </p>
-                            </div>
+                                {{ formatCurrency(estimatedIncome) }}
+                            </p>
+                            <p class="mt-3 text-[10px] text-emerald-700 font-semibold bg-emerald-100 inline-block px-3 py-1 rounded-full">
+                                Ước tính trong ngày
+                            </p>
                         </div>
-
-                        <div v-else-if="item === 'wallet'" class="grid gap-4">
-                            <div
-                                class="rounded-3xl bg-white border border-slate-200 p-4 shadow-sm"
-                            >
-                                <p class="font-semibold text-slate-900">
-                                    Số dư ví
-                                </p>
-                                <p
-                                    class="mt-2 text-3xl font-bold text-slate-900"
-                                >
-                                    {{ formatCurrency(walletBalance) }}
-                                </p>
-                                <p class="mt-2 text-sm text-slate-500">
-                                    Quản lý rút tiền và số dư hiện tại của bạn.
-                                </p>
-                            </div>
-                            <div
-                                class="rounded-3xl bg-slate-50 p-4 text-slate-600"
-                            >
-                                <p class="font-semibold text-slate-900">
-                                    Lưu ý
-                                </p>
-                                <p class="mt-2 text-sm">
-                                    Số dư sẽ được cập nhật ngay khi đơn giao
-                                    thành công và kết thúc ca.
-                                </p>
-                            </div>
+                        <div
+                            class="rounded-[2rem] bg-white border border-slate-100 p-5 shadow-sm"
+                        >
+                            <p class="font-bold text-slate-900 text-sm mb-1 flex items-center gap-2">
+                                <span class="text-amber-500">⭐</span> Mẹo tăng thu nhập
+                            </p>
+                            <p class="text-xs text-slate-500 leading-relaxed">
+                                Ưu tiên đơn gần, giao nhanh và nhận đánh giá
+                                tốt để tăng cơ hội nhận đơn cao hơn.
+                            </p>
                         </div>
+                    </div>
 
-                        <div v-else-if="item === 'history'" class="grid gap-4">
-                            <div
-                                class="rounded-3xl bg-white border border-slate-200 p-4 shadow-sm"
+                    <div v-else-if="item === 'wallet'" class="space-y-4">
+                        <div
+                            class="rounded-[2rem] bg-blue-50 border border-blue-100 p-6 text-center shadow-sm relative overflow-hidden"
+                        >
+                            <div class="absolute -right-4 -top-4 text-7xl opacity-10 blur-sm pointer-events-none">💳</div>
+                            <p class="font-bold text-blue-900 text-sm uppercase tracking-wider mb-2">
+                                Số dư ví
+                            </p>
+                            <p
+                                class="text-4xl font-black text-blue-600 tracking-tight"
                             >
-                                <div
-                                    class="flex items-center justify-between gap-4"
-                                >
-                                    <div>
-                                        <p class="font-semibold text-slate-900">
-                                            Đơn hàng đã giao
-                                        </p>
-                                        <p class="mt-2 text-sm text-slate-500">
-                                            Tổng đơn đã hoàn thành trong lịch sử
-                                            của bạn.
-                                        </p>
-                                    </div>
-                                    <span
-                                        class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700"
-                                    >
-                                        {{ completedOrders }} đơn
-                                    </span>
+                                {{ formatCurrency(walletBalance) }}
+                            </p>
+                            <p class="mt-3 text-[10px] text-blue-700 font-semibold bg-blue-100 inline-block px-3 py-1 rounded-full">
+                                Khả dụng rút tiền
+                            </p>
+                        </div>
+                        <div
+                            class="rounded-[2rem] bg-white border border-slate-100 p-5 shadow-sm"
+                        >
+                            <p class="font-bold text-slate-900 text-sm mb-1 flex items-center gap-2">
+                                <span class="text-rose-500">📌</span> Lưu ý
+                            </p>
+                            <p class="text-xs text-slate-500 leading-relaxed">
+                                Số dư sẽ được cập nhật ngay khi đơn giao
+                                thành công và kết thúc ca.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div v-else-if="item === 'history'" class="space-y-4">
+                        <div
+                            class="rounded-[2rem] bg-purple-50 border border-purple-100 p-5 relative overflow-hidden"
+                        >
+                            <div class="absolute left-0 top-0 w-1.5 h-full bg-purple-500"></div>
+                            <div
+                                class="flex items-center justify-between gap-4"
+                            >
+                                <div>
+                                    <p class="font-bold text-purple-900 text-sm mb-1">
+                                        Đơn hàng đã giao
+                                    </p>
+                                    <p class="text-xs text-purple-700/80 leading-relaxed">
+                                        Tổng đơn đã hoàn thành trong lịch sử
+                                        của bạn.
+                                    </p>
                                 </div>
-                            </div>
-                            <div
-                                class="rounded-3xl bg-slate-50 p-4 text-slate-600"
-                            >
-                                <p class="font-semibold text-slate-900">
-                                    Kết quả
-                                </p>
-                                <p class="mt-2 text-sm">
-                                    Các đơn hàng đã hoàn tất sẽ được ghi nhận và
-                                    tổng hợp rõ ràng tại đây.
-                                </p>
+                                <span
+                                    class="rounded-full bg-purple-200 text-purple-800 px-3 py-1.5 text-sm font-black shadow-sm"
+                                >
+                                    {{ completedOrders }} đơn
+                                </span>
                             </div>
                         </div>
+                    </div>
 
-                        <div v-else-if="item === 'help'" class="grid gap-4">
-                            <div
-                                class="rounded-3xl bg-white border border-slate-200 p-4 shadow-sm"
-                            >
-                                <p class="font-semibold text-slate-900">
-                                    Trung tâm trợ giúp
-                                </p>
-                                <p class="mt-2 text-sm text-slate-500">
-                                    Liên hệ nhanh khi cần hỗ trợ về đơn hàng
-                                    hoặc tài khoản.
-                                </p>
-                            </div>
-                            <div
-                                class="rounded-3xl bg-slate-50 p-4 text-slate-600"
-                            >
-                                <p class="font-semibold text-slate-900">
-                                    Liên hệ
-                                </p>
-                                <p class="mt-2 text-sm">
-                                    Gọi ngay 1900 1234 hoặc gửi email tới
-                                    support@foodxpress.vn.
-                                </p>
+                    <div v-else-if="item === 'help'" class="space-y-4">
+                        <div
+                            class="rounded-[2rem] bg-sky-50 border border-sky-100 p-5 relative overflow-hidden"
+                        >
+                            <div class="absolute left-0 top-0 w-1.5 h-full bg-sky-500"></div>
+                            <p class="font-bold text-sky-900 text-sm mb-1">
+                                Liên hệ hỗ trợ
+                            </p>
+                            <p class="text-xs text-sky-700/80 leading-relaxed mb-3">
+                                Liên hệ nhanh khi cần hỗ trợ về đơn hàng
+                                hoặc tài khoản.
+                            </p>
+                            <div class="flex gap-2">
+                                <a href="tel:19001234" class="flex-1 text-center bg-white text-sky-600 rounded-xl py-2 font-bold text-xs shadow-sm ring-1 ring-sky-200 active:scale-95 transition-transform">
+                                    📞 1900 1234
+                                </a>
                             </div>
                         </div>
+                    </div>
 
-                        <div v-else-if="item === 'settings'" class="grid gap-4">
-                            <div
-                                class="rounded-3xl bg-white border border-slate-200 p-4 shadow-sm"
-                            >
-                                <p class="font-semibold text-slate-900">
-                                    Cài đặt
-                                </p>
-                                <p class="mt-2 text-sm text-slate-500">
-                                    Điều chỉnh trải nghiệm shipper và thông tin
-                                    tài khoản.
-                                </p>
-                            </div>
-                            <div
-                                class="rounded-3xl bg-slate-50 p-4 text-slate-600"
-                            >
-                                <p class="font-semibold text-slate-900">
-                                    Gợi ý
-                                </p>
-                                <p class="mt-2 text-sm">
-                                    Chúng ta có thể thêm cài đặt thông báo, khu
-                                    vực nhận đơn và quản lý thanh toán.
-                                </p>
-                            </div>
+                    <div v-else-if="item === 'settings'" class="space-y-4">
+                        <div
+                            class="rounded-[2rem] bg-white border border-slate-100 p-5 shadow-sm"
+                        >
+                            <p class="font-bold text-slate-900 text-sm mb-1 flex items-center gap-2">
+                                <span class="text-slate-500">⚙️</span> Cài đặt
+                            </p>
+                            <p class="text-xs text-slate-500 leading-relaxed">
+                                Các tùy chọn cài đặt chi tiết sẽ được tích hợp tại đây trong phiên bản tiếp theo.
+                            </p>
                         </div>
                     </div>
                 </div>
-            </section>
+            </div>
         </template>
     </ShipperLayout>
 </template>

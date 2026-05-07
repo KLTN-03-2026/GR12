@@ -1,5 +1,5 @@
 <script setup>
-import { Head, router } from "@inertiajs/vue3";
+import { Head, router, Link } from "@inertiajs/vue3";
 import RestaurantLayout from "@/Layouts/RestaurantLayout.vue"; // Đảm bảo dùng đúng Layout
 
 defineOptions({ layout: RestaurantLayout });
@@ -12,23 +12,24 @@ const formatPrice = (p) =>
         currency: "VND",
     }).format(p);
 
-const changeStatus = (id, newStatus) => {
+const changeStatus = (id, newStatus, isFoodReady = false) => {
+    const payload = isFoodReady ? { is_food_ready: true } : { status: newStatus };
     router.patch(
         route("restaurant.orders.update", id),
-        { status: newStatus },
+        payload,
         { preserveScroll: true },
     );
 };
 
 // Định nghĩa Text hiển thị tiếng Việt cho trạng thái
 const statusLabel = {
-    pending: "Đang chờ",
-    processing: "Đang nấu",
-    confirmed: "Sẵn sàng giao",
-    assigned: "Đã gán shipper",
-    shipping: "Đang giao",
-    completed: "Hoàn tất",
-    cancelled: "Đã hủy",
+    pending: "📋 Đơn mới",
+    assigned: "🛵 Đã gán shipper",
+    confirmed: "✅ Quán xác nhận",
+    shipping: "🚗 Shipper tới quán",
+    picked_up: "📦 Đã lấy hàng",
+    completed: "🎉 Hoàn tất",
+    cancelled: "❌ Đã hủy",
 };
 
 const getStatusStyle = (status) => {
@@ -37,14 +38,14 @@ const getStatusStyle = (status) => {
     switch (status) {
         case "pending":
             return base + "bg-amber-50 text-amber-600 border-amber-200";
-        case "processing":
-            return base + "bg-blue-50 text-blue-600 border-blue-200";
-        case "confirmed":
-            return base + "bg-emerald-50 text-emerald-600 border-emerald-200";
         case "assigned":
             return base + "bg-yellow-50 text-yellow-700 border-yellow-200";
+        case "confirmed":
+            return base + "bg-orange-50 text-orange-600 border-orange-200";
         case "shipping":
             return base + "bg-purple-50 text-purple-600 border-purple-200";
+        case "picked_up":
+            return base + "bg-indigo-50 text-indigo-600 border-indigo-200";
         case "completed":
             return base + "bg-green-50 text-green-600 border-green-200";
         default:
@@ -56,41 +57,25 @@ const getStatusStyle = (status) => {
 <template>
     <Head title="Quản lý đơn hàng - FoodXpress" />
 
-    <div class="max-w-6xl mx-auto space-y-10">
-        <header
-            class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
-        >
-            <div class="space-y-1">
-                <h1
-                    class="text-5xl font-black text-gray-900 tracking-tighter italic flex items-center gap-3"
-                >
-                    Đơn hàng mới <span class="animate-bounce text-4xl">🔥</span>
+    <div class="space-y-10 pb-20 animate-fade-in-up">
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div class="space-y-2">
+                <h1 class="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                    Đơn hàng mới <span class="animate-bounce">🔥</span>
                 </h1>
-                <p
-                    class="text-gray-400 font-bold uppercase text-[10px] tracking-[0.4em] ml-1"
-                >
-                    Hôm nay quán bạn có {{ orders.total }} đơn hàng
+                <p class="text-[10px] font-black text-orange-600 uppercase tracking-[0.25em] bg-orange-100/50 w-fit px-4 py-1.5 rounded-xl border border-orange-200/50">
+                    Hôm nay có {{ orders.total }} đơn hàng
                 </p>
             </div>
 
             <div class="flex gap-4">
-                <div
-                    class="bg-white p-6 rounded-[2rem] shadow-xl shadow-orange-100/50 border border-orange-50 flex items-center gap-4"
-                >
-                    <div
-                        class="w-12 h-12 bg-orange-500 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-orange-200 text-white"
-                    >
+                <div class="bg-white p-5 rounded-[1.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 flex items-center gap-4 hover:shadow-[0_8px_30px_rgba(249,115,22,0.1)] transition-all">
+                    <div class="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-500 rounded-xl flex items-center justify-center text-xl shadow-lg shadow-orange-500/30 text-white">
                         💰
                     </div>
                     <div>
-                        <span
-                            class="text-[10px] font-black text-gray-400 uppercase block tracking-widest"
-                            >Doanh thu</span
-                        >
-                        <span
-                            class="text-xl font-black text-gray-900 tracking-tighter italic"
-                            >Nổ đơn liên tục!</span
-                        >
+                        <span class="text-[10px] font-bold text-slate-500 uppercase block tracking-widest">Tình hình</span>
+                        <span class="text-sm font-black text-slate-800 tracking-tight">Nổ đơn liên tục!</span>
                     </div>
                 </div>
             </div>
@@ -100,153 +85,174 @@ const getStatusStyle = (status) => {
             <div
                 v-for="order in orders.data"
                 :key="order.id"
-                class="bg-white rounded-[3.5rem] p-2 shadow-sm border border-gray-100 hover:shadow-2xl hover:shadow-orange-200/20 transition-all duration-700 group flex flex-col lg:flex-row"
+                class="bg-white rounded-[2.5rem] p-3 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 hover:shadow-[0_20px_40px_rgb(249,115,22,0.1)] transition-all duration-500 group flex flex-col lg:flex-row relative overflow-hidden"
             >
-                <div
-                    class="p-8 lg:w-1/4 bg-gray-50/50 rounded-[3rem] border border-white flex flex-col justify-center text-center lg:text-left"
-                >
-                    <span
-                        class="text-[10px] font-black text-orange-400 uppercase tracking-[0.3em] mb-2 block"
-                        >#{{ order.order_code }}</span
-                    >
-                    <h3
-                        class="font-black text-gray-900 text-2xl leading-tight mb-2 italic"
-                    >
+                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-orange-50/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+
+                <div class="p-8 lg:w-1/4 bg-slate-50 rounded-[2rem] border border-slate-100 flex flex-col justify-center text-center lg:text-left relative z-10">
+                    <span class="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">
+                        #{{ order.order_code }}
+                    </span>
+                    <h3 class="font-black text-slate-800 text-2xl leading-tight mb-3 line-clamp-1">
                         {{ order.user.name }}
                     </h3>
-                    <p
-                        class="text-sm font-bold text-gray-400 flex items-center justify-center lg:justify-start gap-2"
-                    >
-                        <span>📞</span> {{ order.phone }}
+                    <p class="text-sm font-bold text-slate-500 flex items-center justify-center lg:justify-start gap-2 bg-white px-3 py-1.5 rounded-xl shadow-sm w-fit mx-auto lg:mx-0">
+                        <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                        {{ order.phone }}
                     </p>
-                    <div class="mt-6">
+                    <p v-if="order.note" class="text-xs font-bold text-orange-600 bg-orange-100/50 px-3 py-2.5 rounded-xl mt-4 flex items-start gap-2 text-left border border-orange-200/50">
+                        <span class="text-sm">📝</span> {{ order.note }}
+                    </p>
+                    <div class="mt-6 flex flex-col items-center lg:items-start gap-4">
                         <span :class="getStatusStyle(order.status)">
                             {{ statusLabel[order.status] }}
                         </span>
+                        
+                        <Link
+                            :href="route('restaurant.orders.show', order.id)"
+                            class="inline-flex items-center gap-1.5 text-[11px] font-black text-slate-400 hover:text-orange-500 uppercase tracking-widest transition-colors"
+                        >
+                            Chi tiết <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>
+                        </Link>
                     </div>
                 </div>
 
-                <div class="p-8 lg:w-2/4 flex flex-col justify-center">
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="h-[2px] flex-1 bg-gray-100"></div>
-                        <span
-                            class="text-[9px] font-black text-gray-300 uppercase tracking-widest"
-                            >Danh sách món</span
-                        >
-                        <div class="h-[2px] flex-1 bg-gray-100"></div>
+                <div class="p-8 lg:w-2/4 flex flex-col justify-center relative z-10">
+                    <div class="flex items-center gap-4 mb-6">
+                        <div class="h-px flex-1 bg-slate-100"></div>
+                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-full">Danh sách món</span>
+                        <div class="h-px flex-1 bg-slate-100"></div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div
                             v-for="item in order.items"
                             :key="item.id"
-                            class="flex items-center gap-4 bg-gray-50 p-3 rounded-2xl border border-transparent hover:border-orange-200 transition-colors"
+                            class="flex items-center gap-4 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm hover:border-orange-200 hover:shadow-md transition-all group/item"
                         >
-                            <div
-                                class="w-12 h-12 rounded-xl overflow-hidden shrink-0 border-2 border-white shadow-sm"
-                            >
-                                <img
-                                    :src="'/storage/' + item.product.image"
-                                    class="w-full h-full object-cover"
-                                />
+                            <div class="w-14 h-14 rounded-xl overflow-hidden shrink-0 shadow-sm relative">
+                                <img :src="'/storage/' + item.product.image" class="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-500" />
+                                <div class="absolute inset-0 bg-slate-900/10 pointer-events-none"></div>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p
-                                    class="text-sm font-black text-gray-700 truncate"
-                                >
+                                <p class="text-sm font-bold text-slate-800 truncate mb-1">
                                     {{ item.product.name }}
                                 </p>
-                                <p
-                                    class="text-[10px] font-bold text-orange-500 uppercase tracking-tighter"
-                                >
-                                    Số lượng: {{ item.quantity }}
+                                <p class="text-[10px] font-black text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md w-fit uppercase tracking-widest">
+                                    SL: {{ item.quantity }}
                                 </p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div
-                    class="p-8 lg:w-1/4 flex flex-col justify-center items-center lg:items-end gap-6 bg-gradient-to-br from-white to-orange-50/30 rounded-[3rem]"
-                >
-                    <div class="text-center lg:text-right">
-                        <p
-                            class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1"
-                        >
+                <div class="p-8 lg:w-1/4 flex flex-col justify-center items-center lg:items-end gap-6 bg-gradient-to-br from-white to-slate-50/80 rounded-[2rem] border border-slate-50 relative z-10">
+                    <div class="text-center lg:text-right w-full">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 bg-slate-100 px-3 py-1 rounded-full w-fit mx-auto lg:ml-auto lg:mr-0">
                             Thanh toán
                         </p>
-                        <p
-                            class="text-4xl font-black text-gray-900 tracking-tighter italic leading-none"
-                        >
+                        <p class="text-3xl font-black text-orange-600 tracking-tight leading-none drop-shadow-sm">
                             {{ formatPrice(order.total) }}
                         </p>
                     </div>
 
                     <div class="w-full space-y-3">
+                        <!-- Trạng thái làm món -->
                         <button
-                            v-if="order.status === 'pending'"
-                            @click="changeStatus(order.id, 'processing')"
-                            class="w-full bg-gray-900 text-white font-black py-4 rounded-[1.5rem] shadow-xl hover:bg-orange-600 hover:-translate-y-1 transition-all uppercase text-[10px] tracking-widest"
+                            v-if="!order.is_food_ready && (order.status === 'assigned' || order.status === 'shipping' || order.status === 'arrived')"
+                            @click="changeStatus(order.id, null, true)"
+                            class="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white font-black py-4 rounded-2xl shadow-[0_8px_20px_rgba(249,115,22,0.3)] hover:shadow-[0_12px_25px_rgba(249,115,22,0.4)] hover:-translate-y-1 transition-all uppercase text-[10px] tracking-widest flex items-center justify-center gap-2"
                         >
-                            Bắt đầu nấu ngay 👨‍🍳
-                        </button>
-
-                        <button
-                            v-if="order.status === 'processing'"
-                            @click="changeStatus(order.id, 'confirmed')"
-                            class="w-full bg-orange-500 text-white font-black py-4 rounded-[1.5rem] shadow-xl shadow-orange-200 hover:scale-105 transition-all uppercase text-[10px] tracking-widest"
-                        >
-                            Xác nhận hoàn thành món ✅
-                        </button>
-
-                        <button
-                            v-if="order.status === 'confirmed'"
-                            @click="changeStatus(order.id, 'assigned')"
-                            class="w-full bg-emerald-600 text-white font-black py-4 rounded-[1.5rem] shadow-xl shadow-emerald-200 hover:scale-105 transition-all uppercase text-[10px] tracking-widest"
-                        >
-                            Gán cho shipper 🛵
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                            Món đã xong
                         </button>
 
                         <div
-                            v-if="order.status === 'assigned'"
-                            class="w-full rounded-[1.5rem] bg-emerald-50 text-emerald-700 font-black py-4 px-6 text-center border border-emerald-100"
+                            v-if="order.is_food_ready && (order.status === 'assigned' || order.status === 'confirmed' || order.status === 'shipping' || order.status === 'arrived')"
+                            class="w-full rounded-2xl bg-emerald-50 text-emerald-600 font-black py-4 px-6 text-center border border-emerald-200/60 uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-sm"
                         >
-                            Đã gán shipper, chờ xác nhận
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Sẵn sàng giao
                         </div>
 
-                        <button
-                            v-if="order.status === 'shipping'"
-                            @click="changeStatus(order.id, 'completed')"
-                            class="w-full bg-green-500 text-white font-black py-4 rounded-[1.5rem] shadow-xl shadow-green-200 hover:scale-105 transition-all uppercase text-[10px] tracking-widest"
+                        <!-- Giai đoạn 1: Đặt hàng (pending) - Hệ thống tự động gán shipper -->
+                        <div
+                            v-if="order.status === 'pending'"
+                            class="w-full rounded-2xl bg-amber-50 text-amber-600 font-black py-4 px-6 text-center border border-amber-200/60 animate-pulse mt-3 uppercase text-[10px] tracking-widest flex items-center justify-center gap-2"
                         >
-                            Khách đã nhận hàng ✅
-                        </button>
+                            <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                            Tìm shipper...
+                        </div>
+
+                        <!-- Giai đoạn 4: Shipper đi tới quán (shipping) -->
+                        <div
+                            v-if="order.status === 'shipping'"
+                            class="w-full rounded-2xl bg-purple-50 text-purple-600 font-black py-4 px-6 text-center border border-purple-200/60 mt-3 uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-sm"
+                        >
+                            <span class="text-sm">🚗</span> Shipper đang tới
+                        </div>
+
+                        <!-- Giai đoạn 4.5: Shipper đã đến quán (arrived) -->
+                        <div
+                            v-if="order.status === 'arrived'"
+                            class="w-full rounded-2xl bg-pink-50 text-pink-600 font-black py-4 px-6 text-center border border-pink-200/60 mt-3 uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-sm"
+                        >
+                            <span class="text-sm">📍</span> Shipper chờ lấy
+                        </div>
+
+                        <!-- Giai đoạn 5: Shipper lấy hàng (picked_up) -->
+                        <div
+                            v-if="order.status === 'picked_up'"
+                            class="w-full rounded-2xl bg-indigo-50 text-indigo-600 font-black py-4 px-6 text-center border border-indigo-200/60 mt-3 uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-sm"
+                        >
+                            <span class="text-sm">📦</span> Đã lấy hàng
+                        </div>
+
+                        <!-- Giai đoạn 6: Hoàn tất (completed) -->
+                        <div
+                            v-if="order.status === 'completed'"
+                            class="w-full rounded-2xl bg-emerald-50 text-emerald-600 font-black py-4 px-6 text-center border border-emerald-200/60 mt-3 uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-sm"
+                        >
+                            <span class="text-sm">🎉</span> Giao thành công
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div
-            v-if="orders.data.length === 0"
-            class="text-center py-40 bg-white rounded-[4rem] border-4 border-dashed border-gray-50"
-        >
-            <span class="text-8xl block mb-6">🏜️</span>
-            <h3
-                class="text-2xl font-black text-gray-300 uppercase tracking-widest italic"
-            >
-                Quán đang thong thả, chưa có đơn mới
-            </h3>
+        <div v-if="orders.data.length === 0" class="bg-white rounded-[3rem] p-16 md:p-24 border border-slate-100 flex flex-col items-center justify-center text-center shadow-sm relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-b from-slate-50/50 to-transparent"></div>
+            <div class="relative z-10 flex flex-col items-center">
+                <div class="w-24 h-24 bg-slate-50 rounded-[2rem] flex items-center justify-center mb-6 shadow-inner border border-slate-100">
+                    <span class="text-5xl">🏜️</span>
+                </div>
+                <h3 class="text-2xl font-black text-slate-800 tracking-tight mb-2">
+                    Quán đang thong thả
+                </h3>
+                <p class="text-slate-500 font-medium text-sm">
+                    Chưa có đơn hàng mới nào được ghi nhận.
+                </p>
+            </div>
         </div>
     </div>
 </template>
 
 <style scoped>
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap");
-* {
-    font-family: "Inter", sans-serif;
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-/* Hiệu ứng mượt cho các nút */
+.animate-fade-in-up {
+    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 button {
     backface-visibility: hidden;
     transform: translateZ(0);

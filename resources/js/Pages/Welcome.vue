@@ -19,10 +19,18 @@ const props = defineProps({
     products: Array,
     categories: Array,
     filters: Object,
+    vouchers: Array,
 });
 
 defineOptions({ layout: GuestLayout });
 
+const copyVoucher = (code) => {
+    navigator.clipboard.writeText(code).then(() => {
+        showLocalToast.value = `Đã lưu mã: ${code}`;
+        setTimeout(() => showLocalToast.value = '', 3000);
+    });
+};
+const showLocalToast = ref('');
 // --- 1. SLIDER DATA ---
 const slides = [
     {
@@ -434,87 +442,97 @@ const handleAddToCart = (data) => {
         </div>
     </div>
 
+    <!-- MAP SECTION -->
     <section v-if="props.auth.user" class="mb-16 px-2">
         <div class="flex items-center justify-between mb-8">
-            <h2
-                class="text-3xl font-black text-gray-800 tracking-tighter italic uppercase flex items-center gap-3"
-            >
+            <h2 class="text-3xl font-black text-gray-800 tracking-tighter italic uppercase flex items-center gap-3">
                 <div class="w-2 h-8 bg-orange-500 rounded-full"></div>
                 Quán ăn quanh bạn
             </h2>
             <div class="flex items-center gap-4">
-                <div
-                    v-if="userLocation"
-                    class="text-[10px] font-black text-blue-600 bg-blue-50 px-4 py-1.5 rounded-full animate-pulse"
-                >
+                <div v-if="userLocation" class="text-[10px] font-black text-blue-600 bg-blue-50 px-4 py-1.5 rounded-full animate-pulse">
                     ĐỊA CHỈ ĐÃ XÁC ĐỊNH 📡
                 </div>
-                <button
-                    @click="showMap = !showMap"
-                    class="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-2 rounded-full font-black uppercase text-xs shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
-                >
-                    <svg
-                        v-if="showMap"
-                        class="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M19 9l-7 7-7-7"
-                        ></path>
-                    </svg>
-                    <svg
-                        v-else
-                        class="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M5 15l7-7 7 7"
-                        ></path>
-                    </svg>
+                <button @click="showMap = !showMap" class="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-2 rounded-full font-black uppercase text-xs shadow-lg hover:shadow-xl transition-all flex items-center gap-2">
+                    <svg v-if="showMap" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
                     <span>{{ showMap ? "Ẩn bản đồ" : "Hiện bản đồ" }}</span>
                 </button>
             </div>
         </div>
-        <div
-            v-show="showMap"
-            class="h-[500px] w-full rounded-[3.5rem] shadow-2xl border-[12px] border-white overflow-hidden relative z-0 transition-all duration-500"
-        >
+        <div v-show="showMap" class="h-[500px] w-full rounded-[3.5rem] shadow-2xl border-[12px] border-white overflow-hidden relative z-0 transition-all duration-500">
             <div id="map-home" class="h-full w-full rounded-3xl"></div>
         </div>
     </section>
 
     <section v-else class="mb-16 px-2">
-        <div
-            class="bg-gradient-to-br from-orange-50 to-red-50 rounded-[3.5rem] p-8 md:p-12 text-center border-4 border-dashed border-orange-200 shadow-xl"
-        >
-            <div class="mb-6">
-                <span class="text-6xl">🔑</span>
+        <div class="bg-gradient-to-br from-orange-50 to-red-50 rounded-[3.5rem] p-8 md:p-12 text-center border-4 border-dashed border-orange-200 shadow-xl">
+            <div class="mb-6"><span class="text-6xl">🔑</span></div>
+            <p class="text-orange-900 font-black italic text-xl md:text-2xl mb-4">Đăng nhập để khám phá các quán ăn quanh bạn!</p>
+            <p class="text-orange-600/70 text-sm md:text-base font-bold uppercase tracking-widest mb-8">Trải nghiệm tính năng định vị thời gian thực của FoodXpress</p>
+            <Link :href="route('login')" class="bg-gradient-to-r from-orange-500 to-red-500 text-white px-8 md:px-10 py-3 md:py-4 rounded-2xl font-black uppercase text-xs md:text-sm shadow-xl shadow-orange-200 hover:shadow-2xl hover:scale-105 transition-all inline-block">Đăng nhập ngay ➔</Link>
+        </div>
+    </section>
+
+    <!-- VOUCHER SECTION BEAUTIFIED -->
+    <section v-if="vouchers && vouchers.length > 0" class="mb-20 px-4 md:px-6 max-w-7xl mx-auto">
+        <div class="bg-gradient-to-br from-orange-50 to-red-50 rounded-[3.5rem] p-6 md:p-8 lg:p-12 border-2 border-dashed border-orange-200/60 shadow-sm relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-orange-300/20 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+            
+            <div class="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4 relative z-10">
+                <div>
+                    <h2 class="text-3xl md:text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-red-600 flex items-center gap-3">
+                        <span class="text-4xl animate-bounce">🎁</span> Ưu Đãi Độc Quyền
+                    </h2>
+                    <p class="text-xs text-orange-800/60 font-black uppercase tracking-widest mt-3">Săn mã xịn - Ăn phủ phê không lo về giá</p>
+                </div>
             </div>
-            <p
-                class="text-orange-900 font-black italic text-xl md:text-2xl mb-4"
-            >
-                Đăng nhập để khám phá các quán ăn quanh bạn!
-            </p>
-            <p
-                class="text-orange-600/70 text-sm md:text-base font-bold uppercase tracking-widest mb-8"
-            >
-                Trải nghiệm tính năng định vị thời gian thực của FoodXpress
-            </p>
-            <Link
-                :href="route('login')"
-                class="bg-gradient-to-r from-orange-500 to-red-500 text-white px-8 md:px-10 py-3 md:py-4 rounded-2xl font-black uppercase text-xs md:text-sm shadow-xl shadow-orange-200 hover:shadow-2xl hover:scale-105 transition-all inline-block"
-                >Đăng nhập ngay ➔</Link
-            >
+            
+            <div class="flex overflow-x-auto gap-6 pb-6 no-scrollbar snap-x items-center relative z-10">
+                <div v-for="voucher in vouchers" :key="voucher.id" class="snap-start shrink-0 w-[320px] lg:w-[380px] group cursor-pointer perspective-1000">
+                    <div class="relative transform transition-all duration-500 group-hover:-translate-y-3 group-hover:scale-[1.02] rounded-[2rem]">
+                        <div class="bg-gradient-to-br from-orange-500 via-red-500 to-pink-500 p-1.5 rounded-[2rem] shadow-xl relative overflow-hidden">
+                            <!-- Background pattern -->
+                            <div class="absolute inset-0 opacity-20 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9IiNmZmYiLz48L3N2Zz4=')]"></div>
+                            
+                            <div class="bg-white rounded-[1.5rem] h-full flex relative overflow-hidden">
+                                <!-- Left side (Discount) -->
+                                <div class="w-[65%] p-5 border-r-2 border-dashed border-orange-200/60 flex flex-col justify-center bg-orange-50/30">
+                                    <span class="inline-block bg-orange-100 text-orange-600 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full w-fit mb-3 shadow-sm">
+                                        Mã giảm giá
+                                    </span>
+                                    <h3 class="text-3xl font-black text-slate-900 tracking-tighter mb-1">
+                                        Giảm {{ voucher.discount_type === 'percent' ? voucher.discount_value + '%' : Number(voucher.discount_value).toLocaleString() + 'đ' }}
+                                    </h3>
+                                    <p class="text-[11px] text-slate-500 font-bold mb-4">
+                                        Đơn tối thiểu {{ Number(voucher.minimum_product_price || 0).toLocaleString() }}đ
+                                    </p>
+                                    <div class="mt-auto pt-3 border-t border-slate-100/50">
+                                        <p class="text-[10px] text-slate-400 font-bold flex items-center gap-1">
+                                            <span>⏱</span> HSD: {{ new Date(voucher.expires_at).toLocaleDateString('vi-VN') }}
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Right side (Code & Copy) -->
+                                <div class="w-[35%] bg-white p-4 flex flex-col items-center justify-center relative">
+                                    <!-- Perforation circles -->
+                                    <div class="absolute -left-3 top-0 w-6 h-6 bg-orange-500 rounded-full -mt-3 shadow-inner"></div>
+                                    <div class="absolute -left-3 bottom-0 w-6 h-6 bg-pink-500 rounded-full -mb-3 shadow-inner"></div>
+                                    
+                                    <div class="w-full text-center mb-4 mt-2">
+                                        <p class="text-[9px] uppercase font-black text-slate-400 tracking-widest mb-2">Mã của bạn</p>
+                                        <span class="font-mono text-sm font-black text-orange-600 bg-orange-50 px-2 py-1.5 rounded-lg border border-orange-100 block truncate">{{ voucher.code }}</span>
+                                    </div>
+                                    <button @click.stop="copyVoucher(voucher.code)" class="w-full bg-slate-900 text-white rounded-xl py-2.5 text-[10px] font-black uppercase tracking-widest hover:bg-orange-500 transition-colors shadow-lg shadow-slate-900/20 active:scale-95 mb-1">
+                                        Copy Mã
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -686,6 +704,14 @@ const handleAddToCart = (data) => {
         @close="isModalOpen = false"
         @addToCart="handleAddToCart"
     />
+
+    <!-- Local Toast -->
+    <div v-if="showLocalToast" class="fixed top-24 right-4 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl z-[100] flex items-center gap-3 transform transition-all duration-300">
+        <div class="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+            <span class="text-green-400 text-lg">✓</span>
+        </div>
+        <span class="text-sm font-bold tracking-wide">{{ showLocalToast }}</span>
+    </div>
 </template>
 
 <style scoped>

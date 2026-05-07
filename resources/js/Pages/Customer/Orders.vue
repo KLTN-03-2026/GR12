@@ -7,8 +7,8 @@ import { ref, computed } from "vue";
 defineOptions({ layout: GuestLayout });
 
 const props = defineProps({
-    // Sử dụng cấu trúc phân trang của Laravel (LengthAwarePaginator)
-    orders: Object,
+    activeOrders: Array,
+    pastOrders: Object,
 });
 
 const showReviewModal = ref(false);
@@ -112,170 +112,167 @@ const getStatusText = (status) => {
                 </Link>
             </div>
 
-            <div
-                v-else-if="orders.data && orders.data.length > 0"
-                class="space-y-6"
-            >
-                <div
-                    v-for="order in orders.data"
-                    :key="order.id"
-                    class="bg-white rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-white overflow-hidden hover:shadow-xl hover:shadow-orange-100/50 transition-all duration-500 group"
-                >
-                    <div
-                        class="p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-50 bg-slate-50/30"
-                    >
-                        <div class="flex items-center gap-4">
-                            <div
-                                class="bg-white p-3 rounded-2xl shadow-sm border border-slate-100"
-                            >
-                                <span class="text-2xl">📦</span>
-                            </div>
-                            <div>
-                                <h2
-                                    class="text-lg font-black text-slate-900 tracking-tight"
-                                >
-                                    #{{ order.order_code }}
-                                </h2>
-                                <p
-                                    class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5"
-                                >
-                                    {{
-                                        new Date(
-                                            order.created_at,
-                                        ).toLocaleString("vi-VN")
-                                    }}
-                                </p>
-                            </div>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-3">
-                            <div
-                                class="px-4 py-2 bg-slate-900 text-white text-[10px] font-black rounded-xl uppercase tracking-wider"
-                            >
-                                {{
-                                    order.payment_method === "cod"
-                                        ? "Tiền mặt"
-                                        : "VNPay"
-                                }}
-                            </div>
-                            <div
-                                :class="getStatusStyle(order.status)"
-                                class="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border"
-                            >
-                                {{ getStatusText(order.status) }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="p-6 md:p-8 space-y-4">
+            <div v-else-if="(activeOrders && activeOrders.length > 0) || (pastOrders.data && pastOrders.data.length > 0)">
+                
+                <!-- Đơn Đang Giao -->
+                <div v-if="activeOrders && activeOrders.length > 0" class="mb-12">
+                    <h2 class="text-2xl font-black text-slate-800 mb-6 flex items-center gap-3">
+                        <span class="relative flex h-3 w-3">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-3 w-3 bg-orange-500"></span>
+                        </span>
+                        Đơn Đang Giao
+                    </h2>
+                    <div class="space-y-6">
                         <div
-                            v-for="item in order.items"
-                            :key="item.id"
-                            class="flex items-center justify-between gap-4"
+                            v-for="order in activeOrders"
+                            :key="'active-' + order.id"
+                            class="bg-white rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-orange-100 overflow-hidden hover:shadow-xl hover:shadow-orange-100/50 transition-all duration-500 group"
                         >
-                            <div class="flex items-center gap-4 flex-1 min-w-0">
-                                <img
-                                    :src="'/storage/' + item.product.image"
-                                    class="w-14 h-14 rounded-xl object-cover border border-slate-100"
-                                />
-                                <div class="flex-1 min-w-0">
-                                    <h4
-                                        class="font-black text-slate-800 text-sm truncate italic"
-                                    >
-                                        {{ item.product.name }}
-                                    </h4>
-                                    <p
-                                        class="text-xs text-slate-400 font-bold mt-1 uppercase"
-                                    >
-                                        {{ item.quantity }} phần •
-                                        {{ formatPrice(item.price) }}
-                                    </p>
+                            <!-- ORDER CARD START -->
+                            <div class="p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-orange-50 bg-orange-50/10">
+                                <div class="flex items-center gap-4">
+                                    <div class="bg-white p-3 rounded-2xl shadow-sm border border-orange-100 text-orange-500">
+                                        <span class="text-2xl">🏃</span>
+                                    </div>
+                                    <div>
+                                        <h2 class="text-lg font-black text-slate-900 tracking-tight">#{{ order.order_code }}</h2>
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                            {{ new Date(order.created_at).toLocaleString("vi-VN") }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-3">
+                                    <div class="px-4 py-2 bg-slate-900 text-white text-[10px] font-black rounded-xl uppercase tracking-wider">
+                                        {{ order.payment_method === "cod" ? "Tiền mặt" : "VNPay" }}
+                                    </div>
+                                    <div :class="getStatusStyle(order.status)" class="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border">
+                                        {{ getStatusText(order.status) }}
+                                    </div>
                                 </div>
                             </div>
-                            <div class="hidden sm:block text-right">
-                                <p class="font-black text-slate-900 text-sm">
-                                    {{
-                                        formatPrice(item.price * item.quantity)
-                                    }}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div
-                        class="p-6 md:p-8 bg-slate-50/50 border-t border-slate-50 flex flex-col md:flex-row justify-between items-center gap-6"
-                    >
-                        <div class="flex items-center gap-3 w-full md:w-auto">
-                            <div
-                                class="bg-white p-2 rounded-lg border border-slate-100 text-slate-400"
-                            >
-                                📍
+                            <div class="p-6 md:p-8 space-y-4">
+                                <div v-for="item in order.items" :key="item.id" class="flex items-center justify-between gap-4">
+                                    <div class="flex items-center gap-4 flex-1 min-w-0">
+                                        <img :src="'/storage/' + item.product.image" class="w-14 h-14 rounded-xl object-cover border border-slate-100" />
+                                        <div class="flex-1 min-w-0">
+                                            <h4 class="font-black text-slate-800 text-sm truncate italic">{{ item.product.name }}</h4>
+                                            <p class="text-xs text-slate-400 font-bold mt-1 uppercase">{{ item.quantity }} phần • {{ formatPrice(item.price) }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="hidden sm:block text-right">
+                                        <p class="font-black text-slate-900 text-sm">{{ formatPrice(item.price * item.quantity) }}</p>
+                                    </div>
+                                </div>
                             </div>
-                            <p
-                                class="text-sm text-slate-500 font-medium line-clamp-1 truncate max-w-xs"
-                            >
-                                {{ order.address }}
-                            </p>
-                        </div>
 
-                        <div
-                            class="flex items-center justify-between md:justify-end w-full md:w-auto gap-8"
-                        >
-                            <div class="text-right">
-                                <p
-                                    class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1"
-                                >
-                                    Tổng cộng
-                                </p>
-                                <p
-                                    class="text-2xl font-black text-orange-600 tracking-tighter"
-                                >
-                                    {{ formatPrice(order.total) }}
-                                </p>
+                            <div class="p-6 md:p-8 bg-slate-50/50 border-t border-slate-50 flex flex-col md:flex-row justify-between items-center gap-6">
+                                <div class="flex items-center gap-3 w-full md:w-auto">
+                                    <div class="bg-white p-2 rounded-lg border border-slate-100 text-slate-400">📍</div>
+                                    <p class="text-sm text-slate-500 font-medium line-clamp-1 truncate max-w-xs">{{ order.address }}</p>
+                                </div>
+
+                                <div class="flex items-center justify-between md:justify-end w-full md:w-auto gap-8">
+                                    <div class="text-right">
+                                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Tổng cộng</p>
+                                        <p class="text-2xl font-black text-orange-600 tracking-tighter">{{ formatPrice(order.total) }}</p>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <Link :href="route('orders.show', order.id)" class="p-4 bg-orange-500 text-white rounded-2xl hover:bg-orange-600 transition-all shadow-lg shadow-orange-200">
+                                            <span class="sr-only">Chi tiết</span>
+                                            →
+                                        </Link>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <Link
-                                    :href="route('orders.show', order.id)"
-                                    class="p-4 bg-slate-900 text-white rounded-2xl hover:bg-orange-500 transition-all shadow-lg shadow-slate-100"
-                                >
-                                    <span class="sr-only">Chi tiết</span>
-                                    →
-                                </Link>
-                                <button
-                                    v-if="order.status === 'completed'"
-                                    @click="
-                                        openReviewModal(order.items[0].product)
-                                    "
-                                    class="px-5 py-3 bg-white border border-slate-200 rounded-2xl text-slate-700 font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm"
-                                >
-                                    ⭐ Đánh Giá
-                                </button>
-                            </div>
+                            <!-- ORDER CARD END -->
                         </div>
                     </div>
                 </div>
 
-                <div
-                    v-if="orders.links && orders.links.length > 3"
-                    class="flex justify-center items-center gap-2 pt-8"
-                >
-                    <template v-for="(link, k) in orders.links" :key="k">
+                <!-- Lịch Sử Đơn Hàng -->
+                <div v-if="pastOrders.data && pastOrders.data.length > 0">
+                    <h2 class="text-2xl font-black text-slate-800 mb-6 flex items-center gap-2">
+                        <span>🕰️</span> Lịch Sử Đơn Hàng
+                    </h2>
+                    <div class="space-y-6">
                         <div
-                            v-if="link.url === null"
-                            class="px-4 py-2 text-slate-400 text-xs font-black uppercase"
-                            v-html="link.label"
-                        ></div>
-                        <Link
-                            v-else
-                            :href="link.url"
-                            class="px-4 py-2 rounded-xl text-xs font-black transition-all border"
-                            :class="
-                                link.active
-                                    ? 'bg-orange-500 text-white border-orange-500 shadow-lg shadow-orange-100'
-                                    : 'bg-white text-slate-600 border-slate-200 hover:border-orange-500'
-                            "
-                            v-html="link.label"
-                        />
-                    </template>
+                            v-for="order in pastOrders.data"
+                            :key="'past-' + order.id"
+                            class="bg-white rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-white overflow-hidden hover:shadow-xl transition-all duration-500 group opacity-90 hover:opacity-100"
+                        >
+                            <!-- ORDER CARD START -->
+                            <div class="p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-50 bg-slate-50/30">
+                                <div class="flex items-center gap-4">
+                                    <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 grayscale opacity-70">
+                                        <span class="text-2xl">📦</span>
+                                    </div>
+                                    <div>
+                                        <h2 class="text-lg font-black text-slate-600 tracking-tight">#{{ order.order_code }}</h2>
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                            {{ new Date(order.created_at).toLocaleString("vi-VN") }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-3">
+                                    <div class="px-4 py-2 bg-slate-200 text-slate-600 text-[10px] font-black rounded-xl uppercase tracking-wider">
+                                        {{ order.payment_method === "cod" ? "Tiền mặt" : "VNPay" }}
+                                    </div>
+                                    <div :class="getStatusStyle(order.status)" class="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border">
+                                        {{ getStatusText(order.status) }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="p-6 md:p-8 space-y-4">
+                                <div v-for="item in order.items" :key="item.id" class="flex items-center justify-between gap-4">
+                                    <div class="flex items-center gap-4 flex-1 min-w-0">
+                                        <img :src="'/storage/' + item.product.image" class="w-14 h-14 rounded-xl object-cover border border-slate-100 grayscale opacity-80" />
+                                        <div class="flex-1 min-w-0">
+                                            <h4 class="font-black text-slate-600 text-sm truncate italic">{{ item.product.name }}</h4>
+                                            <p class="text-xs text-slate-400 font-bold mt-1 uppercase">{{ item.quantity }} phần • {{ formatPrice(item.price) }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="hidden sm:block text-right">
+                                        <p class="font-black text-slate-600 text-sm">{{ formatPrice(item.price * item.quantity) }}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="p-6 md:p-8 bg-slate-50/50 border-t border-slate-50 flex flex-col md:flex-row justify-between items-center gap-6">
+                                <div class="flex items-center gap-3 w-full md:w-auto">
+                                    <div class="bg-white p-2 rounded-lg border border-slate-100 text-slate-400">📍</div>
+                                    <p class="text-sm text-slate-500 font-medium line-clamp-1 truncate max-w-xs">{{ order.address }}</p>
+                                </div>
+
+                                <div class="flex items-center justify-between md:justify-end w-full md:w-auto gap-8">
+                                    <div class="text-right">
+                                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Tổng cộng</p>
+                                        <p class="text-2xl font-black text-slate-700 tracking-tighter">{{ formatPrice(order.total) }}</p>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <Link :href="route('orders.show', order.id)" class="p-4 bg-slate-900 text-white rounded-2xl hover:bg-slate-700 transition-all shadow-lg shadow-slate-200">
+                                            <span class="sr-only">Chi tiết</span>
+                                            →
+                                        </Link>
+                                        <button v-if="order.status === 'completed'" @click="openReviewModal(order.items[0].product)" class="px-5 py-3 bg-white border border-slate-200 rounded-2xl text-slate-700 font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm">
+                                            ⭐ Đánh Giá
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- ORDER CARD END -->
+                        </div>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div v-if="pastOrders.links && pastOrders.links.length > 3" class="flex justify-center items-center gap-2 pt-8">
+                        <template v-for="(link, k) in pastOrders.links" :key="k">
+                            <div v-if="link.url === null" class="px-4 py-2 text-slate-400 text-xs font-black uppercase" v-html="link.label"></div>
+                            <Link v-else :href="link.url" class="px-4 py-2 rounded-xl text-xs font-black transition-all border" :class="link.active ? 'bg-orange-500 text-white border-orange-500 shadow-lg shadow-orange-100' : 'bg-white text-slate-600 border-slate-200 hover:border-orange-500'" v-html="link.label" />
+                        </template>
+                    </div>
                 </div>
             </div>
 

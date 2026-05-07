@@ -107,10 +107,16 @@ class AdminController extends Controller
         return back()->with('success', 'Đã tạo voucher thành công.');
     }
 
+    public function destroyVoucher(Voucher $voucher)
+    {
+        $voucher->delete();
+        return back()->with('success', 'Đã thu hồi voucher thành công.');
+    }
+
     // Quản lý đơn hàng cho admin
     public function orders(Request $request)
     {
-        $query = \App\Models\Order::with(['user', 'items']);
+        $query = \App\Models\Order::with(['user', 'shipper.user', 'items.product.user']);
 
         // Tìm kiếm theo mã đơn hoặc số điện thoại
         if ($request->has('search') && $request->search) {
@@ -133,10 +139,30 @@ class AdminController extends Controller
                         ->paginate($request->get('pageSize', 10))
                         ->appends($request->query());
 
+        // Thống kê nhanh
+        $stats = [
+            'total' => \App\Models\Order::count(),
+            'pending' => \App\Models\Order::where('status', 'pending')->count(),
+            'delivering' => \App\Models\Order::where('status', 'delivering')->count(),
+            'completed_today' => \App\Models\Order::where('status', 'completed')->whereDate('updated_at', today())->count(),
+        ];
+
         return Inertia::render('Admin/Orders/Index', [
             'orders' => $orders,
+            'stats' => $stats,
             'filters' => $request->only(['search', 'status']),
         ]);
+    }
+
+    public function showOrder($id)
+    {
+        $order = \App\Models\Order::with([
+            'user', 
+            'shipper.user', 
+            'items.product.user'
+        ])->findOrFail($id);
+
+        return response()->json($order);
     }
 
     // Hàm duyệt tài khoản
@@ -160,4 +186,89 @@ class AdminController extends Controller
 
             return back()->with('message', 'Đã từ chối và gỡ bỏ yêu cầu của đối tác.');
         }
+
+    // --- QUẢN LÝ NGƯỜI DÙNG ---
+    public function users(Request $request)
+    {
+        $query = User::query();
+
+        // Lọc theo Role
+        if ($request->has('role') && $request->role) {
+            $query->where('role', $request->role);
+        }
+
+        // Lọc theo Status
+        if ($request->has('status') && $request->status) {
+            $query->where('status', $request->status);
+        }
+
+        // Tìm kiếm (Tên, SĐT, Email)
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        $users = $query->orderBy('created_at', 'desc')
+                       ->paginate($request->get('pageSize', 15))
+                       ->appends($request->query());
+
+        return Inertia::render('Admin/Users/Index', [
+            'users' => $users,
+            'filters' => $request->only(['search', 'role', 'status'])
+        ]);
+    }
+
+    public function toggleBlockUser(User $user)
+    {
+        // Không cho phép Admin tự khóa chính mình
+        if ($user->id === auth()->id()) {
+            return back()->withErrors(['error' => 'Bạn không thể tự khóa tài khoản của mình.']);
+        }
+
+        // Nếu đang active thì block, nếu đang block thì active
+        if ($user->status === 'blocked') {
+            $user->update(['status' => 'active']);
+            $message = "Đã MỞ KHÓA tài khoản {$user->name}.";
+        } else {
+            $user->update(['status' => 'blocked']);
+            $message = "Đã KHÓA tài khoản {$user->name}.";
+        }
+
+        return back()->with('message', $message);
+    }
+
+    // --- QUẢN LÝ THÔNG BÁO ---
+    public function notificationsIndex()
+    {
+        return Inertia::render('Admin/Notifications/Index');
+    }
+
+    public function sendNotification(Request $request)
+    {
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'message' => 'required|string',
+            'target_audience' => 'required|in:all,customer,restaurant,shipper',
+            'type' => 'required|in:info,success,warning'
+        ]);
+
+        $query = User::where('status', 'active');
+        if ($request->target_audience !== 'all') {
+            $query->where('role', $request->target_audience);
+        }
+
+        $users = $query->get();
+
+        \Illuminate\Support\Facades\Notification::send($users, new \App\Notifications\SystemNotification(
+            $request->title,
+            $request->message,
+            $request->type
+        ));
+
+        return back()->with('success', "Đã gửi thông báo thành công tới {$users->count()} người dùng.");
+    }
 }

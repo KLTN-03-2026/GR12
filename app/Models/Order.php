@@ -6,7 +6,40 @@ use Illuminate\Database\Eloquent\Model;
 
 class Order extends Model
 {
-    protected $fillable = ['user_id', 'order_code', 'address', 'phone', 'note', 'voucher_code', 'subtotal', 'shipping_fee', 'discount_amount', 'total', 'payment_method', 'payment_status', 'status', 'shipper_id', 'shipper_fee'];
+    protected $fillable = [
+        'user_id',
+        'order_code',
+        'address',
+        'phone',
+        'note',
+        'voucher_code',
+        'subtotal',
+        'distance',
+        'shipping_fee',
+        'service_fee',
+        'packaging_fee',
+        'shipper_tip',
+        'discount_amount',
+        'total',
+        'restaurant_commission_rate',
+        'restaurant_tax_fee',
+        'restaurant_revenue',
+        'admin_revenue',
+        'payment_method',
+        'payment_status',
+        'status',
+        'is_food_ready',
+        'shipper_id',
+        'shipper_fee',
+        'confirmed_at',
+        'picked_up_at',
+        'delivering_at',
+        'completed_at'
+    ];
+
+    protected $casts = [
+        'is_food_ready' => 'boolean',
+    ];
 
     public function items() {
         return $this->hasMany(OrderItem::class);

@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\AdminFinanceController;
 use App\Http\Controllers\Restaurant\ProductController as RestaurantProductController;
 use App\Http\Controllers\Restaurant\ReviewController as RestaurantReviewController;
 use App\Http\Controllers\Customer\RestaurantController as CustomerRestaurantController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\Customer\ReviewController;
 use App\Http\Controllers\Restaurant\RestaurantOrderController;
 use App\Http\Controllers\RestaurantProfileController;
 use App\Http\Controllers\AdminApprovalController;
+use App\Http\Controllers\WalletController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -23,6 +25,9 @@ use Inertia\Inertia;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/restaurant-menu/{id}', [CustomerRestaurantController::class, 'show'])->name('restaurant.menu');
+
+// --- AI CHATBOT (Public) ---
+Route::post('/api/chatbot', [\App\Http\Controllers\ChatbotController::class, 'handle'])->name('chatbot.handle');
 
 // Trang chờ phê duyệt
 Route::get('/waiting-for-approval', function () { 
@@ -58,6 +63,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
     Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');
 
+    Route::get('/my-notifications', function () {
+        $notifications = auth()->user()->notifications()->latest()->get();
+        return Inertia::render('Notifications', [
+            'notifications' => $notifications
+        ]);
+    })->name('my.notifications');
+
     // --- DÀNH CHO NHÀ HÀNG (RESTAURANT) ---
     // Gom tất cả vào prefix 'restaurant' và name 'restaurant.'
     Route::prefix('restaurant')->name('restaurant.')->group(function () {
@@ -76,6 +88,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Quản lý đơn hàng của quán
         Route::get('/orders', [RestaurantOrderController::class, 'index'])->name('orders.index');
+        Route::get('/orders/history', [RestaurantOrderController::class, 'history'])->name('orders.history');
+        Route::get('/orders/{id}', [RestaurantOrderController::class, 'show'])->name('orders.show');
         Route::patch('/orders/{id}/status', [RestaurantOrderController::class, 'updateStatus'])->name('orders.update');
 
         // Quản lý đánh giá và phản hồi
@@ -83,6 +97,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Quản lý món ăn (CRUD)
         Route::resource('products', RestaurantProductController::class);
+
+        // Cài đặt giờ mở cửa và trạng thái nhận đơn
+        Route::patch('/settings/operating-hours', function (\Illuminate\Http\Request $request) {
+            $user = auth()->user();
+            $request->validate([
+                'opening_time' => 'required|date_format:H:i',
+                'closing_time' => 'required|date_format:H:i',
+                'is_accepting_orders' => 'required|boolean',
+            ]);
+            $user->update([
+                'opening_time' => $request->opening_time,
+                'closing_time' => $request->closing_time,
+                'is_accepting_orders' => $request->is_accepting_orders,
+            ]);
+            return back()->with('success', 'Đã cập nhật cài đặt hoạt động.');
+        })->name('settings.operating-hours');
+
+        // Ví điện tử
+        Route::get('/wallet', [WalletController::class, 'restaurantWallet'])->name('wallet');
     });
 
     // --- DÀNH CHO QUẢN TRỊ VIÊN (ADMIN) ---
@@ -90,6 +123,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/dashboard', [AdminController::class, 'index'])->name('dashboard');
         Route::controller(AdminController::class)->group(function () {
             Route::get('/users-pending', 'pendingUsers')->name('pending');
+            Route::get('/users', 'users')->name('users.index');
+            Route::patch('/users/{user}/toggle-block', 'toggleBlockUser')->name('users.toggle-block');
             Route::get('/products-pending', 'pendingProducts')->name('products.pending');
             Route::post('/users/{user}/approve', 'approve')->name('approve');
             Route::post('/users/{user}/reject', 'reject')->name('reject');
@@ -97,7 +132,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/products/{product}/reject', 'rejectProduct')->name('products.reject');
             Route::get('/vouchers', 'vouchers')->name('vouchers.index');
             Route::post('/vouchers', 'storeVoucher')->name('vouchers.store');
+            Route::delete('/vouchers/{voucher}', 'destroyVoucher')->name('vouchers.destroy');
             Route::get('/orders', 'orders')->name('orders.index');
+            Route::get('/orders/{id}', 'showOrder')->name('orders.show');
+            Route::get('/notifications', 'notificationsIndex')->name('notifications.index');
+            Route::post('/notifications', 'sendNotification')->name('notifications.send');
+        });
+
+        Route::controller(AdminFinanceController::class)->group(function () {
+            Route::get('/withdrawals', 'withdrawals')->name('withdrawals.index');
+            Route::post('/withdrawals/{transaction}/approve', 'approveWithdrawal')->name('withdrawals.approve');
+            Route::post('/withdrawals/{transaction}/reject', 'rejectWithdrawal')->name('withdrawals.reject');
+            Route::get('/revenue', 'revenue')->name('revenue');
         });
     });
 
@@ -112,15 +158,33 @@ Route::middleware(['auth', 'verified'])->group(function () {
         })->name('dashboard');
 
         Route::get('/notifications', function () {
-            return Inertia::render('Shipper/Notifications');
+            $notifications = auth()->user()->notifications()->latest()->get();
+            return Inertia::render('Shipper/Notifications', [
+                'notifications' => $notifications
+            ]);
         })->name('notifications');
+
+        Route::get('/history', function () {
+            $shipper = \App\Models\Shipper::where('user_id', auth()->id())->first();
+            $orders = \App\Models\Order::where('shipper_id', $shipper?->id)
+                ->whereIn('status', ['completed', 'cancelled'])
+                ->with('items.product.user', 'user')
+                ->latest('updated_at')
+                ->get();
+                
+            return Inertia::render('Shipper/History', [
+                'orders' => $orders
+            ]);
+        })->name('history');
 
         Route::get('/tracking', function () {
             return Inertia::render('Shipper/Tracking');
         })->name('tracking');
 
+        Route::get('/income', [\App\Http\Controllers\ShipperController::class, 'income'])->name('income');
+
         Route::get('/menu/{item}', function ($item) {
-            $allowedItems = ['destination', 'notifications', 'income', 'wallet', 'history', 'help', 'settings'];
+            $allowedItems = ['destination', 'notifications', 'wallet', 'history', 'help', 'settings'];
             if (!in_array($item, $allowedItems, true)) {
                 abort(404);
             }
@@ -137,6 +201,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 'order' => $order->load('items.product.user', 'user', 'shipper.user')
             ]);
         })->name('order.detail');
+
+        // Ví điện tử Shipper
+        Route::get('/wallet', [WalletController::class, 'shipperWallet'])->name('wallet');
     });
 
     // --- GIỎ HÀNG ---
@@ -153,6 +220,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('/profile', 'update')->name('profile.update');
         Route::delete('/profile', 'destroy')->name('profile.destroy');
     });
+
+    // --- WALLET TOPUP / WITHDRAW ---
+    Route::prefix('wallet')->name('wallet.')->group(function () {
+        Route::post('/deposit', [WalletController::class, 'deposit'])->name('deposit');
+        Route::post('/withdraw', [WalletController::class, 'withdraw'])->name('withdraw');
+    });
+
+    // --- CHAT (Giao tiếp trực tiếp) ---
+    Route::get('/api/orders/{order}/chat', [\App\Http\Controllers\ChatMessageController::class, 'index'])->name('chat.index');
+    Route::post('/api/orders/{order}/chat', [\App\Http\Controllers\ChatMessageController::class, 'store'])->name('chat.store');
+
 });
 
 require __DIR__.'/auth.php';
@@ -173,5 +251,6 @@ require __DIR__.'/auth.php';
 // VNPay Routes
 Route::get('/payment/vnpay-return', [App\Http\Controllers\PaymentController::class, 'vnpayReturn'])->name('payment.vnpay.return');
 Route::post('/payment/vnpay-ipn', [App\Http\Controllers\PaymentController::class, 'vnpayIPN'])->name('payment.vnpay.ipn');
+Route::get('/wallet/vnpay-return', [App\Http\Controllers\PaymentController::class, 'vnpayWalletReturn'])->name('wallet.vnpay-return');
 
-    Route::delete('/my-orders/{id}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
+Route::delete('/my-orders/{id}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');

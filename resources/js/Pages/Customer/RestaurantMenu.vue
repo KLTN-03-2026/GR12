@@ -76,8 +76,18 @@ const formatPrice = (p) =>
         style: "currency",
         currency: "VND",
     }).format(p);
-const isSelling = (from, to) =>
-    props.currentTime >= from && props.currentTime <= to;
+
+const isSelling = (from, to) => {
+    if (!from || !to) return true; // Nếu không cài giờ thì coi như bán cả ngày
+
+    // Cắt chuỗi để lấy định dạng HH:mm (bỏ phần giây nếu có)
+    // Ví dụ: "11:35:12" -> "11:35" | "06:00:00" -> "06:00"
+    const now = props.currentTime.substring(0, 5);
+    const start = from.substring(0, 5);
+    const end = to.substring(0, 5);
+
+    return now >= start && now <= end;
+};
 </script>
 
 <template>
@@ -418,7 +428,11 @@ const isSelling = (from, to) =>
                                                 "
                                                 class="absolute inset-0 bg-slate-950/70 flex items-center justify-center text-[10px] uppercase tracking-[0.24em] text-white font-black"
                                             >
-                                                Tạm ngưng
+                                                {{
+                                                    !product.is_available
+                                                        ? "Hết món"
+                                                        : "Ngoài giờ bán"
+                                                }}
                                             </span>
                                         </div>
                                         <div class="space-y-3">
@@ -462,9 +476,7 @@ const isSelling = (from, to) =>
                                                 <span
                                                     class="rounded-full bg-slate-100 text-slate-500 px-3 py-1 text-[10px] uppercase tracking-[0.25em] font-black"
                                                 >
-                                                    {{
-                                                        product.available_from
-                                                    }}
+                                                    {{ product.available_from }}
                                                     - {{ product.available_to }}
                                                 </span>
                                             </div>

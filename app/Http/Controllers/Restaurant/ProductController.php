@@ -45,8 +45,8 @@ class ProductController extends Controller
             'image' => 'nullable|image|max:2048',
             'stock_quantity' => 'required|integer|min:0',
             'is_available' => 'boolean',
-            'available_from' => 'required|date_format:H:i',
-            'available_to' => 'required|date_format:H:i|after:available_from',
+            'available_from' => 'required|date_format:H:i,H:i:s',
+            'available_to' => 'required|date_format:H:i,H:i:s|after:available_from',
             'gallery' => 'nullable|array',
             'gallery.*' => 'image|max:2048',
             'options' => 'nullable|array',
@@ -134,8 +134,8 @@ class ProductController extends Controller
             'image' => 'nullable|image|max:2048',
             'stock_quantity' => 'required|integer|min:0',
             'is_available' => 'boolean',
-            'available_from' => 'nullable|date_format:H:i',
-            'available_to' => 'nullable|date_format:H:i',
+            'available_from' => 'nullable|date_format:H:i,H:i:s',
+            'available_to' => 'nullable|date_format:H:i,H:i:s',
             'gallery' => 'nullable|array',
             'gallery.*' => 'image|max:2048',
             'delete_gallery' => 'nullable|array',
@@ -202,6 +202,23 @@ class ProductController extends Controller
         } catch (\Exception $e) {
             return back()->with('error', 'Lỗi hệ thống: ' . $e->getMessage());
         }
+    }
+
+    // 5. Trang hiển thị form chỉnh sửa món ăn
+    public function edit($id)
+    {
+        // Lấy thông tin món ăn kèm theo các quan hệ (category, options, gallery)
+        $product = Product::with(['category', 'options', 'gallery'])->findOrFail($id);
+
+        // Kiểm tra quyền sở hữu (tránh việc nhà hàng này sửa món của nhà hàng khác)
+        if ($product->user_id !== auth()->id()) {
+            abort(403, 'Bạn không có quyền chỉnh sửa món ăn này.');
+        }
+
+        return Inertia::render('Restaurant/Products/Edit', [
+            'product' => $product,
+            'categories' => Category::where('is_active', true)->get()
+        ]);
     }
 
     public function show($id)

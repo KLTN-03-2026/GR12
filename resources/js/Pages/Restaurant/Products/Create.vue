@@ -88,88 +88,87 @@ const triggerOptionFileInput = (index) => {
 const submit = () => {
     form.post(route("restaurant.products.store"), {
         forceFormData: true,
-        onStart: () => {
-            // Có thể thêm loading state ở đây
-        },
-        onSuccess: () => {
-            // Thông báo thành công do Watcher ở Index lo (Cách 1)
-        },
+        onStart: () => {},
+        onSuccess: () => {},
         onError: () => {
-            toast.error("Vui lòng kiểm tra lại các thông tin nhé! 😥");
+            // handle error
         },
     });
+};
+
+// Drag & Drop cho ảnh đại diện
+const isDragging = ref(false);
+
+const handleDragOver = (e) => {
+    e.preventDefault();
+    isDragging.value = true;
+};
+
+const handleDragLeave = (e) => {
+    e.preventDefault();
+    isDragging.value = false;
+};
+
+const handleDrop = (e) => {
+    e.preventDefault();
+    isDragging.value = false;
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        handleImageChange({ target: { files: files } });
+    }
 };
 </script>
 
 <template>
     <Head title="Thêm món ăn mới" />
 
-    <div
-        class="space-y-10 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700"
-    >
-        <div
-            class="flex flex-col md:flex-row md:items-end justify-between gap-4"
-        >
+    <div class="space-y-10 pb-20 animate-fade-in-up">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-                <h2
-                    class="text-5xl font-black text-gray-900 italic tracking-tighter uppercase leading-none"
-                >
+                <h2 class="text-3xl font-black text-slate-900 tracking-tight">
                     Thêm món mới 🍕
                 </h2>
-                <p
-                    class="text-[10px] font-black text-orange-400 uppercase tracking-[0.3em] mt-3 bg-orange-50 w-fit px-3 py-1 rounded-lg"
-                >
+                <p class="text-[10px] font-black text-orange-600 uppercase tracking-[0.25em] mt-2 bg-orange-100/50 w-fit px-4 py-1.5 rounded-xl border border-orange-200/50">
                     Cập nhật thực đơn FoodXpress
                 </p>
             </div>
             <Link
                 :href="route('restaurant.products.index')"
-                class="group flex items-center gap-3 px-6 py-3 bg-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-900 hover:text-white transition-all shadow-sm border border-gray-100"
+                class="group flex items-center gap-3 px-6 py-3 bg-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all shadow-[0_4px_20px_rgb(0,0,0,0.05)] border border-slate-100"
             >
-                <span class="group-hover:-translate-x-1 transition-transform"
-                    >←</span
-                >
+                <span class="group-hover:-translate-x-1 transition-transform">←</span>
                 Quay lại
             </Link>
         </div>
 
-        <form
-            @submit.prevent="submit"
-            class="grid grid-cols-1 lg:grid-cols-3 gap-8"
-        >
+        <form @submit.prevent="submit" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div class="lg:col-span-2 space-y-8">
-                <div
-                    class="bg-white p-10 rounded-[3rem] shadow-sm border border-gray-50 space-y-8"
-                >
+                <!-- Thông tin cơ bản -->
+                <div class="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 space-y-8">
+                    <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center">1</span>
+                        Thông tin cơ bản
+                    </h3>
+                    
                     <div class="grid md:grid-cols-2 gap-8">
-                        <div class="space-y-3">
-                            <label
-                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2"
-                                >Tên món ăn</label
-                            >
+                        <div class="space-y-3 relative group">
+                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-widest block transition-colors group-focus-within:text-orange-500">Tên món ăn</label>
                             <input
                                 v-model="form.name"
                                 type="text"
                                 placeholder="Ví dụ: Bún Đậu Mắm Tôm Đặc Biệt"
-                                class="w-full bg-gray-50 border-none rounded-2xl p-5 font-bold text-gray-800 focus:ring-4 focus:ring-orange-100 transition-all"
+                                class="w-full bg-slate-50 border border-transparent hover:border-slate-200 rounded-2xl p-4 font-bold text-slate-800 focus:bg-white focus:border-orange-300 focus:ring-4 focus:ring-orange-100 transition-all outline-none"
                             />
                             <InputError :message="form.errors.name" />
                         </div>
-                        <div class="space-y-3">
-                            <label
-                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2"
-                                >Danh mục món</label
-                            >
+                        <div class="space-y-3 relative group">
+                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-widest block transition-colors group-focus-within:text-orange-500">Danh mục món</label>
                             <select
                                 v-model="form.category_id"
-                                class="w-full bg-gray-50 border-none rounded-2xl p-5 font-bold text-gray-800 focus:ring-4 focus:ring-orange-100 transition-all h-[64px]"
+                                class="w-full bg-slate-50 border border-transparent hover:border-slate-200 rounded-2xl p-4 font-bold text-slate-800 focus:bg-white focus:border-orange-300 focus:ring-4 focus:ring-orange-100 transition-all outline-none h-[56px] appearance-none"
                             >
                                 <option value="" disabled>Chọn loại món</option>
-                                <option
-                                    v-for="cat in categories"
-                                    :key="cat.id"
-                                    :value="cat.id"
-                                >
+                                <option v-for="cat in categories" :key="cat.id" :value="cat.id">
                                     {{ cat.name }}
                                 </option>
                             </select>
@@ -178,97 +177,62 @@ const submit = () => {
                     </div>
 
                     <div class="grid md:grid-cols-2 gap-8">
-                        <div class="space-y-3">
-                            <label
-                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2"
-                                >Giá niêm yết (đ)</label
-                            >
+                        <div class="space-y-3 relative group">
+                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-widest block transition-colors group-focus-within:text-orange-500">Giá niêm yết trên App (đ)</label>
                             <div class="relative">
                                 <input
                                     v-model="form.price"
                                     type="number"
-                                    class="w-full bg-gray-50 border-none rounded-2xl p-5 font-black text-xl text-orange-600 focus:ring-4 focus:ring-orange-100 transition-all"
+                                    placeholder="0"
+                                    class="w-full bg-slate-50 border border-transparent hover:border-slate-200 rounded-2xl p-4 font-black text-xl text-orange-600 focus:bg-white focus:border-orange-300 focus:ring-4 focus:ring-orange-100 transition-all outline-none"
                                 />
-                                <span
-                                    class="absolute right-5 top-1/2 -translate-y-1/2 font-black text-gray-300 font-sans"
-                                    >VND</span
-                                >
+                                <span class="absolute right-5 top-1/2 -translate-y-1/2 font-black text-slate-300 text-sm tracking-widest uppercase">VND</span>
+                            </div>
+                            <div v-if="form.price > 0" class="text-[10px] font-bold text-slate-500 mt-2 bg-slate-50 p-3 rounded-xl border border-slate-100 leading-relaxed">
+                                💡 <span class="text-emerald-600">Thực nhận: {{ new Intl.NumberFormat('vi-VN').format(form.price * 0.75) }}đ</span><br>
+                                <span class="text-slate-400 font-medium">(Đã trừ 25% chiết khấu nền tảng. Chưa bao gồm thuế 4.5%.)</span>
                             </div>
                             <InputError :message="form.errors.price" />
                         </div>
 
                         <div class="space-y-3">
-                            <label
-                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2"
-                                >Trạng thái phục vụ</label
-                            >
+                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-widest block">Trạng thái phục vụ</label>
                             <div
                                 @click="form.is_available = !form.is_available"
-                                :class="
-                                    form.is_available
-                                        ? 'bg-green-50 border-green-200 text-green-600'
-                                        : 'bg-red-50 border-red-200 text-red-600'
-                                "
-                                class="flex items-center justify-between p-4 rounded-2xl border-2 border-dashed cursor-pointer transition-all h-[64px]"
+                                :class="form.is_available ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-rose-50 border-rose-200 text-rose-700'"
+                                class="flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all h-[56px] hover:shadow-md"
                             >
                                 <div class="flex items-center gap-3">
-                                    <span class="text-xl">{{
-                                        form.is_available ? "✅" : "❌"
-                                    }}</span>
-                                    <span
-                                        class="font-black text-[10px] uppercase tracking-widest"
-                                    >
-                                        {{
-                                            form.is_available
-                                                ? "Sẵn sàng bán"
-                                                : "Tạm ngưng nhận đơn"
-                                        }}
+                                    <span class="text-xl">{{ form.is_available ? "✅" : "❌" }}</span>
+                                    <span class="font-black text-[10px] uppercase tracking-widest">
+                                        {{ form.is_available ? "Sẵn sàng bán" : "Tạm ngưng" }}
                                     </span>
                                 </div>
-                                <div
-                                    :class="
-                                        form.is_available
-                                            ? 'bg-green-500'
-                                            : 'bg-red-500'
-                                    "
-                                    class="w-10 h-5 rounded-full relative transition-colors shadow-inner"
-                                >
-                                    <div
-                                        :class="
-                                            form.is_available
-                                                ? 'translate-x-5'
-                                                : 'translate-x-1'
-                                        "
-                                        class="absolute top-1 bg-white w-3 h-3 rounded-full transition-transform shadow-sm"
-                                    ></div>
+                                <div :class="form.is_available ? 'bg-emerald-500' : 'bg-rose-500'" class="w-12 h-6 rounded-full relative transition-colors shadow-inner">
+                                    <div :class="form.is_available ? 'translate-x-6' : 'translate-x-1'" class="absolute top-1 bg-white w-4 h-4 rounded-full transition-transform shadow-sm"></div>
                                 </div>
                             </div>
                             <InputError :message="form.errors.is_available" />
                         </div>
                     </div>
 
-                    <div class="space-y-3">
-                        <label
-                            class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2"
-                            >Mô tả hấp dẫn</label
-                        >
+                    <div class="space-y-3 relative group">
+                        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-widest block transition-colors group-focus-within:text-orange-500">Mô tả hấp dẫn</label>
                         <textarea
                             v-model="form.description"
                             rows="4"
-                            class="w-full bg-gray-50 border-none rounded-[2rem] p-6 font-medium text-sm text-gray-600 focus:ring-4 focus:ring-orange-100 transition-all"
-                            placeholder="Mô tả sự hấp dẫn của món ăn..."
+                            class="w-full bg-slate-50 border border-transparent hover:border-slate-200 rounded-2xl p-5 font-medium text-sm text-slate-700 focus:bg-white focus:border-orange-300 focus:ring-4 focus:ring-orange-100 transition-all outline-none resize-none"
+                            placeholder="Mô tả sự hấp dẫn của món ăn để thu hút thực khách..."
                         ></textarea>
                         <InputError :message="form.errors.description" />
                     </div>
                 </div>
 
-                <div
-                    class="bg-white p-10 rounded-[3rem] shadow-sm border border-gray-50"
-                >
+                <!-- Lựa chọn thêm -->
+                <div class="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
                     <div class="flex justify-between items-center mb-8">
-                        <h3
-                            class="font-black text-xl italic uppercase tracking-tighter text-gray-800"
-                        >
+                        <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">
+                            <span class="w-8 h-8 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center">2</span>
                             Toppings & Lựa chọn
                         </h3>
                         <button
@@ -276,101 +240,53 @@ const submit = () => {
                             @click="addOption"
                             class="bg-orange-50 text-orange-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-orange-500 hover:text-white transition-all shadow-sm"
                         >
-                            + Thêm lựa chọn
+                            + Thêm tùy chọn
                         </button>
                     </div>
 
                     <div class="space-y-6">
-                        <div
-                            v-for="(opt, index) in form.options"
-                            :key="index"
-                            class="flex flex-wrap md:flex-nowrap gap-4 items-start bg-gray-50/50 p-5 rounded-[2rem] border border-dashed border-gray-200 transition-all hover:border-orange-200 group"
-                        >
-                            <div class="relative w-14 h-14 flex-shrink-0 mt-1">
-                                <div
-                                    @click="triggerOptionFileInput(index)"
-                                    class="w-full h-full bg-white rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center cursor-pointer overflow-hidden hover:border-orange-400 transition-all"
-                                >
-                                    <img
-                                        v-if="opt.preview"
-                                        :src="opt.preview"
-                                        class="w-full h-full object-cover"
-                                    />
-                                    <span v-else class="text-xl">📸</span>
-                                </div>
-                                <input
-                                    type="file"
-                                    :id="'opt-file-' + index"
-                                    class="hidden"
-                                    @change="handleOptionImage($event, index)"
-                                    accept="image/*"
-                                />
-                            </div>
-
+                        <transition-group name="list">
                             <div
-                                class="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2"
+                                v-for="(opt, index) in form.options"
+                                :key="index"
+                                class="flex flex-wrap md:flex-nowrap gap-4 items-start bg-slate-50 p-5 rounded-[2rem] border border-slate-200 transition-all hover:border-orange-300 group shadow-sm hover:shadow-md"
                             >
-                                <div>
-                                    <input
-                                        v-model="opt.option_name"
-                                        placeholder="Tên (VD: Thêm)"
-                                        class="w-full bg-white border-none rounded-xl p-3 text-xs font-bold shadow-sm"
-                                    />
-                                    <InputError
-                                        :message="
-                                            form.errors[
-                                                `options.${index}.option_name`
-                                            ]
-                                        "
-                                    />
+                                <div class="relative w-16 h-16 flex-shrink-0">
+                                    <div
+                                        @click="triggerOptionFileInput(index)"
+                                        class="w-full h-full bg-white rounded-2xl border-2 border-dashed border-slate-300 flex items-center justify-center cursor-pointer overflow-hidden hover:border-orange-400 transition-all"
+                                    >
+                                        <img v-if="opt.preview" :src="opt.preview" class="w-full h-full object-cover" />
+                                        <svg v-else class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    </div>
+                                    <input type="file" :id="'opt-file-' + index" class="hidden" @change="handleOptionImage($event, index)" accept="image/*" />
                                 </div>
-                                <div>
-                                    <input
-                                        v-model="opt.option_value"
-                                        placeholder="Giá trị (VD: Trứng)"
-                                        class="w-full bg-white border-none rounded-xl p-3 text-xs font-bold shadow-sm"
-                                    />
-                                    <InputError
-                                        :message="
-                                            form.errors[
-                                                `options.${index}.option_value`
-                                            ]
-                                        "
-                                    />
-                                </div>
-                                <div>
-                                    <input
-                                        v-model="opt.additional_price"
-                                        type="number"
-                                        placeholder="+ Giá"
-                                        class="w-full bg-white border-none rounded-xl p-3 text-xs font-black text-orange-600 shadow-sm"
-                                    />
-                                    <InputError
-                                        :message="
-                                            form.errors[
-                                                `options.${index}.additional_price`
-                                            ]
-                                        "
-                                    />
-                                </div>
-                            </div>
 
-                            <button
-                                @click="removeOption(index)"
-                                type="button"
-                                class="w-10 h-10 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all flex items-center justify-center mt-1"
-                            >
-                                ✕
-                            </button>
-                        </div>
-                        <div
-                            v-if="form.options.length === 0"
-                            class="text-center py-10 border-2 border-dashed border-gray-50 rounded-[2.5rem]"
-                        >
-                            <p
-                                class="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em]"
-                            >
-                                Món ăn này chưa có topping
+                                <div class="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <div>
+                                        <input v-model="opt.option_name" placeholder="Tên nhóm (VD: Size)" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-bold shadow-sm focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none" />
+                                    </div>
+                                    <div>
+                                        <input v-model="opt.option_value" placeholder="Lựa chọn (VD: Lớn)" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-bold shadow-sm focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none" />
+                                    </div>
+                                    <div>
+                                        <input v-model="opt.additional_price" type="number" placeholder="+ Giá tiền" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-black text-orange-600 shadow-sm focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none" />
+                                    </div>
+                                </div>
+
+                                <button
+                                    @click="removeOption(index)"
+                                    type="button"
+                                    class="w-10 h-10 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center mt-1"
+                                >
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            </div>
+                        </transition-group>
+                        
+                        <div v-if="form.options.length === 0" class="text-center py-10 border-2 border-dashed border-slate-200 rounded-[2rem] bg-slate-50">
+                            <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest">
+                                Món ăn này chưa có topping/lựa chọn nào
                             </p>
                         </div>
                     </div>
@@ -378,166 +294,80 @@ const submit = () => {
             </div>
 
             <div class="space-y-8">
-                <div
-                    class="bg-white p-8 rounded-[3rem] shadow-sm border border-gray-50 text-center"
-                >
-                    <label
-                        class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6 block italic tracking-widest"
-                        >Hình đại diện món</label
-                    >
+                <!-- Upload Hình ảnh -->
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 text-center relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-b from-orange-50/50 to-transparent pointer-events-none"></div>
+                    <label class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-4 block relative z-10">Hình đại diện món</label>
                     <div
                         @click="$refs.mainImage.click()"
-                        class="aspect-square bg-gray-50 rounded-[2.5rem] border-4 border-dashed border-gray-100 flex flex-col items-center justify-center cursor-pointer hover:border-orange-200 transition-all overflow-hidden relative group"
+                        @dragover="handleDragOver"
+                        @dragleave="handleDragLeave"
+                        @drop="handleDrop"
+                        :class="[
+                            'aspect-square rounded-[2rem] border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden relative group z-10',
+                            isDragging ? 'bg-orange-100 border-orange-500 shadow-[0_0_20px_rgba(249,115,22,0.2)]' : 'bg-slate-50 border-slate-200 hover:border-orange-400 hover:bg-orange-50/30'
+                        ]"
                     >
-                        <img
-                            v-if="imagePreview"
-                            :src="imagePreview"
-                            class="w-full h-full object-cover animate-in fade-in duration-500"
-                        />
-                        <div
-                            v-else
-                            class="text-gray-300 flex flex-col items-center"
-                        >
-                            <span class="text-5xl mb-4">📸</span>
-                            <span
-                                class="text-[9px] font-black uppercase tracking-[0.3em]"
-                                >Chọn ảnh</span
-                            >
+                        <img v-if="imagePreview" :src="imagePreview" class="w-full h-full object-cover animate-fade-in" />
+                        <div v-else class="text-slate-400 flex flex-col items-center p-6">
+                            <div class="w-16 h-16 mb-4 rounded-full bg-white shadow-sm flex items-center justify-center text-orange-400 group-hover:scale-110 group-hover:text-orange-500 transition-transform">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                            </div>
+                            <span class="text-[11px] font-black uppercase tracking-widest text-slate-600">Tải ảnh lên</span>
+                            <span class="text-[9px] font-medium text-slate-400 mt-2">Kéo thả hoặc click vào đây</span>
                         </div>
                     </div>
-                    <input
-                        type="file"
-                        ref="mainImage"
-                        class="hidden"
-                        @change="handleImageChange"
-                        accept="image/*"
-                    />
-                    <InputError :message="form.errors.image" />
+                    <input type="file" ref="mainImage" class="hidden" @change="handleImageChange" accept="image/*" />
+                    <InputError :message="form.errors.image" class="mt-2" />
                 </div>
 
-                <div
-                    class="bg-white p-8 rounded-[3rem] shadow-sm border border-gray-50"
-                >
-                    <label
-                        class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6 block italic"
-                        >Album ảnh món ăn</label
-                    >
-                    <div class="grid grid-cols-3 gap-3">
-                        <div
-                            v-for="(p, i) in galleryPreviews"
-                            :key="i"
-                            class="relative group aspect-square rounded-2xl overflow-hidden shadow-sm border-2 border-white"
-                        >
-                            <img :src="p" class="w-full h-full object-cover" />
-                            <button
-                                @click="removeGalleryItem(i)"
-                                type="button"
-                                class="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                                ✕
-                            </button>
-                        </div>
-                        <button
-                            type="button"
-                            @click="$refs.galleryInput.click()"
-                            class="aspect-square bg-gray-50 text-gray-300 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center text-2xl hover:bg-orange-50 hover:text-orange-400 transition-all"
-                        >
-                            +
-                        </button>
-                    </div>
-                    <input
-                        type="file"
-                        ref="galleryInput"
-                        class="hidden"
-                        @change="handleGalleryChange"
-                        multiple
-                        accept="image/*"
-                    />
-                </div>
-
-                <div
-                    class="bg-gray-900 p-8 rounded-[3rem] shadow-xl text-white space-y-6"
-                >
-                    <h3
-                        class="font-black text-sm italic uppercase tracking-[0.2em] text-orange-400 text-center"
-                    >
-                        Giờ phục vụ
-                    </h3>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="space-y-2">
-                            <label
-                                class="text-[9px] font-black text-gray-500 uppercase"
-                                >Từ</label
-                            >
-                            <input
-                                v-model="form.available_from"
-                                type="time"
-                                class="w-full bg-white/10 border-none rounded-xl p-3 font-black text-sm text-white focus:ring-orange-500"
-                            />
-                        </div>
-                        <div class="space-y-2">
-                            <label
-                                class="text-[9px] font-black text-gray-500 uppercase"
-                                >Đến</label
-                            >
-                            <input
-                                v-model="form.available_to"
-                                type="time"
-                                class="w-full bg-white/10 border-none rounded-xl p-3 font-black text-sm text-white focus:ring-orange-500"
-                            />
-                        </div>
-                    </div>
-                    <InputError :message="form.errors.available_from" />
-                </div>
-
-                <div
-                    class="bg-white p-8 rounded-[3rem] shadow-sm border border-gray-50"
-                >
-                    <details class="group">
-                        <summary
-                            class="list-none flex justify-between items-center cursor-pointer"
-                        >
-                            <h3
-                                class="font-black text-[10px] italic uppercase tracking-widest text-gray-400"
-                            >
-                                Giới hạn suất ăn (Nếu có)
-                            </h3>
-                            <span
-                                class="text-gray-300 group-open:rotate-180 transition-transform"
-                                >▼</span
-                            >
-                        </summary>
-                        <div class="mt-6 space-y-4">
+                <!-- Cài đặt bổ sung -->
+                <div class="bg-slate-900 p-8 rounded-[2.5rem] shadow-xl text-white relative overflow-hidden">
+                    <div class="absolute inset-0 opacity-[0.05]" style="background-image: radial-gradient(#ffffff 1px, transparent 1px); background-size: 16px 16px;"></div>
+                    <div class="relative z-10 space-y-6">
+                        <h3 class="font-black text-xs uppercase tracking-widest text-orange-400 flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Cài đặt giờ phục vụ
+                        </h3>
+                        <div class="grid grid-cols-2 gap-4">
                             <div class="space-y-2">
-                                <label
-                                    class="text-[9px] font-black text-gray-400 uppercase"
-                                    >Số lượng suất tối đa/ngày</label
-                                >
-                                <input
-                                    v-model="form.stock_quantity"
-                                    type="number"
-                                    class="w-full bg-gray-50 border-none rounded-xl p-4 font-bold text-sm focus:ring-2 focus:ring-orange-100"
-                                />
-                                <p
-                                    class="text-[8px] text-gray-400 font-medium italic"
-                                >
-                                    * Mặc định 999 nghĩa là không giới hạn.
-                                </p>
+                                <label class="text-[9px] font-bold text-slate-400 uppercase">Từ giờ</label>
+                                <input v-model="form.available_from" type="time" class="w-full bg-white/10 border border-white/10 rounded-xl p-3 font-bold text-sm text-white focus:bg-white/20 focus:border-orange-500 outline-none transition-all" />
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[9px] font-bold text-slate-400 uppercase">Đến giờ</label>
+                                <input v-model="form.available_to" type="time" class="w-full bg-white/10 border border-white/10 rounded-xl p-3 font-bold text-sm text-white focus:bg-white/20 focus:border-orange-500 outline-none transition-all" />
                             </div>
                         </div>
-                    </details>
+                        <InputError :message="form.errors.available_from" />
+                    </div>
+                </div>
+
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
+                    <h3 class="font-black text-xs uppercase tracking-widest text-slate-500 mb-4 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                        Giới hạn suất ăn
+                    </h3>
+                    <div class="space-y-2">
+                        <input
+                            v-model="form.stock_quantity"
+                            type="number"
+                            class="w-full bg-slate-50 border border-transparent hover:border-slate-200 rounded-xl p-4 font-bold text-sm text-slate-800 focus:bg-white focus:border-orange-300 focus:ring-4 focus:ring-orange-100 outline-none transition-all"
+                        />
+                        <p class="text-[9px] text-slate-400 font-medium">* Đặt 999 nếu món không giới hạn số lượng.</p>
+                    </div>
                 </div>
 
                 <button
                     :disabled="form.processing"
                     type="submit"
-                    class="w-full bg-orange-500 text-white py-6 rounded-[2.5rem] font-black text-sm uppercase tracking-[0.4em] shadow-2xl shadow-orange-100 hover:bg-gray-900 transition-all active:scale-95 disabled:opacity-50"
+                    class="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-5 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-[0_10px_30px_rgba(249,115,22,0.3)] hover:shadow-[0_15px_40px_rgba(249,115,22,0.4)] hover:-translate-y-1 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                    {{
-                        form.processing
-                            ? "ĐANG LƯU HỆ THỐNG..."
-                            : "LÊN KỆ NGAY 🚀"
-                    }}
+                    <svg v-if="form.processing" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    {{ form.processing ? "ĐANG LƯU HỆ THỐNG..." : "XUẤT BẢN MÓN ĂN" }}
                 </button>
             </div>
         </form>
@@ -545,12 +375,48 @@ const submit = () => {
 </template>
 
 <style scoped>
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-in forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* List Transitions */
+.list-enter-active,
+.list-leave-active {
+    transition: all 0.4s ease;
+}
+.list-enter-from {
+    opacity: 0;
+    transform: translateY(30px);
+}
+.list-leave-to {
+    opacity: 0;
+    transform: translateX(30px);
+}
+
 input::-webkit-outer-spin-button,
-input::-webkit-inner-spin-button {
+input::-webkit-inner-spin-button,
+input[type="time"]::-webkit-calendar-picker-indicator {
     -webkit-appearance: none;
     margin: 0;
-}
-details summary::-webkit-details-marker {
-    display: none;
 }
 </style>

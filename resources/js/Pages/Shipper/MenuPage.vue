@@ -1,17 +1,21 @@
 <template>
     <ShipperLayout>
         <template #default>
-            <div class="space-y-4">
+            <div class="space-y-6 pb-24">
+                <!-- Profile & Status Section -->
                 <section
-                    class="rounded-[32px] bg-white p-6 shadow-sm ring-1 ring-slate-200"
+                    class="rounded-[2rem] bg-gradient-to-br from-slate-900 to-slate-800 p-6 text-white shadow-[0_10px_30px_-10px_rgba(15,23,42,0.6)] relative overflow-hidden ring-1 ring-white/10"
                 >
-                    <div class="flex flex-col items-center gap-4 text-center">
+                    <div class="absolute -right-10 -top-10 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
+                    <div class="absolute -left-10 -bottom-10 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none"></div>
+                    
+                    <div class="flex items-center gap-5 relative z-10">
                         <div
                             @click="goToTracking"
-                            class="cursor-pointer transition hover:opacity-80"
+                            class="cursor-pointer transition hover:scale-105 active:scale-95 shrink-0"
                         >
                             <div
-                                class="h-24 w-24 overflow-hidden rounded-full border-4 border-slate-100 bg-slate-100"
+                                class="h-20 w-20 overflow-hidden rounded-full ring-4 ring-white/10 bg-slate-800 shadow-xl"
                             >
                                 <img
                                     v-if="avatarUrl"
@@ -21,148 +25,153 @@
                                 />
                                 <div
                                     v-else
-                                    class="flex h-full w-full items-center justify-center bg-slate-200 text-3xl font-black text-slate-600"
+                                    class="flex h-full w-full items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 text-2xl font-black text-white"
                                 >
                                     {{ initials }}
                                 </div>
                             </div>
                         </div>
-                        <div
-                            @click="goToTracking"
-                            class="cursor-pointer transition hover:opacity-80"
-                        >
-                            <h1 class="text-2xl font-black text-slate-900">
+                        <div class="flex-1" @click="goToTracking">
+                            <h1 class="text-2xl font-black tracking-tight text-white line-clamp-1 cursor-pointer">
                                 {{ fullName }}
                             </h1>
-                            <p
-                                class="text-sm uppercase tracking-[0.3em] text-slate-400"
-                            >
-                                Shipper
-                            </p>
+                            <div class="mt-1 flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded-md bg-indigo-500/20 text-[10px] font-bold uppercase tracking-widest text-indigo-300 ring-1 ring-indigo-500/50">
+                                    Đối tác
+                                </span>
+                                <span class="text-xs text-slate-400">Shipper Pro</span>
+                            </div>
                         </div>
                     </div>
 
+                    <!-- Status Toggle -->
                     <div
-                        class="mt-6 rounded-[28px] bg-slate-900/95 p-5 text-white"
+                        class="mt-6 rounded-2xl bg-white/5 p-4 border border-white/10 relative z-10 flex items-center justify-between gap-4 backdrop-blur-md"
                     >
-                        <div class="flex items-center justify-between gap-4">
-                            <div>
-                                <p
-                                    class="text-xs uppercase tracking-[0.22em] text-slate-400"
-                                >
-                                    Trạng thái hoạt động
-                                </p>
-                                <p class="mt-2 text-lg font-semibold">
-                                    {{
-                                        isOnline
-                                            ? "Đang làm"
-                                            : "Ngừng hoạt động"
-                                    }}
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <div class="w-2 h-2 rounded-full" :class="isOnline ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-rose-500'"></div>
+                                <p class="text-xs uppercase tracking-widest text-slate-400 font-bold">
+                                    Trạng thái
                                 </p>
                             </div>
-                            <button
-                                @click="showStatusDialog"
-                                class="rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
-                            >
-                                {{
-                                    isOnline ? "Tắt hoạt động" : "Bật hoạt động"
-                                }}
-                            </button>
+                            <p class="text-base font-black text-white">
+                                {{ isOnline ? "Sẵn sàng nhận đơn" : "Đang nghỉ ngơi" }}
+                            </p>
                         </div>
-                        <p class="mt-3 text-sm text-slate-300">
-                            Khi bật hoạt động, hệ thống tự động nhận đơn và hiển
-                            thị lộ trình.
-                        </p>
+                        <button
+                            @click="showStatusDialog"
+                            class="rounded-xl px-5 py-2.5 text-sm font-bold transition-all active:scale-95 shrink-0"
+                            :class="isOnline ? 'bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 ring-1 ring-rose-500/50' : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 ring-1 ring-emerald-500/50'"
+                        >
+                            {{ isOnline ? "Tắt hoạt động" : "Bật hoạt động" }}
+                        </button>
                     </div>
                 </section>
 
-                <section
-                    class="rounded-[32px] bg-white p-4 shadow-sm ring-1 ring-slate-200"
-                >
-                    <div class="grid gap-3">
+                <!-- Menu Items Section -->
+                <section>
+                    <h2 class="text-sm font-black uppercase tracking-widest text-slate-400 px-2 mb-3">Tính năng</h2>
+                    <div class="bg-white rounded-[2rem] shadow-sm ring-1 ring-slate-100 overflow-hidden divide-y divide-slate-50">
                         <Link
                             href="/shipper/menu/destination"
-                            class="flex items-center justify-between rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 text-slate-800 hover:border-slate-300 hover:bg-slate-100"
+                            class="flex items-center justify-between p-5 hover:bg-slate-50 active:bg-slate-100 transition-colors"
                         >
-                            <div>
-                                <p class="font-semibold">Điểm đến của tôi</p>
-                                <p class="text-sm text-slate-500">
-                                    Xem lộ trình và điểm giao hàng tiếp theo
-                                </p>
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-[1.25rem] bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl shrink-0">📍</div>
+                                <div>
+                                    <p class="font-bold text-slate-900 text-sm">Điểm đến của tôi</p>
+                                    <p class="text-xs text-slate-500 mt-0.5">Lộ trình & điểm giao</p>
+                                </div>
                             </div>
-                            <span class="text-xl">›</span>
+                            <span class="text-slate-300 text-xl font-light">›</span>
                         </Link>
+                        
                         <Link
                             href="/shipper/notifications"
-                            class="flex items-center justify-between rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 text-slate-800 hover:border-slate-300 hover:bg-slate-100"
+                            class="flex items-center justify-between p-5 hover:bg-slate-50 active:bg-slate-100 transition-colors"
                         >
-                            <div>
-                                <p class="font-semibold">Thông báo</p>
-                                <p class="text-sm text-slate-500">
-                                    Tin mới và cập nhật đơn hàng
-                                </p>
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-[1.25rem] bg-orange-50 text-orange-600 flex items-center justify-center text-xl shrink-0">🔔</div>
+                                <div>
+                                    <p class="font-bold text-slate-900 text-sm">Thông báo</p>
+                                    <p class="text-xs text-slate-500 mt-0.5">Tin tức hệ thống</p>
+                                </div>
                             </div>
-                            <span class="text-xl">›</span>
+                            <span class="text-slate-300 text-xl font-light">›</span>
                         </Link>
+                        
                         <Link
-                            href="/shipper/menu/income"
-                            class="flex items-center justify-between rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 text-slate-800 hover:border-slate-300 hover:bg-slate-100"
+                            href="/shipper/income"
+                            class="flex items-center justify-between p-5 hover:bg-slate-50 active:bg-slate-100 transition-colors"
                         >
-                            <div>
-                                <p class="font-semibold">Thu nhập</p>
-                                <p class="text-sm text-slate-500">
-                                    Xem thu nhập giao hàng của bạn
-                                </p>
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-[1.25rem] bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0">💰</div>
+                                <div>
+                                    <p class="font-bold text-slate-900 text-sm">Thu nhập</p>
+                                    <p class="text-xs text-slate-500 mt-0.5">Thống kê doanh thu</p>
+                                </div>
                             </div>
-                            <span class="text-xl">›</span>
+                            <span class="text-slate-300 text-xl font-light">›</span>
                         </Link>
+                        
                         <Link
-                            href="/shipper/menu/wallet"
-                            class="flex items-center justify-between rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 text-slate-800 hover:border-slate-300 hover:bg-slate-100"
+                            href="/shipper/wallet"
+                            class="flex items-center justify-between p-5 hover:bg-slate-50 active:bg-slate-100 transition-colors"
                         >
-                            <div>
-                                <p class="font-semibold">Ví</p>
-                                <p class="text-sm text-slate-500">
-                                    Quản lý số dư và thanh toán
-                                </p>
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-[1.25rem] bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">💳</div>
+                                <div>
+                                    <p class="font-bold text-slate-900 text-sm">Ví thanh toán</p>
+                                    <p class="text-xs text-slate-500 mt-0.5">Số dư & Rút tiền</p>
+                                </div>
                             </div>
-                            <span class="text-xl">›</span>
+                            <span class="text-slate-300 text-xl font-light">›</span>
                         </Link>
+                        
                         <Link
-                            href="/shipper/menu/history"
-                            class="flex items-center justify-between rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 text-slate-800 hover:border-slate-300 hover:bg-slate-100"
+                            href="/shipper/history"
+                            class="flex items-center justify-between p-5 hover:bg-slate-50 active:bg-slate-100 transition-colors"
                         >
-                            <div>
-                                <p class="font-semibold">Lịch sử đơn hàng</p>
-                                <p class="text-sm text-slate-500">
-                                    Xem lại các đơn đã giao
-                                </p>
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-[1.25rem] bg-purple-50 text-purple-600 flex items-center justify-center text-xl shrink-0">📋</div>
+                                <div>
+                                    <p class="font-bold text-slate-900 text-sm">Lịch sử đơn hàng</p>
+                                    <p class="text-xs text-slate-500 mt-0.5">Các đơn đã giao</p>
+                                </div>
                             </div>
-                            <span class="text-xl">›</span>
+                            <span class="text-slate-300 text-xl font-light">›</span>
                         </Link>
+                    </div>
+                </section>
+
+                <section>
+                    <h2 class="text-sm font-black uppercase tracking-widest text-slate-400 px-2 mb-3">Hỗ trợ & Cài đặt</h2>
+                    <div class="bg-white rounded-[2rem] shadow-sm ring-1 ring-slate-100 overflow-hidden divide-y divide-slate-50">
                         <Link
                             href="/shipper/menu/help"
-                            class="flex items-center justify-between rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 text-slate-800 hover:border-slate-300 hover:bg-slate-100"
+                            class="flex items-center justify-between p-5 hover:bg-slate-50 active:bg-slate-100 transition-colors"
                         >
-                            <div>
-                                <p class="font-semibold">Trung tâm trợ giúp</p>
-                                <p class="text-sm text-slate-500">
-                                    Hướng dẫn và hỗ trợ
-                                </p>
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-[1.25rem] bg-sky-50 text-sky-600 flex items-center justify-center text-xl shrink-0">🎧</div>
+                                <div>
+                                    <p class="font-bold text-slate-900 text-sm">Trung tâm trợ giúp</p>
+                                </div>
                             </div>
-                            <span class="text-xl">›</span>
+                            <span class="text-slate-300 text-xl font-light">›</span>
                         </Link>
+                        
                         <Link
                             href="/shipper/menu/settings"
-                            class="flex items-center justify-between rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 text-slate-800 hover:border-slate-300 hover:bg-slate-100"
+                            class="flex items-center justify-between p-5 hover:bg-slate-50 active:bg-slate-100 transition-colors"
                         >
-                            <div>
-                                <p class="font-semibold">Cài đặt</p>
-                                <p class="text-sm text-slate-500">
-                                    Tùy chỉnh trải nghiệm vận hành
-                                </p>
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-[1.25rem] bg-slate-50 text-slate-600 flex items-center justify-center text-xl shrink-0">⚙️</div>
+                                <div>
+                                    <p class="font-bold text-slate-900 text-sm">Cài đặt ứng dụng</p>
+                                </div>
                             </div>
-                            <span class="text-xl">›</span>
+                            <span class="text-slate-300 text-xl font-light">›</span>
                         </Link>
                     </div>
                 </section>

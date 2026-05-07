@@ -5,6 +5,7 @@ import Dropdown from "@/Components/Dropdown.vue";
 import DropdownLink from "@/Components/DropdownLink.vue";
 import NavLink from "@/Components/NavLink.vue";
 import ResponsiveNavLink from "@/Components/ResponsiveNavLink.vue";
+import AiChatWidget from "@/Components/AiChatWidget.vue";
 import { Link, usePage } from "@inertiajs/vue3";
 
 const showingNavigationDropdown = ref(false);
@@ -59,6 +60,12 @@ const isCustomer = userRole === "customer";
                                 :active="route().current('orders.index')"
                             >
                                 Đơn hàng
+                            </NavLink>
+                            <NavLink
+                                :href="route('my.notifications')"
+                                :active="route().current('my.notifications')"
+                            >
+                                Thông báo
                             </NavLink>
                         </div>
                     </div>
@@ -175,6 +182,12 @@ const isCustomer = userRole === "customer";
                     >
                         Đơn hàng
                     </ResponsiveNavLink>
+                    <ResponsiveNavLink
+                        :href="route('my.notifications')"
+                        :active="route().current('my.notifications')"
+                    >
+                        Thông báo
+                    </ResponsiveNavLink>
                 </div>
                 <div class="border-t border-gray-200 pb-1 pt-4">
                     <div class="px-4">
@@ -210,5 +223,8 @@ const isCustomer = userRole === "customer";
         <main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
             <slot />
         </main>
+        
+        <!-- Khung chat AI chỉ hiển thị cho Khách hàng -->
+        <AiChatWidget v-if="isCustomer" />
     </div>
 </template>

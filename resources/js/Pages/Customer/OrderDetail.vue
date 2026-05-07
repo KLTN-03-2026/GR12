@@ -88,47 +88,97 @@
 
                 <div class="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
                     <div class="space-y-6">
-                        <div class="grid md:grid-cols-2 gap-4">
-                            <div
-                                class="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-50"
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <button
+                                @click="showRestaurantDetail = true"
+                                class="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-50 hover:shadow-xl hover:border-orange-100 transition-all text-left group flex flex-col justify-between h-full min-h-[180px]"
                             >
+                                <div class="w-full">
+                                    <div
+                                        class="flex justify-between items-start gap-2 mb-4"
+                                    >
+                                        <p
+                                            class="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-black"
+                                        >
+                                            🏪 Từ nhà hàng
+                                        </p>
+                                        <span
+                                            class="text-xl opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >ℹ️</span
+                                        >
+                                    </div>
+                                    <h3
+                                        class="font-black text-base md:text-lg mb-3 line-clamp-1 group-hover:text-orange-600 transition-colors"
+                                    >
+                                        {{ restaurant.name }}
+                                    </h3>
+                                    <p
+                                        class="text-sm text-slate-500 leading-relaxed line-clamp-2"
+                                    >
+                                        {{ restaurant.address }}
+                                    </p>
+                                </div>
                                 <p
-                                    class="text-[10px] uppercase tracking-[0.2em] text-slate-400 mb-4 font-black"
+                                    v-if="restaurant.phone"
+                                    class="text-xs text-slate-400 mt-5 font-medium"
                                 >
-                                    Từ nhà hàng
+                                    📞 {{ restaurant.phone }}
                                 </p>
-                                <h3 class="font-black text-lg mb-2">
-                                    {{ restaurant.name }}
-                                </h3>
-                                <p
-                                    class="text-sm text-slate-500 leading-relaxed"
-                                >
-                                    {{ restaurant.address }}
-                                </p>
-                            </div>
-                            <div
-                                class="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-50 relative"
+                            </button>
+
+                            <button
+                                @click="showCustomerDetail = true"
+                                class="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-50 hover:shadow-xl hover:border-blue-100 transition-all text-left group relative flex flex-col justify-between h-full min-h-[180px]"
                             >
                                 <span
-                                    class="absolute top-4 right-6 text-[9px] font-black px-2 py-1 bg-slate-100 rounded-lg uppercase tracking-tighter"
+                                    class="absolute top-6 right-6 text-[9px] font-black px-3 py-1 bg-slate-100 rounded-lg uppercase tracking-wider group-hover:bg-blue-100 transition-colors"
                                     >Bạn</span
                                 >
-                                <p
-                                    class="text-[10px] uppercase tracking-[0.2em] text-slate-400 mb-4 font-black"
-                                >
-                                    Giao đến
-                                </p>
-                                <h3
-                                    class="font-black text-lg mb-2 line-clamp-1"
-                                >
-                                    {{ orderData.address }}
-                                </h3>
-                                <p
-                                    class="text-sm text-slate-500 font-bold tracking-widest italic"
-                                >
-                                    {{ orderData.phone }}
-                                </p>
-                            </div>
+                                <div class="w-full pr-12">
+                                    <div
+                                        class="flex justify-between items-start gap-2 mb-4"
+                                    >
+                                        <p
+                                            class="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-black"
+                                        >
+                                            🏠 Giao đến
+                                        </p>
+                                        <span
+                                            class="text-xl opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >ℹ️</span
+                                        >
+                                    </div>
+                                    <h3
+                                        class="font-black text-base md:text-lg mb-3 line-clamp-1 text-slate-900 group-hover:text-blue-600 transition-colors"
+                                    >
+                                        👤
+                                        {{
+                                            orderData.name ||
+                                            (orderData.user
+                                                ? orderData.user.name
+                                                : "Người nhận")
+                                        }}
+                                    </h3>
+                                    <p
+                                        class="text-sm text-slate-500 leading-relaxed line-clamp-2"
+                                    >
+                                        {{ orderData.address }}
+                                    </p>
+                                </div>
+                                <div class="w-full mt-5">
+                                    <p
+                                        class="text-xs text-slate-400 font-medium"
+                                    >
+                                        📞 {{ orderData.phone }}
+                                    </p>
+                                    <p
+                                        v-if="orderData.note"
+                                        class="text-xs text-slate-400 mt-2 line-clamp-1 italic"
+                                    >
+                                        📝 {{ orderData.note }}
+                                    </p>
+                                </div>
+                            </button>
                         </div>
 
                         <div
@@ -232,6 +282,33 @@
                                     }}</span>
                                 </div>
                                 <div
+                                    class="flex justify-between text-sm font-medium text-slate-500"
+                                >
+                                    <span>Phí dịch vụ</span>
+                                    <span class="font-bold text-slate-900">{{
+                                        formatPrice(orderData.service_fee || 0)
+                                    }}</span>
+                                </div>
+                                <div
+                                    v-if="orderData.packaging_fee > 0"
+                                    class="flex justify-between text-sm font-medium text-slate-500"
+                                >
+                                    <span>Phí đóng gói</span>
+                                    <span class="font-bold text-slate-900">{{
+                                        formatPrice(orderData.packaging_fee)
+                                    }}</span>
+                                </div>
+                                <div
+                                    v-if="orderData.shipper_tip > 0"
+                                    class="flex justify-between text-sm font-bold text-yellow-500"
+                                >
+                                    <span>Tip cho tài xế</span>
+                                    <span>+{{
+                                        formatPrice(orderData.shipper_tip)
+                                    }}</span>
+                                </div>
+                                <div
+                                    v-if="orderData.discount_amount > 0"
                                     class="flex justify-between text-sm font-bold text-green-600"
                                 >
                                     <span>Giảm giá</span>
@@ -274,9 +351,11 @@
 
                             <div
                                 v-if="
-                                    ['picked_up', 'shipping'].includes(
-                                        orderData.status,
-                                    )
+                                    [
+                                        'picked_up',
+                                        'shipping',
+                                        'arrived',
+                                    ].includes(orderData.status)
                                 "
                                 class="mt-8"
                             >
@@ -309,9 +388,18 @@
                                 />
                                 <div class="flex-1">
                                     <p
-                                        class="text-[10px] font-black uppercase text-orange-400 tracking-widest mb-1"
+                                        class="text-[10px] font-black uppercase tracking-widest mb-1"
+                                        :class="
+                                            orderData.status === 'completed'
+                                                ? 'text-green-400'
+                                                : 'text-orange-400'
+                                        "
                                     >
-                                        Tài xế đang giao
+                                        {{
+                                            orderData.status === "completed"
+                                                ? "Shipper đã giao"
+                                                : "Tài xế đang giao"
+                                        }}
                                     </p>
                                     <p class="font-black text-lg">
                                         {{ orderData.shipper.user.name }}
@@ -332,15 +420,284 @@
                     </div>
                 </div>
             </div>
+
+            <div
+                v-if="showRestaurantDetail"
+                class="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in"
+            >
+                <div
+                    class="bg-white rounded-t-[2rem] md:rounded-[2rem] shadow-xl w-full md:max-w-md max-h-[80vh] flex flex-col overflow-hidden animate-slide-up md:animate-zoom-in"
+                >
+                    <div
+                        class="flex justify-between items-center p-6 border-b border-slate-100 bg-gradient-to-r from-orange-50 to-white"
+                    >
+                        <h2 class="text-lg font-black text-slate-900">
+                            🏪 Thông tin quán ăn
+                        </h2>
+                        <button
+                            @click="showRestaurantDetail = false"
+                            class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 font-bold transition-all"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-6 space-y-6">
+                        <div>
+                            <p
+                                class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2"
+                            >
+                                Tên quán ăn
+                            </p>
+                            <p class="text-lg font-black text-slate-900">
+                                {{ restaurant.name }}
+                            </p>
+                        </div>
+
+                        <div>
+                            <p
+                                class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2"
+                            >
+                                Địa chỉ
+                            </p>
+                            <div class="flex items-start gap-3">
+                                <p
+                                    class="text-base text-slate-700 leading-relaxed flex-1"
+                                >
+                                    {{ restaurant.address }}
+                                </p>
+                                <button
+                                    @click="
+                                        copyToClipboard(
+                                            restaurant.address,
+                                            'Địa chỉ quán',
+                                        )
+                                    "
+                                    class="shrink-0 p-2 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all"
+                                    title="Copy địa chỉ"
+                                >
+                                    📋
+                                </button>
+                            </div>
+                        </div>
+
+                        <div v-if="restaurant.phone">
+                            <p
+                                class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2"
+                            >
+                                Số điện thoại
+                            </p>
+                            <div class="flex items-center gap-3">
+                                <a
+                                    :href="'tel:' + restaurant.phone"
+                                    class="text-base font-bold text-blue-600 hover:text-blue-700"
+                                >
+                                    📞 {{ restaurant.phone }}
+                                </a>
+                                <button
+                                    @click="
+                                        copyToClipboard(
+                                            restaurant.phone,
+                                            'Số điện thoại quán',
+                                        )
+                                    "
+                                    class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                    title="Copy số điện thoại"
+                                >
+                                    📋
+                                </button>
+                            </div>
+                        </div>
+
+                        <div v-if="restaurant.latitude && restaurant.longitude">
+                            <p
+                                class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2"
+                            >
+                                Vị trí tọa độ
+                            </p>
+                            <p class="text-sm text-slate-600 font-mono">
+                                {{ restaurant.latitude }},
+                                {{ restaurant.longitude }}
+                            </p>
+                        </div>
+                    </div>
+                    <div
+                        class="border-t border-slate-100 p-6 bg-slate-50 flex gap-3"
+                    >
+                        <a
+                            v-if="restaurant.phone"
+                            :href="'tel:' + restaurant.phone"
+                            class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all"
+                        >
+                            📞 Gọi quán
+                        </a>
+                        <button
+                            @click="showRestaurantDetail = false"
+                            class="flex-1 py-3 bg-white hover:bg-slate-100 text-slate-700 rounded-xl font-bold border border-slate-200 transition-all"
+                        >
+                            Đóng
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                v-if="showCustomerDetail"
+                class="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in"
+            >
+                <div
+                    class="bg-white rounded-t-[2rem] md:rounded-[2rem] shadow-xl w-full md:max-w-md max-h-[80vh] flex flex-col overflow-hidden animate-slide-up md:animate-zoom-in"
+                >
+                    <div
+                        class="flex justify-between items-center p-6 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-white"
+                    >
+                        <h2 class="text-lg font-black text-slate-900">
+                            👤 Thông tin giao hàng
+                        </h2>
+                        <button
+                            @click="showCustomerDetail = false"
+                            class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 font-bold transition-all"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-6 space-y-6">
+                        <div>
+                            <p
+                                class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2"
+                            >
+                                Tên người nhận
+                            </p>
+                            <p class="text-base font-black text-slate-900">
+                                {{
+                                    orderData.name ||
+                                    (orderData.user
+                                        ? orderData.user.name
+                                        : "Người nhận")
+                                }}
+                            </p>
+                        </div>
+
+                        <div>
+                            <p
+                                class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2"
+                            >
+                                Địa chỉ giao hàng
+                            </p>
+                            <div class="flex items-start gap-3">
+                                <p
+                                    class="text-base text-slate-700 leading-relaxed flex-1"
+                                >
+                                    {{ orderData.address }}
+                                </p>
+                                <button
+                                    @click="
+                                        copyToClipboard(
+                                            orderData.address,
+                                            'Địa chỉ giao hàng',
+                                        )
+                                    "
+                                    class="shrink-0 p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                    title="Copy địa chỉ"
+                                >
+                                    📋
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <p
+                                class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2"
+                            >
+                                Số điện thoại
+                            </p>
+                            <div class="flex items-center gap-3">
+                                <a
+                                    :href="'tel:' + orderData.phone"
+                                    class="text-base font-bold text-blue-600 hover:text-blue-700"
+                                >
+                                    📞 {{ orderData.phone }}
+                                </a>
+                                <button
+                                    @click="
+                                        copyToClipboard(
+                                            orderData.phone,
+                                            'Số điện thoại',
+                                        )
+                                    "
+                                    class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                    title="Copy số điện thoại"
+                                >
+                                    📋
+                                </button>
+                            </div>
+                        </div>
+
+                        <div v-if="orderData.note">
+                            <p
+                                class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2"
+                            >
+                                Ghi chú
+                            </p>
+                            <div
+                                class="bg-yellow-50 border border-yellow-200 rounded-xl p-4"
+                            >
+                                <p class="text-sm text-slate-700">
+                                    📝 {{ orderData.note }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div
+                            v-if="
+                                orderData.user?.latitude &&
+                                orderData.user?.longitude
+                            "
+                        >
+                            <p
+                                class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2"
+                            >
+                                Vị trí tọa độ
+                            </p>
+                            <p class="text-sm text-slate-600 font-mono">
+                                {{ orderData.user.latitude }},
+                                {{ orderData.user.longitude }}
+                            </p>
+                        </div>
+                    </div>
+                    <div
+                        class="border-t border-slate-100 p-6 bg-slate-50 flex gap-3"
+                    >
+                        <a
+                            :href="'tel:' + orderData.phone"
+                            class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all"
+                        >
+                            📞 Gọi
+                        </a>
+                        <button
+                            @click="showCustomerDetail = false"
+                            class="flex-1 py-3 bg-white hover:bg-slate-100 text-slate-700 rounded-xl font-bold border border-slate-200 transition-all"
+                        >
+                            Đóng
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </GuestLayout>
-</template>
 
+    <!-- Chat Widget -->
+    <ChatWidget 
+        v-if="orderData" 
+        :orderId="orderData.id" 
+        :orderCode="orderData.order_code" 
+    />
+</template>
 <script setup>
 import { computed, ref, onMounted, watch, onUnmounted } from "vue";
 import { Head } from "@inertiajs/vue3";
 import GuestLayout from "@/Layouts/GuestLayout.vue";
 import UserAvatar from "@/Components/UserAvatar.vue";
+import ChatWidget from "@/Components/ChatWidget.vue";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import Swal from "sweetalert2";
@@ -351,6 +708,8 @@ const map = ref(null);
 const orderData = ref(props.order);
 const shipperMarker = ref(null);
 const refreshInterval = ref(null);
+const showRestaurantDetail = ref(false);
+const showCustomerDetail = ref(false);
 
 const restaurant = computed(() => {
     if (orderData.value.restaurant) return orderData.value.restaurant;
@@ -358,6 +717,9 @@ const restaurant = computed(() => {
     return {
         name: productUser?.restaurant_name ?? productUser?.name ?? "Nhà hàng",
         address: productUser?.address ?? "Đang cập nhật địa chỉ...",
+        phone: productUser?.phone ?? "",
+        latitude: productUser?.latitude,
+        longitude: productUser?.longitude,
     };
 });
 
@@ -376,92 +738,80 @@ const estimatedDeliveryTime = computed(() => {
 
 const progressSteps = computed(() => [
     {
-        key: "pending",
+        key: "placed",
         icon: "📋",
         title: "Đặt đơn",
         active: [
             "pending",
-            "processing",
             "confirmed",
             "assigned",
             "shipping",
-            "picked_up",
-            "completed",
-        ].includes(orderData.value.status),
-    },
-    {
-        key: "processing",
-        icon: "👨‍🍳",
-        title: "Chuẩn bị",
-        active: [
-            "processing",
-            "confirmed",
-            "assigned",
-            "shipping",
+            "arrived",
             "picked_up",
             "completed",
         ].includes(orderData.value.status),
     },
     {
         key: "confirmed",
-        icon: "🍱",
-        title: "Sẵn sàng",
+        icon: "🍳",
+        title: "Quán xác nhận",
         active: [
             "confirmed",
             "assigned",
             "shipping",
+            "arrived",
             "picked_up",
             "completed",
         ].includes(orderData.value.status),
     },
     {
-        key: "assigned",
-        icon: "🛵",
-        title: "Gán Shipper",
-        active: ["assigned", "shipping", "picked_up", "completed"].includes(
-            orderData.value.status,
-        ),
+        key: "arrived",
+        icon: "🏪",
+        title: "Shipper đến quán",
+        active: [
+            "arrived",
+            "picked_up",
+            "completed",
+        ].includes(orderData.value.status),
     },
     {
-        key: "shipping",
-        icon: "🚚",
-        title: "Giao hàng",
-        active: ["shipping", "picked_up", "completed"].includes(
-            orderData.value.status,
-        ),
+        key: "completed",
+        icon: "🎉",
+        title: "Giao thành công",
+        active: ["completed"].includes(orderData.value.status),
     },
 ]);
 
 const progressPercent = computed(() => {
     const s = orderData.value.status;
-    const stepWidth = 100 / (progressSteps.value.length - 1);
+    const stepWidth = 100 / (progressSteps.value.length - 1); // 33.33%
     if (s === "pending") return 0;
-    if (s === "processing") return stepWidth * 1;
-    if (s === "confirmed") return stepWidth * 2;
-    if (s === "assigned") return stepWidth * 3;
-    if (s === "shipping") return stepWidth * 4;
-    if (s === "picked_up") return stepWidth * 4.5;
-    if (s === "completed") return 100;
+    if (s === "confirmed") return stepWidth * 1;       // Bước 2
+    if (s === "assigned") return stepWidth * 1.5;     // Giữa bước 2-3 (shipper nhận đơn)
+    if (s === "shipping") return stepWidth * 2;       // Shipper đang di chuyển đến quán
+    if (s === "arrived") return stepWidth * 2;        // Bước 3 — shipper đến quán
+    if (s === "picked_up") return stepWidth * 2.5;    // Giữa bước 3-4 (đã lấy hàng)
+    if (s === "completed") return 100;                // Bước 4
     return 0;
 });
 
 const showTrackingMap = computed(() => {
     return (
-        ["shipping", "picked_up"].includes(orderData.value.status) &&
+        ["shipping", "arrived", "picked_up"].includes(orderData.value.status) &&
         orderData.value.shipper?.current_latitude
     );
 });
 
 const getStatusHeadline = (status) => {
     const headlines = {
-        pending: "Chờ xác nhận",
-        processing: "Quán đang chuẩn bị",
-        confirmed: "Đã sẵn sàng",
-        assigned: "Đã tìm thấy shipper",
-        shipping: "Đang giao đến bạn",
-        picked_up: "Đã lấy hàng",
-        completed: "Giao thành công",
-        cancelled: "Đã hủy",
+        pending: "⏳ Chờ quán xác nhận",
+        confirmed: "🍳 Quán đã xác nhận & đang nấu",
+        assigned: "🛵 Shipper đang trên đường đến quán",
+        shipping: "🏃 Shipper đang di chuyển đến quán",
+        arrived: "🏪 Shipper đã đến quán, chờ lấy hàng",
+        picked_up: "🚀 Shipper đang giao đến bạn",
+        completed: "🎉 Giao hàng thành công!",
+        cancelled: "❌ Đơn hàng đã bị hủy",
     };
     return headlines[status] || "Đang xử lý";
 };
@@ -575,6 +925,28 @@ const cancelOrder = async () => {
     }
 };
 
+// Copy to clipboard
+const copyToClipboard = async (text, label) => {
+    try {
+        await navigator.clipboard.writeText(text);
+        Swal.fire({
+            title: "Đã sao chép!",
+            text: `${label} đã được sao chép vào clipboard`,
+            icon: "success",
+            timer: 2000,
+            showConfirmButton: false,
+            customClass: { popup: "rounded-[1.5rem]" },
+        });
+    } catch (err) {
+        Swal.fire({
+            title: "Lỗi",
+            text: "Không thể sao chép, vui lòng thử lại",
+            icon: "error",
+            customClass: { popup: "rounded-[1.5rem]" },
+        });
+    }
+};
+
 // Map
 const initMap = () => {
     if (!orderData.value.shipper?.current_latitude) return;
@@ -594,34 +966,42 @@ const initMap = () => {
     );
 
     if (orderData.value.user.latitude) {
-        L.circleMarker(
+        const customerIcon = L.divIcon({
+            html: `<div class="flex items-center justify-center w-10 h-10 bg-blue-600 rounded-full shadow-lg border-2 border-white text-xl shadow-blue-500/50 animate-bounce-slow">🏠</div>`,
+            className: "",
+            iconSize: [40, 40],
+            iconAnchor: [20, 40],
+            popupAnchor: [0, -40]
+        });
+
+        L.marker(
             [orderData.value.user.latitude, orderData.value.user.longitude],
-            {
-                radius: 10,
-                fillColor: "#2563eb",
-                color: "#fff",
-                weight: 4,
-                fillOpacity: 1,
-            },
+            { icon: customerIcon }
         )
             .addTo(map.value)
-            .bindPopup("Bạn");
+            .bindPopup("<b>Bạn</b><br/>Điểm giao hàng");
     }
-    shipperMarker.value = L.circleMarker(
+
+    const shipperIcon = L.divIcon({
+        html: `<div class="relative w-12 h-12">
+            <div class="absolute inset-0 bg-orange-500 rounded-full animate-ping opacity-20"></div>
+            <div class="relative flex items-center justify-center w-12 h-12 bg-orange-500 rounded-full shadow-xl border-2 border-white text-2xl shadow-orange-500/50 z-10">🛵</div>
+        </div>`,
+        className: "",
+        iconSize: [48, 48],
+        iconAnchor: [24, 24],
+        popupAnchor: [0, -24]
+    });
+
+    shipperMarker.value = L.marker(
         [
             orderData.value.shipper.current_latitude,
             orderData.value.shipper.current_longitude,
         ],
-        {
-            radius: 12,
-            fillColor: "#f97316",
-            color: "#fff",
-            weight: 4,
-            fillOpacity: 1,
-        },
+        { icon: shipperIcon }
     )
         .addTo(map.value)
-        .bindPopup("Shipper");
+        .bindPopup("<b>Shipper</b><br/>Đang di chuyển");
 };
 
 watch(
@@ -643,18 +1023,57 @@ watch(showTrackingMap, (v) => {
 
 onMounted(() => {
     if (showTrackingMap.value) setTimeout(initMap, 500);
-    if (["shipping", "picked_up"].includes(orderData.value.status))
+    // Vẫn giữ fallback polling cho chắc chắn
+    if (["shipping", "arrived", "picked_up"].includes(orderData.value.status))
         startOrderPolling();
+        
+    // Listen to real-time events using Laravel Echo
+    if (window.Echo) {
+        window.Echo.private(`order.${orderData.value.id}`)
+            .listen('OrderStatusUpdated', (e) => {
+                console.log('Order status updated via Echo:', e.order.status);
+                orderData.value.status = e.order.status;
+                if (e.order.status === 'shipping' || e.order.status === 'picked_up') {
+                    if (!orderData.value.shipper) {
+                        updateOrderData(); // Fetch full order if shipper is missing
+                    }
+                }
+                
+                // Show a toast when status changes
+                Swal.fire({
+                    title: 'Trạng thái cập nhật',
+                    text: getStatusHeadline(e.order.status),
+                    icon: 'info',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+            })
+            .listen('ShipperLocationUpdated', (e) => {
+                console.log('Shipper location updated:', e);
+                if (orderData.value.shipper) {
+                    orderData.value.shipper.current_latitude = e.latitude;
+                    orderData.value.shipper.current_longitude = e.longitude;
+                }
+            });
+    }
 });
 
 onUnmounted(() => {
     stopOrderPolling();
     if (map.value) map.value.remove();
+    
+    // Ngắt kết nối Echo khi component unmount
+    if (window.Echo) {
+        window.Echo.leave(`order.${orderData.value.id}`);
+    }
 });
 
 const canCancelOrder = computed(() => {
     return ![
         "shipping",
+        "arrived",
         "picked_up",
         "delivering",
         "completed",
@@ -668,11 +1087,70 @@ const canCancelOrder = computed(() => {
     border-radius: 0;
     font-family: inherit;
 }
-/* Đảm bảo chữ ko bị vỡ trên mobile */
+
 .line-clamp-1 {
     display: -webkit-box;
     -webkit-line-clamp: 1;
+    line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slide-up {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes zoom-in {
+    from {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.animate-fade-in {
+    animation: fade-in 0.3s ease-in-out forwards;
+}
+
+.animate-slide-up {
+    animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-zoom-in {
+    animation: zoom-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes bounce-slow {
+    0%, 100% {
+        transform: translateY(-5%);
+        animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+    }
+    50% {
+        transform: translateY(0);
+        animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+    }
+}
+
+.animate-bounce-slow {
+    animation: bounce-slow 2s infinite;
 }
 </style>

@@ -5,6 +5,7 @@ import Dropdown from "@/Components/Dropdown.vue";
 import DropdownLink from "@/Components/DropdownLink.vue";
 import ToastList from "@/Components/ToastList.vue"; // 1. Import component Toast
 import UserAvatar from "@/Components/UserAvatar.vue";
+import AiChatWidget from "@/Components/AiChatWidget.vue";
 </script>
 
 <template>
@@ -80,6 +81,13 @@ import UserAvatar from "@/Components/UserAvatar.vue";
                             class="font-semibold text-neutral-600 hover:text-brand-500 hover:scale-105 transition-all duration-300"
                         >
                             Đơn hàng
+                        </Link>
+
+                        <Link
+                            :href="route('my.notifications')"
+                            class="font-semibold text-neutral-600 hover:text-brand-500 hover:scale-105 transition-all duration-300"
+                        >
+                            Thông báo
                         </Link>
 
                         <div class="h-6 w-[1px] bg-neutral-300"></div>
@@ -278,6 +286,9 @@ import UserAvatar from "@/Components/UserAvatar.vue";
                 </div>
             </div>
         </footer>
+        
+        <!-- Khung chat AI -->
+        <AiChatWidget />
     </div>
 </template>
 

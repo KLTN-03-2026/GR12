@@ -92,8 +92,8 @@ Route::middleware(['auth:sanctum', 'role:shipper'])->prefix('shipper')->group(fu
     Route::post('/location', [ShipperController::class, 'updateLocation']);
     Route::post('/orders/{orderId}/accept', [ShipperController::class, 'acceptOrder']);
     Route::post('/orders/{orderId}/reject', [ShipperController::class, 'rejectOrder']);
+    Route::post('/orders/{orderId}/arrive-at-restaurant', [ShipperController::class, 'arriveAtRestaurant']);
     Route::post('/orders/{orderId}/confirm-pickup', [ShipperController::class, 'confirmPickup']);
-    Route::post('/orders/{orderId}/start-delivery', [ShipperController::class, 'startDelivery']);
     Route::post('/orders/{orderId}/complete', [ShipperController::class, 'completeOrder']);
 });
 

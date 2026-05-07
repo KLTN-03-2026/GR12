@@ -1,247 +1,261 @@
 <template>
     <ShipperLayout>
-        <template #title>Chi tiết đơn hàng: {{ order.order_code }}</template>
-        <template #subtitle>Quản lý giao hàng</template>
+        <template #title>Đơn hàng: {{ order.order_code }}</template>
 
-        <div class="flex justify-between items-center mb-6">
-            <div></div>
-            <Link
-                href="/shipper/dashboard"
-                class="text-blue-600 hover:text-blue-800"
-                >← Quay lại Dashboard</Link
-            >
-        </div>
-
-        <div class="grid md:grid-cols-2 gap-6">
-            <div class="md:col-span-2">
-                <h2 class="text-xl font-semibold mb-4">Thông tin liên hệ</h2>
-                <div class="grid gap-4 lg:grid-cols-2">
-                    <!-- Customer Card -->
-                    <div
-                        @click="showCustomerDetail = !showCustomerDetail"
-                        class="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm cursor-pointer hover:shadow-md hover:border-blue-300 transition-all"
-                    >
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <p
-                                    class="text-sm uppercase tracking-[0.24em] text-slate-500 mb-4"
-                                >
-                                    👤 Khách hàng
-                                </p>
-                                <p class="font-semibold text-slate-900">
-                                    {{ order.user.name }}
-                                </p>
-                                <p class="text-sm text-slate-500 mt-2">
-                                    {{ order.phone }}
-                                </p>
-                                <p
-                                    class="text-sm text-slate-500 mt-2 line-clamp-2"
-                                >
-                                    {{ order.address }}
-                                </p>
-                            </div>
-                            <span class="text-2xl">{{
-                                showCustomerDetail ? "▼" : "▶"
-                            }}</span>
-                        </div>
-
-                        <!-- Customer Actions -->
+        <div class="pb-32 space-y-6">
+            <!-- Order Timeline - Compact Horizontal -->
+            <div class="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100">
+                <div class="flex items-center justify-between gap-2">
+                    <!-- Step 1: Nhận đơn / Đang đến quán -->
+                    <div class="flex-1 flex items-center">
                         <div
-                            v-if="showCustomerDetail"
-                            class="mt-4 space-y-2 pt-4 border-t border-slate-200"
+                            :class="[
+                                'w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all shrink-0',
+                                ['confirmed', 'assigned', 'shipping', 'arrived', 'picked_up', 'completed'].includes(order.status)
+                                    ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-lg shadow-emerald-500/30'
+                                    : 'bg-slate-100 text-slate-400',
+                            ]"
                         >
-                            <a
-                                :href="`tel:${order.phone}`"
-                                class="flex items-center justify-center gap-2 rounded-3xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition"
-                            >
-                                <span>📞</span>
-                                Gọi khách hàng
+                            🛵
+                        </div>
+                        <div
+                            class="h-1 flex-1 mx-1 transition-all rounded-full"
+                            :class="
+                                ['arrived', 'picked_up', 'completed'].includes(order.status)
+                                    ? 'bg-gradient-to-r from-emerald-500 to-slate-200'
+                                    : 'bg-slate-200'
+                            "
+                        ></div>
+                    </div>
+
+                    <!-- Step 2: Đến quán -->
+                    <div class="flex-1 flex items-center">
+                        <div
+                            :class="[
+                                'w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all shrink-0',
+                                ['arrived', 'picked_up', 'completed'].includes(order.status)
+                                    ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-lg shadow-emerald-500/30'
+                                    : 'bg-slate-100 text-slate-400',
+                            ]"
+                        >
+                            🏪
+                        </div>
+                        <div
+                            class="h-1 flex-1 mx-1 transition-all rounded-full"
+                            :class="
+                                ['picked_up', 'completed'].includes(order.status)
+                                    ? 'bg-gradient-to-r from-emerald-500 to-slate-200'
+                                    : 'bg-slate-200'
+                            "
+                        ></div>
+                    </div>
+
+                    <!-- Step 3: Lấy hàng / Đang giao -->
+                    <div class="flex-1 flex items-center">
+                        <div
+                            :class="[
+                                'w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all shrink-0',
+                                ['picked_up', 'completed'].includes(order.status)
+                                    ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-lg shadow-emerald-500/30'
+                                    : 'bg-slate-100 text-slate-400',
+                            ]"
+                        >
+                            📦
+                        </div>
+                        <div
+                            class="h-1 flex-1 mx-1 transition-all rounded-full"
+                            :class="
+                                ['completed'].includes(order.status)
+                                    ? 'bg-gradient-to-r from-emerald-500 to-slate-200'
+                                    : 'bg-slate-200'
+                            "
+                        ></div>
+                    </div>
+
+                    <!-- Step 4: Hoàn thành -->
+                    <div
+                        :class="[
+                            'w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all shrink-0',
+                            ['completed'].includes(order.status)
+                                ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-lg shadow-emerald-500/30'
+                                : 'bg-slate-100 text-slate-400',
+                        ]"
+                    >
+                        ✅
+                    </div>
+                </div>
+                <div class="mt-4 text-center">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-xs font-bold text-slate-600">
+                        Trạng thái: <span class="text-indigo-600">{{ getStatusText(order.status) }}</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Contact Info -->
+            <div class="space-y-4">
+                <!-- Restaurant Card -->
+                <div
+                    @click="showRestaurantDetail = !showRestaurantDetail"
+                    class="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm cursor-pointer transition-all"
+                    :class="showRestaurantDetail ? 'ring-2 ring-orange-400/50' : 'hover:shadow-md'"
+                >
+                    <div class="flex justify-between items-start gap-4">
+                        <div class="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center shrink-0 text-xl">
+                            🏪
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-[10px] uppercase font-bold tracking-widest text-slate-400 mb-1">
+                                Lấy hàng tại
+                            </p>
+                            <p class="font-black text-slate-900 text-base">
+                                {{ restaurant.name }}
+                            </p>
+                            <p class="text-xs text-slate-500 mt-1 line-clamp-2">
+                                {{ restaurant.address }}
+                            </p>
+                            <p v-if="order.is_food_ready" class="mt-2 text-[10px] font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-full inline-block">
+                                🍲 Món đã nấu xong
+                            </p>
+                        </div>
+                        <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center shrink-0 text-slate-400">
+                            <span class="transform transition-transform text-xs" :class="showRestaurantDetail ? 'rotate-180' : ''">▼</span>
+                        </div>
+                    </div>
+
+                    <!-- Restaurant Actions -->
+                    <div v-show="showRestaurantDetail" class="mt-5 space-y-3 pt-5 border-t border-slate-100">
+                        <div class="flex items-center gap-2 text-sm text-slate-600 font-medium bg-slate-50 p-3 rounded-2xl">
+                            <span class="text-xl">📞</span> {{ restaurant.phone }}
+                        </div>
+                        <div class="flex gap-2">
+                            <a :href="`tel:${restaurant.phone}`" class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-indigo-50 px-4 py-3.5 text-sm font-bold text-indigo-600 active:scale-95 transition-all">
+                                Gọi quán
                             </a>
-                            <button
-                                @click.stop="showCustomerMap = true"
-                                class="w-full flex items-center justify-center gap-2 rounded-3xl border border-orange-200 bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-700 hover:bg-orange-100 transition"
-                            >
-                                <span>🗺️</span>
+                            <button @click.stop="showRestaurantMap = true" class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-orange-50 px-4 py-3.5 text-sm font-bold text-orange-600 active:scale-95 transition-all">
                                 Xem bản đồ
                             </button>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Restaurant Card -->
-                    <div
-                        @click="showRestaurantDetail = !showRestaurantDetail"
-                        class="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm cursor-pointer hover:shadow-md hover:border-orange-300 transition-all"
-                    >
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <p
-                                    class="text-sm uppercase tracking-[0.24em] text-slate-500 mb-4"
-                                >
-                                    🏪 Quán ăn
-                                </p>
-                                <p class="font-semibold text-slate-900">
-                                    {{ restaurant.name }}
-                                </p>
-                                <p class="text-sm text-slate-500 mt-2">
-                                    {{ restaurant.phone }}
-                                </p>
-                                <p
-                                    class="text-sm text-slate-500 mt-2 line-clamp-2"
-                                >
-                                    {{ restaurant.address }}
-                                </p>
-                                <p class="text-sm text-slate-500 mt-2">
-                                    Trạng thái:
-                                    <span
-                                        class="font-semibold text-slate-900"
-                                        >{{ getStatusText(order.status) }}</span
-                                    >
-                                </p>
-                            </div>
-                            <span class="text-2xl">{{
-                                showRestaurantDetail ? "▼" : "▶"
-                            }}</span>
+                <!-- Customer Card -->
+                <div
+                    @click="showCustomerDetail = !showCustomerDetail"
+                    class="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm cursor-pointer transition-all"
+                    :class="showCustomerDetail ? 'ring-2 ring-blue-400/50' : 'hover:shadow-md'"
+                >
+                    <div class="flex justify-between items-start gap-4">
+                        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center shrink-0 text-xl">
+                            👤
                         </div>
+                        <div class="flex-1">
+                            <p class="text-[10px] uppercase font-bold tracking-widest text-slate-400 mb-1">
+                                Giao hàng đến
+                            </p>
+                            <p class="font-black text-slate-900 text-base">
+                                {{ order.user.name }}
+                            </p>
+                            <p class="text-xs text-slate-500 mt-1 line-clamp-2">
+                                {{ order.address }}
+                            </p>
+                            <p v-if="order.note" class="text-xs font-semibold text-orange-600 mt-2 bg-orange-50 px-2.5 py-1.5 rounded-lg flex gap-1.5 items-start border border-orange-100/50">
+                                <span>📝</span> <span class="line-clamp-2">{{ order.note }}</span>
+                            </p>
+                        </div>
+                        <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center shrink-0 text-slate-400">
+                            <span class="transform transition-transform text-xs" :class="showCustomerDetail ? 'rotate-180' : ''">▼</span>
+                        </div>
+                    </div>
 
-                        <!-- Restaurant Actions -->
-                        <div
-                            v-if="showRestaurantDetail"
-                            class="mt-4 space-y-2 pt-4 border-t border-slate-200"
-                        >
-                            <a
-                                :href="`tel:${restaurant.phone}`"
-                                class="flex items-center justify-center gap-2 rounded-3xl border border-orange-200 bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-700 hover:bg-orange-100 transition"
-                            >
-                                <span>📞</span>
-                                Gọi quán ăn
+                    <!-- Customer Actions -->
+                    <div v-show="showCustomerDetail" class="mt-5 space-y-3 pt-5 border-t border-slate-100">
+                        <div class="flex items-center gap-2 text-sm text-slate-600 font-medium bg-slate-50 p-3 rounded-2xl">
+                            <span class="text-xl">📞</span> {{ order.phone }}
+                        </div>
+                        <div class="flex gap-2">
+                            <a :href="`tel:${order.phone}`" class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-indigo-50 px-4 py-3.5 text-sm font-bold text-indigo-600 active:scale-95 transition-all">
+                                Gọi khách
                             </a>
-                            <button
-                                @click.stop="showRestaurantMap = true"
-                                class="w-full flex items-center justify-center gap-2 rounded-3xl border border-orange-200 bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-700 hover:bg-orange-100 transition"
-                            >
-                                <span>🗺️</span>
-                                Chỉ đường đến quán
+                            <button @click.stop="showCustomerMap = true" class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-blue-50 px-4 py-3.5 text-sm font-bold text-blue-600 active:scale-95 transition-all">
+                                Xem bản đồ
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="md:col-span-2">
-                <h2 class="text-xl font-semibold mb-6">📋 Chi tiết đơn hàng</h2>
+            <!-- Order Items & Summary -->
+            <div class="bg-white rounded-[2rem] p-5 shadow-sm border border-slate-100">
+                <h2 class="text-base font-black text-slate-900 mb-4 flex items-center gap-2">
+                    <span>📋</span> Chi tiết đơn hàng
+                </h2>
 
-                <!-- Items Container -->
                 <div class="space-y-4 mb-6">
-                    <div
-                        v-for="item in order.items"
-                        :key="item.id"
-                        class="rounded-2xl border-2 border-slate-200 bg-white hover:border-blue-400 hover:shadow-md transition-all p-5"
-                    >
-                        <div class="flex justify-between items-start gap-4">
-                            <!-- Left: Item Info -->
-                            <div class="flex-1 min-w-0">
-                                <h3
-                                    class="text-lg font-bold text-slate-900 mb-2"
-                                >
-                                    {{ item.product.name }}
-                                </h3>
-                                <div class="flex gap-6 text-sm">
-                                    <div>
-                                        <p
-                                            class="text-slate-500 text-xs uppercase tracking-wide"
-                                        >
-                                            Đơn giá
-                                        </p>
-                                        <p
-                                            class="text-base font-semibold text-blue-600"
-                                        >
-                                            {{ formatCurrency(item.price) }}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p
-                                            class="text-slate-500 text-xs uppercase tracking-wide"
-                                        >
-                                            Số lượng
-                                        </p>
-                                        <p
-                                            class="text-2xl font-bold text-slate-900"
-                                        >
-                                            {{ item.quantity }}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Right: Total -->
-                            <div class="text-right">
-                                <p
-                                    class="text-slate-500 text-xs uppercase tracking-wide mb-1"
-                                >
-                                    Thành tiền
-                                </p>
-                                <p class="text-2xl font-black text-blue-600">
-                                    {{
-                                        formatCurrency(
-                                            item.price * item.quantity,
-                                        )
-                                    }}
-                                </p>
-                            </div>
+                    <div v-for="item in order.items" :key="item.id" class="flex items-center gap-3 border-b border-slate-50 pb-4 last:border-0 last:pb-0">
+                        <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-500 shrink-0">
+                            {{ item.quantity }}x
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm font-bold text-slate-900 line-clamp-1">{{ item.product.name }}</p>
+                            <p class="text-[10px] text-slate-500">{{ formatCurrency(item.price) }}</p>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <p class="text-sm font-black text-slate-900">{{ formatCurrency(item.price * item.quantity) }}</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Summary Card -->
-                <div
-                    class="rounded-2xl bg-gradient-to-br from-blue-50 to-slate-50 border-2 border-blue-200 p-6"
-                >
-                    <div class="space-y-3">
-                        <!-- Subtotal -->
-                        <div
-                            class="flex justify-between items-center pb-3 border-b-2 border-blue-100"
-                        >
-                            <span class="text-slate-700 font-medium"
-                                >Giá trị đơn hàng</span
-                            >
-                            <span class="text-xl font-bold text-slate-900">
-                                {{ formatCurrency(order.subtotal) }}
-                            </span>
+                <div class="rounded-[1.5rem] bg-slate-50 p-4 space-y-4">
+                    <!-- Thu nhập tài xế -->
+                    <div class="bg-indigo-50/50 rounded-xl p-3 border border-indigo-100/50">
+                        <p class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2">Thu nhập của bạn</p>
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-slate-600 font-medium">Phí giao hàng</span>
+                                <span class="text-slate-900 font-bold">{{ formatCurrency(order.shipping_fee) }}</span>
+                            </div>
+                            <div v-if="order.shipper_tip > 0" class="flex justify-between items-center text-xs">
+                                <span class="text-slate-600 font-medium flex items-center gap-1"><span>💖</span> Tiền Tip từ khách</span>
+                                <span class="text-orange-500 font-bold">+{{ formatCurrency(order.shipper_tip) }}</span>
+                            </div>
                         </div>
-
-                        <!-- Discount -->
-                        <div
-                            v-if="order.discount_amount"
-                            class="flex justify-between items-center pb-3 border-b-2 border-blue-100"
-                        >
-                            <span class="text-slate-700 font-medium"
-                                >Khấu trừ</span
-                            >
-                            <span
-                                class="text-lg font-semibold text-emerald-600"
-                            >
-                                -{{ formatCurrency(order.discount_amount) }}
-                            </span>
+                        <div class="mt-2 pt-2 border-t border-indigo-100 flex justify-between items-center">
+                            <span class="text-sm font-bold text-indigo-900">Tổng thu nhập</span>
+                            <span class="text-lg font-black text-indigo-600">{{ formatCurrency(parseFloat(order.shipping_fee) + parseFloat(order.shipper_tip || 0)) }}</span>
                         </div>
+                    </div>
 
-                        <!-- Shipping -->
-                        <div
-                            class="flex justify-between items-center pb-3 border-b-2 border-blue-100"
-                        >
-                            <span class="text-slate-700 font-medium"
-                                >Phí giao hàng</span
-                            >
-                            <span class="text-lg font-semibold text-slate-900">
-                                {{ formatCurrency(order.shipping_fee) }}
-                            </span>
+                    <!-- Tiền thu khách -->
+                    <div>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Chi tiết thu khách</p>
+                        <div class="space-y-1.5 px-1">
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-slate-500 font-medium">Tiền hàng</span>
+                                <span class="text-slate-900 font-bold">{{ formatCurrency(order.subtotal) }}</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-slate-500 font-medium">Phí giao hàng</span>
+                                <span class="text-slate-900 font-bold">{{ formatCurrency(order.shipping_fee) }}</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-slate-500 font-medium">Phí dịch vụ & đóng gói</span>
+                                <span class="text-slate-900 font-bold">{{ formatCurrency(parseFloat(order.service_fee || 0) + parseFloat(order.packaging_fee || 0)) }}</span>
+                            </div>
+                            <div v-if="order.shipper_tip > 0" class="flex justify-between items-center text-xs">
+                                <span class="text-slate-500 font-medium">Tiền Tip</span>
+                                <span class="text-slate-900 font-bold">{{ formatCurrency(order.shipper_tip) }}</span>
+                            </div>
+                            <div v-if="order.discount_amount" class="flex justify-between items-center text-xs">
+                                <span class="text-slate-500 font-medium">Khuyến mãi</span>
+                                <span class="text-emerald-600 font-bold">-{{ formatCurrency(order.discount_amount) }}</span>
+                            </div>
                         </div>
-
-                        <!-- Total -->
-                        <div class="flex justify-between items-center pt-2">
-                            <span class="text-xl font-bold text-slate-900"
-                                >Tổng cộng</span
-                            >
-                            <span class="text-3xl font-black text-blue-600">
+                        <div class="pt-2.5 mt-2.5 border-t border-slate-200/60 flex justify-between items-center px-1">
+                            <span class="text-sm font-bold text-slate-900">
+                                {{ order.payment_method === 'vnpay' ? 'Đã thanh toán (VNPay)' : 'Thu tiền mặt' }}
+                            </span>
+                            <span class="text-xl font-black" :class="order.payment_method === 'vnpay' ? 'text-emerald-500 line-through' : 'text-slate-900'">
                                 {{ formatCurrency(order.total) }}
                             </span>
                         </div>
@@ -250,406 +264,135 @@
             </div>
         </div>
 
-        <!-- Action Buttons - Swipe to Confirm -->
-        <div class="mt-8">
-            <h2 class="text-lg font-semibold mb-4">🎯 Hành động</h2>
-            <div class="space-y-3">
-                <!-- Confirm Pickup: shipping → picked_up -->
-                <div
-                    v-if="order.status === 'shipping'"
-                    @touchstart="startSwipe($event, 'confirmPickup')"
-                    @touchmove="handleSwipe($event)"
-                    @touchend="endSwipe('confirmPickup')"
-                    @mousemove="isMobile() ? null : handleSwipe($event)"
-                    @mousedown="
-                        !isMobile() && startSwipe($event, 'confirmPickup')
-                    "
-                    @mouseup="!isMobile() && endSwipe('confirmPickup')"
-                    class="relative h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl overflow-hidden cursor-grab active:cursor-grabbing select-none group shadow-lg hover:shadow-xl transition-shadow"
-                >
+        <!-- Sticky Action Bar -->
+        <div class="fixed bottom-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-md p-4 pb-safe border-t border-slate-200 shadow-[0_-10px_30px_rgba(0,0,0,0.1)]">
+            <div class="max-w-md mx-auto">
+                <!-- Arrive at Restaurant: assigned/shipping/confirmed → arrived -->
+                <div v-if="['assigned', 'shipping', 'confirmed'].includes(order.status)" class="space-y-3">
                     <div
-                        class="absolute inset-0 bg-white/15 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                        @touchstart="startSwipe($event, 'arriveAtRestaurant')"
+                        @touchmove="handleSwipe($event)"
+                        @touchend="endSwipe('arriveAtRestaurant')"
+                        @mousemove="isMobile() ? null : handleSwipe($event)"
+                        @mousedown="!isMobile() && startSwipe($event, 'arriveAtRestaurant')"
+                        @mouseup="!isMobile() && endSwipe('arriveAtRestaurant')"
+                        class="relative h-[60px] bg-slate-100 rounded-full overflow-hidden cursor-grab active:cursor-grabbing select-none group border border-slate-200"
                     >
-                        <span class="text-sm font-semibold text-white"
-                            >← Vuốt sang phải để xác nhận</span
+                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <span class="text-sm font-bold text-slate-400">Vuốt để xác nhận đến quán →</span>
+                        </div>
+                        <div
+                            :style="{ transform: `translateX(${swipeDistance}px)` }"
+                            class="absolute inset-y-0 left-0 bg-indigo-600 flex items-center justify-center rounded-full shadow-lg transition-transform duration-75 will-change-transform z-10"
+                            style="width: 60px"
                         >
-                    </div>
-                    <div
-                        :style="{ transform: `translateX(${swipeDistance}px)` }"
-                        class="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-600 to-blue-700 flex items-center justify-center px-6 py-4 transition-transform duration-75 will-change-transform"
-                        style="width: 100%; min-width: 200px"
-                    >
-                        <div class="text-center w-full text-white">
-                            <div
-                                class="text-2xl mb-1 transition-all duration-300"
-                            >
-                                {{
-                                    isLoading && swipeAction === "confirmPickup"
-                                        ? "⏳"
-                                        : "📦"
-                                }}
-                            </div>
-                            <div class="font-semibold text-sm">
-                                {{
-                                    isLoading && swipeAction === "confirmPickup"
-                                        ? "Đang xử lý..."
-                                        : "Vuốt để xác nhận"
-                                }}
-                            </div>
+                            <span class="text-white text-xl">🏪</span>
                         </div>
+                        <div
+                            :style="{ width: `max(60px, ${swipeDistance + 60}px)` }"
+                            class="absolute inset-y-0 left-0 bg-indigo-500 transition-all duration-75 will-change-[width] z-0 opacity-50"
+                        ></div>
                     </div>
-                    <div
-                        class="absolute inset-0 flex items-center justify-center pointer-events-none"
+                    <button
+                        @click="arriveAtRestaurant"
+                        :disabled="isLoading"
+                        class="w-full text-xs font-bold text-indigo-600 py-2"
                     >
-                        <div class="text-white/40 text-center">
-                            <div class="text-2xl mb-1">📦</div>
+                        Nhấn vào đây nếu không thể vuốt
+                    </button>
+                </div>
+
+                <!-- Confirm Pickup: arrived → picked_up -->
+                <div v-if="order.status === 'arrived'" class="space-y-3">
+                    <div
+                        @touchstart="startSwipe($event, 'confirmPickup')"
+                        @touchmove="handleSwipe($event)"
+                        @touchend="endSwipe('confirmPickup')"
+                        @mousemove="isMobile() ? null : handleSwipe($event)"
+                        @mousedown="!isMobile() && startSwipe($event, 'confirmPickup')"
+                        @mouseup="!isMobile() && endSwipe('confirmPickup')"
+                        class="relative h-[60px] bg-slate-100 rounded-full overflow-hidden cursor-grab active:cursor-grabbing select-none group border border-slate-200"
+                    >
+                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <span class="text-sm font-bold text-slate-400">Vuốt để xác nhận lấy hàng →</span>
                         </div>
+                        <div
+                            :style="{ transform: `translateX(${swipeDistance}px)` }"
+                            class="absolute inset-y-0 left-0 bg-orange-500 flex items-center justify-center rounded-full shadow-lg transition-transform duration-75 will-change-transform z-10"
+                            style="width: 60px"
+                        >
+                            <span class="text-white text-xl">📦</span>
+                        </div>
+                        <div
+                            :style="{ width: `max(60px, ${swipeDistance + 60}px)` }"
+                            class="absolute inset-y-0 left-0 bg-orange-400 transition-all duration-75 will-change-[width] z-0 opacity-50"
+                        ></div>
                     </div>
                 </div>
 
-                <!-- Start Delivery: picked_up → delivering -->
-                <div
-                    v-if="order.status === 'picked_up'"
-                    @touchstart="startSwipe($event, 'startDelivery')"
-                    @touchmove="handleSwipe($event)"
-                    @touchend="endSwipe('startDelivery')"
-                    @mousemove="isMobile() ? null : handleSwipe($event)"
-                    @mousedown="
-                        !isMobile() && startSwipe($event, 'startDelivery')
-                    "
-                    @mouseup="!isMobile() && endSwipe('startDelivery')"
-                    class="relative h-16 bg-gradient-to-r from-green-500 to-green-600 rounded-xl overflow-hidden cursor-grab active:cursor-grabbing select-none group shadow-lg hover:shadow-xl transition-shadow"
-                >
+                <!-- Complete Order: picked_up → completed -->
+                <div v-if="order.status === 'picked_up'" class="space-y-3">
                     <div
-                        class="absolute inset-0 bg-white/15 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                        @touchstart="startSwipe($event, 'completeOrder')"
+                        @touchmove="handleSwipe($event)"
+                        @touchend="endSwipe('completeOrder')"
+                        @mousemove="isMobile() ? null : handleSwipe($event)"
+                        @mousedown="!isMobile() && startSwipe($event, 'completeOrder')"
+                        @mouseup="!isMobile() && endSwipe('completeOrder')"
+                        class="relative h-[60px] bg-slate-100 rounded-full overflow-hidden cursor-grab active:cursor-grabbing select-none group border border-slate-200"
                     >
-                        <span class="text-sm font-semibold text-white"
-                            >← Vuốt sang phải để xác nhận</span
+                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <span class="text-sm font-bold text-slate-400">Vuốt để hoàn tất giao hàng →</span>
+                        </div>
+                        <div
+                            :style="{ transform: `translateX(${swipeDistance}px)` }"
+                            class="absolute inset-y-0 left-0 bg-emerald-500 flex items-center justify-center rounded-full shadow-lg transition-transform duration-75 will-change-transform z-10"
+                            style="width: 60px"
                         >
-                    </div>
-                    <div
-                        :style="{ transform: `translateX(${swipeDistance}px)` }"
-                        class="absolute inset-y-0 left-0 bg-gradient-to-r from-green-600 to-green-700 flex items-center justify-center px-6 py-4 transition-transform duration-75 will-change-transform"
-                        style="width: 100%; min-width: 200px"
-                    >
-                        <div class="text-center w-full text-white">
-                            <div
-                                class="text-2xl mb-1 transition-all duration-300"
-                            >
-                                {{
-                                    isLoading && swipeAction === "startDelivery"
-                                        ? "⏳"
-                                        : "🚚"
-                                }}
-                            </div>
-                            <div class="font-semibold text-sm">
-                                {{
-                                    isLoading && swipeAction === "startDelivery"
-                                        ? "Đang xử lý..."
-                                        : "Vuốt để bắt đầu"
-                                }}
-                            </div>
+                            <span class="text-white text-xl">✅</span>
                         </div>
-                    </div>
-                    <div
-                        class="absolute inset-0 flex items-center justify-center pointer-events-none"
-                    >
-                        <div class="text-white/40 text-center">
-                            <div class="text-2xl mb-1">🚚</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Complete Order: delivering → completed -->
-                <div
-                    v-if="order.status === 'delivering'"
-                    @touchstart="startSwipe($event, 'completeOrder')"
-                    @touchmove="handleSwipe($event)"
-                    @touchend="endSwipe('completeOrder')"
-                    @mousemove="isMobile() ? null : handleSwipe($event)"
-                    @mousedown="
-                        !isMobile() && startSwipe($event, 'completeOrder')
-                    "
-                    @mouseup="!isMobile() && endSwipe('completeOrder')"
-                    class="relative h-16 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl overflow-hidden cursor-grab active:cursor-grabbing select-none group shadow-lg hover:shadow-xl transition-shadow"
-                >
-                    <div
-                        class="absolute inset-0 bg-white/15 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-                    >
-                        <span class="text-sm font-semibold text-white"
-                            >← Vuốt sang phải để xác nhận</span
-                        >
-                    </div>
-                    <div
-                        :style="{ transform: `translateX(${swipeDistance}px)` }"
-                        class="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-600 to-emerald-700 flex items-center justify-center px-6 py-4 transition-transform duration-75 will-change-transform"
-                        style="width: 100%; min-width: 200px"
-                    >
-                        <div class="text-center w-full text-white">
-                            <div
-                                class="text-2xl mb-1 transition-all duration-300"
-                            >
-                                {{
-                                    isLoading && swipeAction === "completeOrder"
-                                        ? "⏳"
-                                        : "✅"
-                                }}
-                            </div>
-                            <div class="font-semibold text-sm">
-                                {{
-                                    isLoading && swipeAction === "completeOrder"
-                                        ? "Đang xử lý..."
-                                        : "Vuốt để hoàn thành"
-                                }}
-                            </div>
-                        </div>
-                    </div>
-                    <div
-                        class="absolute inset-0 flex items-center justify-center pointer-events-none"
-                    >
-                        <div class="text-white/40 text-center">
-                            <div class="text-2xl mb-1">✅</div>
-                        </div>
+                        <div
+                            :style="{ width: `max(60px, ${swipeDistance + 60}px)` }"
+                            class="absolute inset-y-0 left-0 bg-emerald-400 transition-all duration-75 will-change-[width] z-0 opacity-50"
+                        ></div>
                     </div>
                 </div>
 
                 <!-- Completed State -->
-                <div
-                    v-if="order.status === 'completed'"
-                    class="h-16 rounded-xl bg-gradient-to-r from-slate-100 to-slate-200 flex items-center justify-center shadow-md"
-                >
-                    <div class="text-center">
-                        <div class="text-3xl animate-bounce">🎉</div>
-                        <div class="font-semibold text-slate-700 text-sm mt-1">
-                            Đơn hàng đã hoàn thành
-                        </div>
-                    </div>
+                <div v-if="order.status === 'completed'" class="flex items-center justify-center gap-2 h-[60px] bg-emerald-50 rounded-full text-emerald-600 font-bold border border-emerald-100">
+                    <span class="text-xl">🎉</span> Đơn hàng đã hoàn thành
                 </div>
 
                 <!-- Waiting State -->
-                <div
-                    v-if="
-                        ['pending', 'assigned', 'confirmed'].includes(
-                            order.status,
-                        )
-                    "
-                    class="h-16 rounded-xl bg-gradient-to-r from-slate-100 to-slate-200 flex items-center justify-center shadow-md"
-                >
-                    <div class="text-center">
-                        <div class="text-2xl">⏳</div>
-                        <div class="font-semibold text-slate-700 text-sm mt-1">
-                            {{
-                                order.status === "pending"
-                                    ? "Chờ quán xác nhận"
-                                    : order.status === "assigned"
-                                      ? "Chờ tài xế xác nhận"
-                                      : "Chờ tài xế nhận đơn"
-                            }}
-                        </div>
-                    </div>
+                <div v-if="order.status === 'pending'" class="flex items-center justify-center gap-2 h-[60px] bg-slate-50 rounded-full text-slate-500 font-bold border border-slate-200">
+                    <span class="text-xl animate-pulse">⏳</span> Chờ quán xác nhận
                 </div>
             </div>
-        </div>
-
-        <!-- Order Timeline - Compact Horizontal -->
-        <div class="mt-8 mb-8">
-            <div class="flex items-center justify-between gap-2">
-                <div class="flex-1 flex items-center">
-                    <div
-                        :class="[
-                            'w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold transition-all',
-                            order.status !== 'pending'
-                                ? 'bg-gradient-to-br from-green-400 to-green-600 text-white shadow-lg'
-                                : 'bg-gray-200 text-gray-600',
-                        ]"
-                    >
-                        📋
-                    </div>
-                    <div
-                        class="h-1 flex-1 mx-1 transition-all"
-                        :class="
-                            order.status !== 'pending'
-                                ? 'bg-gradient-to-r from-green-500 to-gray-300'
-                                : 'bg-gray-300'
-                        "
-                    ></div>
-                </div>
-                <div class="flex-1 flex items-center">
-                    <div
-                        :class="[
-                            'w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all',
-                            [
-                                'confirmed',
-                                'assigned',
-                                'picked_up',
-                                'shipping',
-                                'delivered',
-                                'completing',
-                                'completed',
-                            ].includes(order.status)
-                                ? 'bg-gradient-to-br from-green-400 to-green-600 text-white shadow-lg'
-                                : 'bg-gray-200 text-gray-600',
-                        ]"
-                    >
-                        🏪
-                    </div>
-                    <div
-                        class="h-1 flex-1 mx-1 transition-all"
-                        :class="
-                            [
-                                'assigned',
-                                'picked_up',
-                                'shipping',
-                                'delivered',
-                                'completing',
-                                'completed',
-                            ].includes(order.status)
-                                ? 'bg-gradient-to-r from-green-500 to-gray-300'
-                                : 'bg-gray-300'
-                        "
-                    ></div>
-                </div>
-                <div class="flex-1 flex items-center">
-                    <div
-                        :class="[
-                            'w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all',
-                            [
-                                'assigned',
-                                'picked_up',
-                                'shipping',
-                                'delivered',
-                                'completing',
-                                'completed',
-                            ].includes(order.status)
-                                ? 'bg-gradient-to-br from-green-400 to-green-600 text-white shadow-lg'
-                                : 'bg-gray-200 text-gray-600',
-                        ]"
-                    >
-                        🛵
-                    </div>
-                    <div
-                        class="h-1 flex-1 mx-1 transition-all"
-                        :class="
-                            [
-                                'picked_up',
-                                'shipping',
-                                'delivered',
-                                'completing',
-                                'completed',
-                            ].includes(order.status)
-                                ? 'bg-gradient-to-r from-green-500 to-gray-300'
-                                : 'bg-gray-300'
-                        "
-                    ></div>
-                </div>
-                <div class="flex-1 flex items-center">
-                    <div
-                        :class="[
-                            'w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all',
-                            [
-                                'picked_up',
-                                'shipping',
-                                'delivered',
-                                'completing',
-                                'completed',
-                            ].includes(order.status)
-                                ? 'bg-gradient-to-br from-green-400 to-green-600 text-white shadow-lg'
-                                : 'bg-gray-200 text-gray-600',
-                        ]"
-                    >
-                        📦
-                    </div>
-                    <div
-                        class="h-1 flex-1 mx-1 transition-all"
-                        :class="
-                            [
-                                'shipping',
-                                'delivered',
-                                'completing',
-                                'completed',
-                            ].includes(order.status)
-                                ? 'bg-gradient-to-r from-green-500 to-gray-300'
-                                : 'bg-gray-300'
-                        "
-                    ></div>
-                </div>
-                <div class="flex-1 flex items-center">
-                    <div
-                        :class="[
-                            'w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all',
-                            [
-                                'shipping',
-                                'delivered',
-                                'completing',
-                                'completed',
-                            ].includes(order.status)
-                                ? 'bg-gradient-to-br from-green-400 to-green-600 text-white shadow-lg'
-                                : 'bg-gray-200 text-gray-600',
-                        ]"
-                    >
-                        🚚
-                    </div>
-                    <div
-                        class="h-1 flex-1 mx-1 transition-all"
-                        :class="
-                            order.status === 'completed'
-                                ? 'bg-green-500'
-                                : 'bg-gray-300'
-                        "
-                    ></div>
-                </div>
-                <div
-                    :class="[
-                        'w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all',
-                        order.status === 'completed'
-                            ? 'bg-gradient-to-br from-green-400 to-green-600 text-white shadow-lg'
-                            : 'bg-gray-200 text-gray-600',
-                    ]"
-                >
-                    ✅
-                </div>
-            </div>
-            <p class="text-center text-xs text-gray-500 mt-3 font-medium">
-                {{ getStatusText(order.status) }}
-            </p>
         </div>
 
         <!-- Customer Map Modal -->
-        <div
-            v-if="showCustomerMap"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-        >
-            <div
-                class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-96 flex flex-col"
-            >
-                <div class="flex justify-between items-center p-4 border-b">
-                    <h2 class="text-xl font-bold">🗺️ Vị trí khách hàng</h2>
-                    <button
-                        @click="
-                            showCustomerMap = false;
-                            customerMapInstance = null;
-                        "
-                        class="text-gray-500 hover:text-gray-700 text-2xl"
-                    >
+        <div v-if="showCustomerMap" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+            <div class="bg-white rounded-[2rem] shadow-xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden animate-slide-up">
+                <div class="flex justify-between items-center p-5 border-b border-slate-100">
+                    <h2 class="text-lg font-black text-slate-900">🗺️ Vị trí khách hàng</h2>
+                    <button @click="showCustomerMap = false; customerMapInstance = null;" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold active:scale-95 transition-all">
                         ✕
                     </button>
                 </div>
-                <div id="customer-map" class="flex-1 bg-gray-200"></div>
-                <div class="p-4 border-t space-y-2">
-                    <p class="text-sm text-gray-600">
-                        📍 {{ order.user.name }} - {{ order.address }}
-                    </p>
+                <div id="customer-map" class="h-64 md:h-80 w-full bg-slate-200"></div>
+                <div class="p-5 border-t border-slate-100 space-y-4">
+                    <div class="flex gap-3">
+                        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-xl shrink-0">📍</div>
+                        <div>
+                            <p class="text-sm font-bold text-slate-900">{{ order.user.name }}</p>
+                            <p class="text-xs text-slate-500 mt-0.5 line-clamp-2">{{ order.address }}</p>
+                        </div>
+                    </div>
                     <div class="flex gap-2">
-                        <a
-                            :href="`tel:${order.phone}`"
-                            class="flex-1 flex items-center justify-center gap-2 rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100"
-                        >
+                        <a :href="`tel:${order.phone}`" class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-600">
                             📞 Gọi
                         </a>
-                        <button
-                            @click="openCustomerInMaps"
-                            class="flex-1 flex items-center justify-center gap-2 rounded-lg border border-green-300 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 hover:bg-green-100"
-                        >
+                        <button @click="openCustomerInMaps" class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-600">
                             🗺️ Google Maps
                         </button>
                     </div>
@@ -658,62 +401,62 @@
         </div>
 
         <!-- Restaurant Map Modal -->
-        <div
-            v-if="showRestaurantMap"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-        >
-            <div
-                class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-96 flex flex-col"
-            >
-                <div class="flex justify-between items-center p-4 border-b">
-                    <h2 class="text-xl font-bold">🗺️ Vị trí quán ăn</h2>
-                    <button
-                        @click="
-                            showRestaurantMap = false;
-                            restaurantMapInstance = null;
-                        "
-                        class="text-gray-500 hover:text-gray-700 text-2xl"
-                    >
+        <div v-if="showRestaurantMap" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+            <div class="bg-white rounded-[2rem] shadow-xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden animate-slide-up">
+                <div class="flex justify-between items-center p-5 border-b border-slate-100">
+                    <h2 class="text-lg font-black text-slate-900">🗺️ Vị trí quán ăn</h2>
+                    <button @click="showRestaurantMap = false; restaurantMapInstance = null;" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold active:scale-95 transition-all">
                         ✕
                     </button>
                 </div>
-                <div id="restaurant-map" class="flex-1 bg-gray-200"></div>
-                <div class="p-4 border-t space-y-2">
-                    <p class="text-sm text-gray-600">
-                        🏪 {{ restaurant.name }} - {{ restaurant.address }}
-                    </p>
-                    <p class="text-sm text-gray-500">
-                        📞 {{ restaurant.phone }}
-                    </p>
+                <div id="restaurant-map" class="h-64 md:h-80 w-full bg-slate-200"></div>
+                <div class="p-5 border-t border-slate-100 space-y-4">
+                    <div class="flex gap-3">
+                        <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-xl shrink-0">🏪</div>
+                        <div>
+                            <p class="text-sm font-bold text-slate-900">{{ restaurant.name }}</p>
+                            <p class="text-xs text-slate-500 mt-0.5 line-clamp-2">{{ restaurant.address }}</p>
+                        </div>
+                    </div>
                     <div class="flex gap-2">
-                        <a
-                            :href="`tel:${restaurant.phone}`"
-                            class="flex-1 flex items-center justify-center gap-2 rounded-lg border border-orange-300 bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-700 hover:bg-orange-100"
-                        >
+                        <a :href="`tel:${restaurant.phone}`" class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-orange-50 px-4 py-3 text-sm font-bold text-orange-600">
                             📞 Gọi
                         </a>
-                        <button
-                            @click="openRestaurantInMaps"
-                            class="flex-1 flex items-center justify-center gap-2 rounded-lg border border-green-300 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 hover:bg-green-100"
-                        >
+                        <button @click="openRestaurantInMaps" class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-600">
                             🗺️ Google Maps
                         </button>
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- Actions -->
-        <div class="mt-8 flex gap-4">
-            <Link
-                href="/shipper/dashboard"
-                class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600"
-            >
-                Quay lại Dashboard
-            </Link>
-        </div>
     </ShipperLayout>
+
+    <!-- Chat Widget -->
+    <ChatWidget 
+        v-if="order" 
+        :orderId="order.id" 
+        :orderCode="order.order_code" 
+    />
 </template>
+
+<style scoped>
+.pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+@keyframes slide-up {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+.animate-slide-up {
+    animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+</style>
 
 <script setup>
 import { ref, onMounted, computed, watch } from "vue";
@@ -721,6 +464,7 @@ import { Link, usePage } from "@inertiajs/vue3";
 import { router } from "@inertiajs/vue3";
 import { useToast } from "vue-toastification";
 import ShipperLayout from "@/Layouts/ShipperLayout.vue";
+import ChatWidget from "@/Components/ChatWidget.vue";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -1027,6 +771,33 @@ const openRestaurantInMaps = () => {
     }
 };
 
+const arriveAtRestaurant = async () => {
+    try {
+        isLoading.value = true;
+        const response = await csrfFetch(
+            `/api/shipper/orders/${order.value.id}/arrive-at-restaurant`,
+            {
+                method: "POST",
+                headers: {
+                    Accept: "application/json",
+                },
+            },
+        );
+        if (response.ok) {
+            order.value.status = "arrived";
+            showToast("success", "🏪 Đã xác nhận đến quán");
+        } else {
+            const error = await response.json();
+            throw new Error(error?.error || "Không thể xác nhận đến quán.");
+        }
+    } catch (error) {
+        console.error("Error arriving at restaurant:", error);
+        showToast("error", error.message || "❌ Có lỗi khi xác nhận đến quán");
+    } finally {
+        isLoading.value = false;
+    }
+};
+
 const confirmPickup = async () => {
     try {
         isLoading.value = true;
@@ -1041,7 +812,7 @@ const confirmPickup = async () => {
         );
         if (response.ok) {
             order.value.status = "picked_up";
-            showToast("success", "✅ Đã xác nhận lấy hàng");
+            showToast("success", "📦 Đã xác nhận lấy hàng");
         } else {
             const error = await response.json();
             throw new Error(error?.error || "Không thể xác nhận lấy hàng.");
@@ -1049,73 +820,6 @@ const confirmPickup = async () => {
     } catch (error) {
         console.error("Error confirming pickup:", error);
         showToast("error", error.message || "❌ Có lỗi khi xác nhận lấy hàng");
-    } finally {
-        isLoading.value = false;
-    }
-};
-
-const completeOrder = async () => {
-    try {
-        isLoading.value = true;
-        const response = await csrfFetch(
-            `/api/shipper/orders/${order.value.id}/complete`,
-            {
-                method: "POST",
-                headers: {
-                    Accept: "application/json",
-                },
-            },
-        );
-        if (response.ok) {
-            showToast("success", "✅ Giao hàng hoàn thành");
-            router.visit("/shipper/dashboard");
-        } else {
-            const error = await response.json();
-            throw new Error(error?.error || "Không thể hoàn thành giao hàng.");
-        }
-    } catch (error) {
-        console.error("Error completing order:", error);
-        showToast("error", error.message || "❌ Có lỗi khi hoàn thành đơn");
-    } finally {
-        isLoading.value = false;
-    }
-};
-
-const startDelivery = async () => {
-    try {
-        isLoading.value = true;
-        const response = await csrfFetch(
-            `/api/shipper/orders/${order.value.id}/start-delivery`,
-            {
-                method: "POST",
-                headers: {
-                    Accept: "application/json",
-                },
-            },
-        );
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error?.error || "Không thể bắt đầu giao hàng.");
-        }
-
-        order.value.status = "shipping";
-        showToast("success", "🚚 Bắt đầu giao hàng");
-
-        if (navigator.geolocation) {
-            navigator.geolocation.watchPosition(
-                updateLocation,
-                handleLocationError,
-                {
-                    enableHighAccuracy: true,
-                    timeout: 5000,
-                    maximumAge: 0,
-                },
-            );
-        }
-    } catch (error) {
-        console.error("Error starting delivery:", error);
-        showToast("error", error.message || "❌ Có lỗi khi bắt đầu giao hàng");
     } finally {
         isLoading.value = false;
     }
@@ -1170,10 +874,10 @@ const endSwipe = async (action) => {
         swipeDistance.value = 0;
         swipeStartX.value = 0;
 
-        if (action === "confirmPickup") {
+        if (action === "arriveAtRestaurant") {
+            await arriveAtRestaurant();
+        } else if (action === "confirmPickup") {
             await confirmPickup();
-        } else if (action === "startDelivery") {
-            await startDelivery();
         } else if (action === "completeOrder") {
             await completeOrder();
         }
@@ -1193,12 +897,12 @@ const isMobile = () => {
 
 const getStatusText = (status) => {
     const statuses = {
-        pending: "Đang chờ xác nhận",
-        assigned: "Tài xế đang đến quán",
-        confirmed: "Đã xác nhận",
-        shipping: "Đi tới quán",
-        picked_up: "Đã lấy hàng",
-        delivering: "Đang giao tới khách",
+        pending: "Chờ quán xác nhận",
+        confirmed: "Quán đã xác nhận",
+        assigned: "Đang đến quán",
+        shipping: "Đang đến quán",
+        arrived: "Đã đến quán, chờ lấy hàng",
+        picked_up: "Đã lấy hàng, đang giao đến khách",
         completed: "Hoàn thành",
         cancelled: "Đã hủy",
     };
@@ -1210,6 +914,41 @@ const formatCurrency = (amount) => {
         style: "currency",
         currency: "VND",
     }).format(amount);
+};
+
+// Hoàn tất đơn hàng: picked_up → completed
+const completeOrder = async () => {
+    try {
+        isLoading.value = true;
+        const response = await csrfFetch(
+            `/api/shipper/orders/${order.value.id}/complete`,
+            {
+                method: "POST",
+                headers: {
+                    Accept: "application/json",
+                },
+            },
+        );
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error?.error || "Không thể hoàn thành đơn hàng.");
+        }
+
+        order.value.status = "completed";
+        showToast("success", "🎉 Chúc mừng! Bạn đã hoàn thành đơn hàng");
+
+        // Có thể điều hướng về dashboard sau khi hoàn thành
+        router.visit("/shipper/dashboard");
+    } catch (error) {
+        console.error("Error completing order:", error);
+        showToast(
+            "error",
+            error.message || "❌ Có lỗi khi xác nhận hoàn thành",
+        );
+    } finally {
+        isLoading.value = false;
+    }
 };
 </script>
 

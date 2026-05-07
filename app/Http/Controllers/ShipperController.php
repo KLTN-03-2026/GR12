@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\Shipper;
+use App\Models\WalletTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ShipperController extends Controller
 {
@@ -34,7 +36,7 @@ class ShipperController extends Controller
 
         // Đơn hàng đang giao
         $currentOrders = Order::where('shipper_id', $shipper->id)
-            ->whereIn('status', ['assigned', 'shipping', 'picked_up', 'delivering'])
+            ->whereIn('status', ['assigned', 'confirmed', 'shipping', 'arrived', 'picked_up', 'delivering'])
             ->with('items.product.user', 'user')
             ->get()
             ->filter(function ($order) {
@@ -49,7 +51,11 @@ class ShipperController extends Controller
                     'address' => $order->address,
                     'phone' => $order->phone,
                     'status' => $order->status,
+                    'is_food_ready' => $order->is_food_ready,
                     'total' => $order->total,
+                    'shipping_fee' => $order->shipping_fee,
+                    'shipper_tip' => $order->shipper_tip,
+                    'distance' => $order->distance,
                     'user' => [
                         'name' => $order->user?->name,
                         'latitude' => $order->user?->latitude,
@@ -71,7 +77,7 @@ class ShipperController extends Controller
                         ];
                     }),
                 ];
-            });
+            })->values();
 
         // Đơn hàng available (chưa nhận) - chỉ lấy confirmed và chưa có shipper gán
         $availableOrders = Order::whereNull('shipper_id')
@@ -102,7 +108,11 @@ class ShipperController extends Controller
                     'address' => $order->address,
                     'phone' => $order->phone,
                     'status' => $order->status,
+                    'is_food_ready' => $order->is_food_ready,
                     'total' => $order->total,
+                    'shipping_fee' => $order->shipping_fee,
+                    'shipper_tip' => $order->shipper_tip,
+                    'distance' => $order->distance,
                     'distance_to_restaurant' => $distance,
                     'user' => [
                         'name' => $order->user?->name,
@@ -134,7 +144,7 @@ class ShipperController extends Controller
 
         // Đơn hàng đã gán cho shipper này (chờ accept)
         $assignedOrders = Order::where('shipper_id', $shipper->id)
-            ->where('status', 'assigned')
+            ->whereIn('status', ['assigned', 'confirmed'])
             ->with('items.product.user', 'user')
             ->get()
             ->filter(function ($order) {
@@ -149,7 +159,11 @@ class ShipperController extends Controller
                     'address' => $order->address,
                     'phone' => $order->phone,
                     'status' => $order->status,
+                    'is_food_ready' => $order->is_food_ready,
                     'total' => $order->total,
+                    'shipping_fee' => $order->shipping_fee,
+                    'shipper_tip' => $order->shipper_tip,
+                    'distance' => $order->distance,
                     'user' => [
                         'name' => $order->user?->name,
                         'latitude' => $order->user?->latitude,
@@ -171,7 +185,7 @@ class ShipperController extends Controller
                         ];
                     }),
                 ];
-            });
+            })->values();
 
         return response()->json([
             'current_orders' => $currentOrders,
@@ -189,7 +203,7 @@ class ShipperController extends Controller
 
     public function findNearestShipper($restaurantLat, $restaurantLng, $maxDistance = 2, array $excludeShipperIds = [])
     {
-        $shippers = Shipper::where('status', 'available')
+        $shippers = Shipper::whereIn('status', ['available', 'online'])
             ->whereNotNull('current_latitude')
             ->whereNotNull('current_longitude');
 
@@ -242,7 +256,7 @@ class ShipperController extends Controller
         if ($shipper) {
             // Lock shipper để tránh race condition
             $lockedShipper = Shipper::where('id', $shipper->id)->lockForUpdate()->first();
-            if ($lockedShipper && $lockedShipper->status === 'available') {
+            if ($lockedShipper && in_array($lockedShipper->status, ['available', 'online'])) {
                 $order->update(['shipper_id' => $shipper->id, 'status' => 'assigned']);
                 return true;
             }
@@ -269,10 +283,20 @@ class ShipperController extends Controller
             return response()->json(['error' => 'Order not available'], 400);
         }
 
+        $oldStatus = $order->status;
         $order->update([
             'shipper_id' => $shipper->id,
-            'status' => 'shipping'
+            'status' => 'shipping',
+            'delivering_at' => now() // Giai đoạn 4: Shipper bắt đầu đi tới quán
         ]);
+
+        $order->user->notify(new \App\Notifications\OrderStatusUpdated($order, $oldStatus, 'shipping'));
+        $restaurantUser = $order->items->first()?->product?->user;
+        if ($restaurantUser) {
+            $restaurantUser->notify(new \App\Notifications\OrderStatusUpdated($order, $oldStatus, 'shipping'));
+        }
+        
+        event(new \App\Events\OrderStatusUpdated($order));
 
         $shipper->update(['status' => 'busy']);
 
@@ -287,18 +311,19 @@ class ShipperController extends Controller
             ->where('shipper_id', $shipper->id)
             ->firstOrFail();
 
-        if ($order->status !== 'assigned') {
-            return response()->json(['error' => 'Order không ở trạng thái assigned'], 400);
+        if (!in_array($order->status, ['assigned', 'confirmed'])) {
+            return response()->json(['error' => 'Order không ở trạng thái assigned hoặc confirmed'], 400);
         }
 
         $order->update([
             'shipper_id' => null,
-            'status' => 'confirmed',
+            'status' => 'confirmed', // Giai đoạn 3 (lại): Trở lại trạng thái chờ shipper khác
         ]);
 
         $this->assignShipperToOrder($orderId, [$shipper->id]);
 
         $order->refresh();
+        event(new \App\Events\OrderStatusUpdated($order));
 
         return response()->json([
             'message' => 'Đã hoãn đơn. Hệ thống sẽ tìm shipper khác.',
@@ -307,12 +332,57 @@ class ShipperController extends Controller
         ]);
     }
 
+    public function arriveAtRestaurant($orderId)
+    {
+        $shipper = $this->getShipper();
+        $order = Order::where('id', $orderId)->where('shipper_id', $shipper->id)->firstOrFail();
+
+        if (!in_array($order->status, ['shipping', 'confirmed'])) {
+            return response()->json(['error' => 'Invalid order status'], 400);
+        }
+
+        $restaurantUser = $order->items->first()->product?->user;
+        if (! $restaurantUser || ! $restaurantUser->latitude || ! $restaurantUser->longitude) {
+            return response()->json(['error' => 'Restaurant location not available'], 400);
+        }
+
+        if (! $shipper->current_latitude || ! $shipper->current_longitude) {
+            return response()->json(['error' => 'Shipper location not available'], 400);
+        }
+
+        $distanceToRestaurant = $this->distanceBetweenCoordinates(
+            $shipper->current_latitude,
+            $shipper->current_longitude,
+            $restaurantUser->latitude,
+            $restaurantUser->longitude,
+        );
+
+        if ($distanceToRestaurant > 0.3) {
+            return response()->json(['error' => 'Bạn chưa đến gần quán, vui lòng đi đúng vị trí trước khi xác nhận.'], 400);
+        }
+
+        $oldStatus = $order->status;
+        $order->update([
+            'status' => 'arrived',
+            'shipping_at' => now() // Giai đoạn 4: Shipper đã đến quán
+        ]);
+
+        $order->user->notify(new \App\Notifications\OrderStatusUpdated($order, $oldStatus, 'arrived'));
+        if ($restaurantUser) {
+            $restaurantUser->notify(new \App\Notifications\OrderStatusUpdated($order, $oldStatus, 'arrived'));
+        }
+        
+        event(new \App\Events\OrderStatusUpdated($order));
+
+        return response()->json(['message' => 'Arrived at restaurant']);
+    }
+
     public function confirmPickup($orderId)
     {
         $shipper = $this->getShipper();
         $order = Order::where('id', $orderId)->where('shipper_id', $shipper->id)->firstOrFail();
 
-        if ($order->status !== 'shipping') {
+        if (!in_array($order->status, ['arrived', 'shipping', 'confirmed'])) {
             return response()->json(['error' => 'Invalid order status'], 400);
         }
 
@@ -336,23 +406,59 @@ class ShipperController extends Controller
             return response()->json(['error' => 'Bạn chưa đến gần quán, vui lòng đi đúng vị trí trước khi xác nhận lấy hàng.'], 400);
         }
 
-        $order->update(['status' => 'picked_up']);
+        DB::beginTransaction();
+        try {
+            $oldStatus = $order->status;
+            $order->update([
+                'status' => 'picked_up',
+                'picked_up_at' => now() // Giai đoạn 5: Shipper lấy hàng từ quán
+            ]);
 
-        return response()->json(['message' => 'Pickup confirmed']);
-    }
+            $order->user->notify(new \App\Notifications\OrderStatusUpdated($order, $oldStatus, 'picked_up'));
+            if ($restaurantUser) {
+                $restaurantUser->notify(new \App\Notifications\OrderStatusUpdated($order, $oldStatus, 'picked_up'));
+            }
+            
+            event(new \App\Events\OrderStatusUpdated($order));
 
-    public function startDelivery($orderId)
-    {
-        $shipper = $this->getShipper();
-        $order = Order::where('id', $orderId)->where('shipper_id', $shipper->id)->firstOrFail();
+            // Trừ tiền ví Shipper (Ứng trả quán)
+            $shipperUser = $shipper->user;
+            $balanceBeforeShipper = $shipperUser->wallet_balance;
+            $shipperUser->wallet_balance -= $order->restaurant_revenue;
+            $shipperUser->save();
 
-        if ($order->status !== 'picked_up') {
-            return response()->json(['error' => 'Invalid order status'], 400);
+            WalletTransaction::create([
+                'user_id' => $shipperUser->id,
+                'type' => 'order_payment',
+                'amount' => -$order->restaurant_revenue,
+                'balance_before' => $balanceBeforeShipper,
+                'balance_after' => $shipperUser->wallet_balance,
+                'description' => 'Trừ tiền ứng trả quán ăn cho đơn hàng #' . $order->order_code,
+                'reference_id' => $order->id,
+            ]);
+
+            // Cộng tiền ví Quán
+            $balanceBeforeRestaurant = $restaurantUser->wallet_balance;
+            $restaurantUser->wallet_balance += $order->restaurant_revenue;
+            $restaurantUser->save();
+
+            WalletTransaction::create([
+                'user_id' => $restaurantUser->id,
+                'type' => 'order_revenue',
+                'amount' => $order->restaurant_revenue,
+                'balance_before' => $balanceBeforeRestaurant,
+                'balance_after' => $restaurantUser->wallet_balance,
+                'description' => 'Nhận doanh thu từ đơn hàng #' . $order->order_code,
+                'reference_id' => $order->id,
+            ]);
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'System error: ' . $e->getMessage()], 500);
         }
 
-        $order->update(['status' => 'delivering']);
-
-        return response()->json(['message' => 'Delivery started']);
+        return response()->json(['message' => 'Pickup confirmed']);
     }
 
     public function completeOrder($orderId)
@@ -360,7 +466,7 @@ class ShipperController extends Controller
         $shipper = $this->getShipper();
         $order = Order::where('id', $orderId)->where('shipper_id', $shipper->id)->firstOrFail();
 
-        if (! in_array($order->status, ['picked_up', 'delivering'], true)) {
+        if ($order->status !== 'picked_up') {
             return response()->json(['error' => 'Invalid order status'], 400);
         }
 
@@ -402,9 +508,70 @@ class ShipperController extends Controller
             $order->update(['shipper_fee' => $shipperFee]);
         }
 
-        $order->update(['status' => 'completed']);
-        $shipper->increment('total_deliveries');
-        $shipper->update(['status' => 'available']);
+        DB::beginTransaction();
+        try {
+            $oldStatus = $order->status;
+            $order->update([
+                'status' => 'completed',
+                'completed_at' => now() // Giai đoạn 3: Shipper hoàn tất giao hàng
+            ]);
+            
+            $customer->notify(new \App\Notifications\OrderStatusUpdated($order, $oldStatus, 'completed'));
+            if ($restaurantUser) {
+                $restaurantUser->notify(new \App\Notifications\OrderStatusUpdated($order, $oldStatus, 'completed'));
+            }
+            event(new \App\Events\OrderStatusUpdated($order));
+            
+            $shipper->increment('total_deliveries');
+            $shipper->update(['status' => 'available']);
+
+            $shipperUser = $shipper->user;
+
+            if ($order->payment_method === 'cod') {
+                // Nếu COD: Shipper đã thu $order->total tiền mặt.
+                // Lợi nhuận shipper mong muốn: $order->shipper_fee + $order->shipper_tip.
+                // Trừ phí nền tảng và phần chênh lệch ship: 
+                // total_deduction = total - (shipper_fee + tip) - restaurant_revenue (đã trừ lúc lấy hàng)
+                $feeToDeduct = $order->total - ($order->shipper_fee + $order->shipper_tip) - $order->restaurant_revenue;
+                
+                $balanceBefore = $shipperUser->wallet_balance;
+                $shipperUser->wallet_balance -= $feeToDeduct;
+                $shipperUser->save();
+
+                WalletTransaction::create([
+                    'user_id' => $shipperUser->id,
+                    'type' => 'admin_fee_deduction',
+                    'amount' => -$feeToDeduct,
+                    'balance_before' => $balanceBefore,
+                    'balance_after' => $shipperUser->wallet_balance,
+                    'description' => 'Trừ phí nền tảng cho đơn COD #' . $order->order_code,
+                    'reference_id' => $order->id,
+                ]);
+            } else {
+                // Nếu VNPay: Nền tảng cầm tiền.
+                // Cộng vào ví Shipper: hoàn ứng (restaurant_revenue) + lương (shipper_fee + tip)
+                $amountToCredit = $order->restaurant_revenue + $order->shipper_fee + $order->shipper_tip;
+                
+                $balanceBefore = $shipperUser->wallet_balance;
+                $shipperUser->wallet_balance += $amountToCredit;
+                $shipperUser->save();
+
+                WalletTransaction::create([
+                    'user_id' => $shipperUser->id,
+                    'type' => 'deposit',
+                    'amount' => $amountToCredit,
+                    'balance_before' => $balanceBefore,
+                    'balance_after' => $shipperUser->wallet_balance,
+                    'description' => 'Hoàn ứng và thanh toán thu nhập cho đơn VNPay #' . $order->order_code,
+                    'reference_id' => $order->id,
+                ]);
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'System error: ' . $e->getMessage()], 500);
+        }
 
         return response()->json(['message' => 'Order completed']);
     }
@@ -422,6 +589,11 @@ class ShipperController extends Controller
             'current_latitude' => $request->latitude,
             'current_longitude' => $request->longitude
         ]);
+        
+        // Nếu shipper đang giao một đơn, broadcast tọa độ
+        if ($request->has('order_id')) {
+            event(new \App\Events\ShipperLocationUpdated($request->order_id, $request->latitude, $request->longitude));
+        }
 
         return response()->json(['message' => 'Location updated']);
     }
@@ -456,10 +628,90 @@ class ShipperController extends Controller
         ]);
     }
 
+    public function income()
+    {
+        $shipper = $this->getShipper();
+        
+        $today = now()->startOfDay();
+        $startOfWeek = now()->startOfWeek();
+        $startOfMonth = now()->startOfMonth();
+
+        $allOrders = \App\Models\Order::where('shipper_id', $shipper->id)
+            ->where('status', 'completed')
+            ->get();
+
+        $todayIncome = $allOrders->where('updated_at', '>=', $today)->sum(function ($order) {
+            return ($order->shipping_fee ?? 0) + ($order->shipper_tip ?? 0);
+        });
+
+        $weekIncome = $allOrders->where('updated_at', '>=', $startOfWeek)->sum(function ($order) {
+            return ($order->shipping_fee ?? 0) + ($order->shipper_tip ?? 0);
+        });
+
+        $monthIncome = $allOrders->where('updated_at', '>=', $startOfMonth)->sum(function ($order) {
+            return ($order->shipping_fee ?? 0) + ($order->shipper_tip ?? 0);
+        });
+
+        $todayOrdersCount = $allOrders->where('updated_at', '>=', $today)->count();
+
+        // Chart data for last 7 days
+        $chartData = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i)->startOfDay();
+            $nextDate = $date->copy()->addDay();
+            
+            $dayIncome = $allOrders->where('updated_at', '>=', $date)
+                ->where('updated_at', '<', $nextDate)
+                ->sum(function ($order) {
+                    return ($order->shipping_fee ?? 0) + ($order->shipper_tip ?? 0);
+                });
+                
+            $chartData[] = [
+                'day' => $date->locale('vi')->isoFormat('ddd'),
+                'date' => $date->format('d/m'),
+                'income' => $dayIncome
+            ];
+        }
+
+        $recentOrders = \App\Models\Order::where('shipper_id', $shipper->id)
+            ->where('status', 'completed')
+            ->with('items.product.user', 'user')
+            ->orderBy('updated_at', 'desc')
+            ->take(10)
+            ->get()
+            ->map(function ($order) {
+                return [
+                    'id' => $order->id,
+                    'order_code' => $order->order_code,
+                    'address' => $order->address,
+                    'total' => $order->total,
+                    'shipping_fee' => $order->shipping_fee,
+                    'shipper_tip' => $order->shipper_tip,
+                    'distance' => $order->distance,
+                    'completed_at' => $order->updated_at,
+                    'restaurant' => [
+                        'name' => $order->items->first()?->product?->user?->restaurant_name ?? $order->items->first()?->product?->user?->name ?? 'Quán',
+                    ],
+                    'user' => [
+                        'name' => $order->user?->name,
+                    ]
+                ];
+            });
+
+        return \Inertia\Inertia::render('Shipper/Income', [
+            'todayIncome' => $todayIncome,
+            'weekIncome' => $weekIncome,
+            'monthIncome' => $monthIncome,
+            'todayOrdersCount' => $todayOrdersCount,
+            'chartData' => $chartData,
+            'recentOrders' => $recentOrders,
+        ]);
+    }
+
     public function show($orderId)
     {
         $shipper = $this->getShipper();
-        $order = Order::where('id', $orderId)->where('shipper_id', $shipper->id)
+        $order = \App\Models\Order::where('id', $orderId)->where('shipper_id', $shipper->id)
             ->with('items.product', 'user', 'shipper.user')
             ->firstOrFail();
 

@@ -1,164 +1,166 @@
 <template>
     <ShipperLayout>
-        <template #title>Dashboard</template>
-        <template #subtitle>Giao diện shipper - mobile</template>
-
+        <!-- Status Header Card -->
         <section
-            class="mb-5 rounded-[28px] bg-slate-900/95 p-4 text-white shadow-sm ring-1 ring-white/10"
+            class="mb-6 rounded-[2rem] bg-gradient-to-br from-slate-900 to-slate-800 p-5 text-white shadow-[0_10px_30px_-10px_rgba(15,23,42,0.6)] relative overflow-hidden ring-1 ring-white/10"
         >
-            <div class="flex items-center justify-between gap-4">
+            <div class="absolute -right-10 -top-10 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div class="flex items-center justify-between gap-4 relative z-10">
                 <div>
-                    <p
-                        class="text-xs uppercase tracking-[0.24em] text-slate-400"
-                    >
-                        Trạng thái
+                    <p class="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-400">
+                        Phiên làm việc
                     </p>
-                    <p class="mt-2 text-xl font-semibold">
-                        {{
-                            shipper.status === "offline"
-                                ? "Offline"
-                                : shipper.status === "busy"
-                                  ? "Đang giao"
-                                  : "Sẵn sàng"
-                        }}
-                    </p>
+                    <div class="mt-1 flex items-baseline gap-2">
+                        <p class="text-2xl font-black tracking-tight">
+                            {{
+                                shipper.status === "offline"
+                                    ? "Nghỉ ngơi"
+                                    : shipper.status === "busy"
+                                      ? "Đang giao"
+                                      : "Sẵn sàng"
+                            }}
+                        </p>
+                    </div>
                 </div>
                 <button
                     @click="toggleOnline"
                     :disabled="isCheckoutDisabled"
                     :class="[
-                        'rounded-3xl px-4 py-3 text-sm font-semibold shadow-lg shadow-slate-900/10 transition',
+                        'rounded-full px-5 py-3 text-sm font-bold shadow-lg transition-all transform active:scale-95',
                         shipper.status === 'offline'
-                            ? 'bg-white text-slate-900 hover:bg-slate-100'
+                            ? 'bg-emerald-500 text-white hover:bg-emerald-400 shadow-emerald-500/20 ring-4 ring-emerald-500/20'
                             : isCheckoutDisabled
-                              ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                              : 'bg-white text-slate-900 hover:bg-slate-100',
+                              ? 'bg-slate-700 text-slate-500 cursor-not-allowed shadow-none'
+                              : 'bg-rose-500 text-white hover:bg-rose-400 shadow-rose-500/20 ring-4 ring-rose-500/20',
                     ]"
                 >
-                    {{
-                        shipper.status === "offline"
-                            ? "Check-in"
-                            : isCheckoutDisabled
-                              ? "Check-out (đang giao)"
-                              : "Check-out"
-                    }}
+                    <div class="flex items-center gap-2">
+                        <span class="text-lg">
+                            {{ shipper.status === 'offline' ? '🚀' : '⏸️' }}
+                        </span>
+                        <span>
+                            {{
+                                shipper.status === "offline"
+                                    ? "Bắt đầu"
+                                    : isCheckoutDisabled
+                                      ? "Đang bận"
+                                      : "Nghỉ ngơi"
+                            }}
+                        </span>
+                    </div>
                 </button>
             </div>
+
             <div
                 v-if="isCheckoutDisabled"
-                class="mt-3 rounded-3xl bg-amber-50 p-3 text-sm text-amber-700"
+                class="mt-4 rounded-2xl bg-amber-500/10 p-3 text-xs text-amber-300 flex items-start gap-2 ring-1 ring-amber-500/20 backdrop-blur-md relative z-10"
             >
-                Không thể check-out khi đang có đơn. Hoàn thành giao hàng trước
-                khi nghỉ.
+                <span class="text-amber-500 shrink-0">⚠️</span>
+                <span>Không thể nghỉ khi đang có đơn. Vui lòng hoàn thành đơn hiện tại.</span>
             </div>
-            <div class="mt-4 grid grid-cols-3 gap-3 text-center text-sm">
-                <div class="rounded-3xl bg-slate-800/80 p-3">
-                    <div class="text-3xl font-bold">
+
+            <!-- Stats grid -->
+            <div class="mt-5 grid grid-cols-3 gap-3 text-center text-xs relative z-10">
+                <div class="rounded-[1.5rem] bg-white/5 p-3 ring-1 ring-white/10 backdrop-blur-sm">
+                    <div class="text-2xl font-black text-white">
                         {{ currentOrders.length }}
                     </div>
-                    <div class="text-slate-400">Đang giao</div>
+                    <div class="text-[10px] font-medium tracking-wide text-slate-400 mt-0.5">Đang giao</div>
                 </div>
-                <div class="rounded-3xl bg-slate-800/80 p-3">
-                    <div class="text-3xl font-bold">
+                <div class="rounded-[1.5rem] bg-white/5 p-3 ring-1 ring-white/10 backdrop-blur-sm">
+                    <div class="text-2xl font-black text-white">
                         {{ availableOrders.length }}
                     </div>
-                    <div class="text-slate-400">Đơn có sẵn</div>
+                    <div class="text-[10px] font-medium tracking-wide text-slate-400 mt-0.5">Đơn có sẵn</div>
                 </div>
-                <div class="rounded-3xl bg-slate-800/80 p-3">
-                    <div class="text-3xl font-bold">{{ statusText }}</div>
-                    <div class="text-slate-400">Bạn</div>
-                </div>
-            </div>
-        </section>
-
-        <section
-            class="mb-5 overflow-hidden rounded-[28px] bg-white shadow-sm ring-1 ring-slate-200"
-        >
-            <div id="shipper-map" class="h-64 w-full bg-slate-200"></div>
-            <div class="space-y-3 p-4">
-                <div class="rounded-3xl bg-slate-50 p-4 text-sm text-slate-600">
-                    <p class="font-semibold text-slate-900">
-                        Bản đồ vận chuyển của bạn
-                    </p>
-                    <p class="mt-2">
-                        Bản đồ sẽ hiển thị vị trí hiện tại của shipper và giúp
-                        bạn định hướng nhanh qua khu vực Đà Nẵng.
-                    </p>
-                </div>
-                <div class="rounded-3xl bg-slate-50 p-4 text-sm text-slate-600">
-                    <p class="font-semibold text-slate-900">
-                        Bán kính hoạt động
-                    </p>
-                    <p class="mt-2">
-                        Bản đồ luôn giữ vùng di chuyển của bạn trong bán kính
-                        5km.
-                    </p>
-                    <p class="mt-2 text-sm text-slate-500">
-                        Hệ thống tự động tìm đơn hàng có quán trong 2km từ vị
-                        trí hiện tại.
-                    </p>
+                <div class="rounded-[1.5rem] bg-white/5 p-3 ring-1 ring-white/10 backdrop-blur-sm">
+                    <div class="text-xl font-bold text-white mt-1">
+                        {{ statusText === 'OFFLINE' ? 'Nghỉ' : (statusText === 'Sẵn sàng' ? 'Rảnh' : 'Bận') }}
+                    </div>
+                    <div class="text-[10px] font-medium tracking-wide text-slate-400 mt-1">Trạng thái</div>
                 </div>
             </div>
         </section>
 
+        <!-- Edge-to-edge Map Section -->
         <section
-            class="mb-5 rounded-[28px] bg-white p-4 shadow-sm ring-1 ring-slate-200"
+            class="mb-6 overflow-hidden bg-white shadow-sm md:rounded-[2rem] -mx-4 md:mx-0 border-y md:border border-slate-200"
         >
-            <div class="mb-4 flex items-center justify-between">
+            <div class="relative">
+                <div id="shipper-map" class="h-64 sm:h-72 w-full bg-slate-200 z-0"></div>
+                <!-- Floating Map Overlay -->
+                <div class="absolute bottom-4 left-4 right-4 z-10 pointer-events-none">
+                    <div class="rounded-2xl bg-white/90 backdrop-blur-md p-3 text-xs text-slate-600 shadow-lg ring-1 ring-slate-200/50 flex gap-3 items-center">
+                        <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
+                            <span class="text-xl">📍</span>
+                        </div>
+                        <div>
+                            <p class="font-bold text-slate-900">Bán kính 5km</p>
+                            <p class="mt-0.5 text-[10px] leading-tight">Tìm đơn xung quanh 2km vị trí của bạn</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Current Orders -->
+        <section
+            class="mb-6 rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200"
+        >
+            <div class="mb-5 flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-semibold text-slate-900">
-                        Đơn hàng đang giao
-                    </p>
-                    <p class="text-xs text-slate-500">
-                        Xem và điều phối đơn hàng hiện tại
+                    <h2 class="text-lg font-black text-slate-900 tracking-tight">
+                        Đang giao
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-0.5">
+                        Đơn hàng bạn đang thực hiện
                     </p>
                 </div>
-                <span
-                    class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700"
-                >
+                <div class="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 font-bold text-sm">
                     {{ currentOrders.length }}
-                </span>
+                </div>
             </div>
-            <div class="space-y-3">
+
+            <div class="space-y-4">
                 <div
                     v-if="currentOrders.length === 0"
-                    class="rounded-3xl border border-dashed border-slate-300 p-4 text-center text-sm text-slate-500"
+                    class="rounded-[1.5rem] border-2 border-dashed border-slate-200 p-8 text-center"
                 >
-                    Không có đơn hàng đang giao
+                    <span class="text-4xl block mb-2 opacity-50">🛵</span>
+                    <p class="text-sm font-semibold text-slate-500">Chưa có đơn hàng nào</p>
                 </div>
-                <div v-else class="space-y-3">
+                <div v-else class="space-y-4">
                     <div
                         v-for="order in currentOrders"
                         :key="order.id"
-                        class="rounded-3xl border border-slate-200 p-4"
+                        class="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md"
                     >
                         <div class="flex items-start justify-between gap-3">
-                            <div>
-                                <p class="text-sm font-semibold text-slate-900">
-                                    {{ order.order_code }}
-                                </p>
-                                <p class="mt-1 text-xs text-slate-500">
-                                    {{ order.address }}
-                                </p>
-                                <p class="mt-1 text-xs text-slate-500">
-                                    {{ order.phone }}
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2">
+                                    <p class="text-sm font-black text-slate-900">
+                                        {{ order.order_code }}
+                                    </p>
+                                    <span class="px-2 py-0.5 rounded-md bg-slate-100 text-[10px] font-bold text-slate-500">{{ getStatusText(order.status) }}</span>
+                                </div>
+                                <p class="mt-2 text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                                    <span class="font-semibold text-slate-900">Giao đến:</span> {{ order.address }}
                                 </p>
                             </div>
-                            <div class="text-right">
-                                <p class="text-sm font-semibold text-slate-900">
+                            <div class="text-right shrink-0">
+                                <p class="text-base font-black text-indigo-600">
                                     {{ formatCurrency(order.total) }}
-                                </p>
-                                <p class="mt-1 text-xs text-slate-400">
-                                    {{ getStatusText(order.status) }}
                                 </p>
                             </div>
                         </div>
-                        <div class="mt-3 flex flex-wrap gap-2">
+                        <div class="mt-4 pt-4 border-t border-slate-100">
                             <Link
                                 :href="`/shipper/orders/${order.id}/detail`"
-                                class="rounded-3xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-blue-700"
+                                class="flex items-center justify-center gap-2 w-full rounded-2xl bg-slate-900 px-4 py-3.5 text-sm font-bold text-white transition hover:bg-slate-800 active:scale-[0.98]"
                             >
-                                Xem chi tiết
+                                <span>Tiếp tục giao</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                             </Link>
                         </div>
                     </div>
@@ -166,62 +168,62 @@
             </div>
         </section>
 
+        <!-- Available Orders -->
         <section
-            class="rounded-[28px] bg-white p-4 shadow-sm ring-1 ring-slate-200"
+            class="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200"
         >
-            <div class="mb-4 flex items-center justify-between">
+            <div class="mb-5 flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-semibold text-slate-900">
-                        Đơn hàng có sẵn
-                    </p>
-                    <p class="text-xs text-slate-500">
-                        Những đơn hàng chờ shipper nhận
+                    <h2 class="text-lg font-black text-slate-900 tracking-tight">
+                        Đơn có sẵn
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-0.5">
+                        Chờ bạn nhận ngay
                     </p>
                 </div>
-                <span
-                    class="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700"
-                >
+                <div class="flex items-center justify-center w-8 h-8 rounded-full bg-sky-100 text-sky-700 font-bold text-sm">
                     {{ availableOrders.length }}
-                </span>
+                </div>
             </div>
-            <div class="space-y-3">
+
+            <div class="space-y-4">
                 <div
                     v-if="availableOrders.length === 0"
-                    class="rounded-3xl border border-dashed border-slate-300 p-4 text-center text-sm text-slate-500"
+                    class="rounded-[1.5rem] border-2 border-dashed border-slate-200 p-8 text-center"
                 >
-                    Hiện không có đơn hàng sẵn sàng
+                    <span class="text-4xl block mb-2 opacity-50">👀</span>
+                    <p class="text-sm font-semibold text-slate-500 mt-2">Đang tìm đơn xung quanh...</p>
                 </div>
-                <div v-else class="space-y-3">
+                <div v-else class="space-y-4">
                     <div
                         v-for="order in availableOrders"
                         :key="order.id"
-                        class="rounded-3xl border border-slate-200 p-4"
+                        class="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm"
                     >
                         <div class="flex items-start justify-between gap-3">
-                            <div>
-                                <p class="text-sm font-semibold text-slate-900">
+                            <div class="flex-1">
+                                <p class="text-sm font-black text-slate-900">
                                     {{ order.order_code }}
                                 </p>
-                                <p class="mt-1 text-xs text-slate-500">
-                                    {{ order.address }}
+                                <p class="mt-2 text-xs text-slate-600 line-clamp-2">
+                                    <span class="font-semibold text-slate-900">Giao đến:</span> {{ order.address }}
                                 </p>
-                                <p class="mt-1 text-xs text-slate-500">
-                                    Khoảng cách ~{{
-                                        calculateDistance(order)
-                                    }}km
-                                </p>
+                                <div class="mt-3 flex items-center gap-1.5 text-xs font-semibold text-sky-600 bg-sky-50 px-2.5 py-1.5 rounded-lg inline-flex">
+                                    <span>📍</span>
+                                    Cách bạn ~{{ calculateDistance(order) }}km
+                                </div>
                             </div>
-                            <div class="text-right">
-                                <p class="text-sm font-semibold text-slate-900">
+                            <div class="text-right shrink-0">
+                                <p class="text-base font-black text-slate-900">
                                     {{ formatCurrency(order.total) }}
                                 </p>
                             </div>
                         </div>
                         <button
                             @click="acceptOrder(order.id)"
-                            class="mt-3 w-full rounded-3xl bg-orange-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-orange-600"
+                            class="mt-4 w-full rounded-2xl bg-indigo-600 px-4 py-3.5 text-sm font-bold text-white transition hover:bg-indigo-700 active:scale-[0.98] shadow-lg shadow-indigo-600/20"
                         >
-                            Nhận đơn
+                            Nhận đơn ngay
                         </button>
                     </div>
                 </div>

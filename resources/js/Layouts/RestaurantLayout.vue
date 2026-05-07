@@ -2,7 +2,8 @@
 import { Link, usePage } from "@inertiajs/vue3";
 import ToastList from "@/Components/ToastList.vue";
 import UserAvatar from "@/Components/UserAvatar.vue";
-import { computed, ref } from "vue";
+import { computed, ref, onMounted, onUnmounted } from "vue";
+import Swal from "sweetalert2";
 
 const page = usePage();
 const sidebarOpen = ref(false);
@@ -41,6 +42,14 @@ const menuItems = [
         ),
     },
     {
+        name: "LỊCH SỬ ĐƠN",
+        href: "restaurant.orders.history",
+        icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>`,
+        component: "Restaurant/Orders/History",
+    },
+    {
         name: "ĐÁNH GIÁ",
         href: "restaurant.reviews.index",
         icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -55,6 +64,22 @@ const menuItems = [
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
         </svg>`,
         component: "Restaurant/Profile/Edit",
+    },
+    {
+        name: "VÍ ĐIỆN TỬ",
+        href: "restaurant.wallet",
+        icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+        </svg>`,
+        component: "Restaurant/Wallet",
+    },
+    {
+        name: "THÔNG BÁO",
+        href: "my.notifications",
+        icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+        </svg>`,
+        component: "Notifications",
     },
 ];
 
@@ -80,200 +105,247 @@ const getPageTitle = () => {
     );
     return current ? current.name : "FoodXpress";
 };
+
+// Real-time Notification Sound
+const playNotificationSound = () => {
+    try {
+        const audio = new Audio('/sounds/notification.mp3'); // We'll assume a generic notification sound or it might fail gracefully
+        audio.play();
+    } catch (e) {
+        console.warn("Could not play sound", e);
+    }
+};
+
+onMounted(() => {
+    if (window.Echo && page.props.auth?.user?.id) {
+        window.Echo.private(`restaurant.${page.props.auth.user.id}`)
+            .listen('NewOrderReceived', (e) => {
+                console.log('New order received:', e);
+                playNotificationSound();
+                
+                Swal.fire({
+                    title: '🔔 ĐƠN HÀNG MỚI!',
+                    text: `Bạn vừa nhận được đơn hàng ${e.order.order_code} trị giá ${new Intl.NumberFormat('vi-VN').format(e.order.total)}đ`,
+                    icon: 'success',
+                    showConfirmButton: true,
+                    confirmButtonText: 'Xem ngay',
+                    confirmButtonColor: '#f97316',
+                    timer: 10000,
+                    timerProgressBar: true,
+                    customClass: { popup: "rounded-[2rem]" },
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = route('restaurant.orders.index');
+                    }
+                });
+                
+                // Nếu đang ở trang danh sách đơn, có thể tải lại trang
+                if (currentComponent.value === 'Restaurant/Orders/Index') {
+                    // This is simple reload, alternatively we could emit an event to the component
+                    // window.location.reload(); 
+                }
+            });
+    }
+});
+
+onUnmounted(() => {
+    if (window.Echo && page.props.auth?.user?.id) {
+        window.Echo.leave(`restaurant.${page.props.auth.user.id}`);
+    }
+});
 </script>
 
 <template>
-    <div class="min-h-screen bg-gray-50 flex overflow-hidden">
-        <ToastList />
+    <div class="min-h-screen bg-[#f4f7f9] text-slate-800 flex overflow-hidden font-sans selection:bg-orange-200">
+        <!-- Background Pattern -->
+        <div class="absolute inset-0 z-0 pointer-events-none opacity-40 mix-blend-multiply" style="background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 32px 32px;"></div>
+        
+        <ToastList class="z-[100]" />
 
+        <!-- Mobile Backdrop -->
         <div
             v-if="sidebarOpen"
             @click="sidebarOpen = false"
-            class="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
+            class="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm lg:hidden transition-opacity"
         ></div>
 
+        <!-- Sidebar -->
         <aside
             :class="[
-                'fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-orange-500 to-orange-600 shadow-2xl transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:relative flex-shrink-0 flex flex-col h-screen',
+                'fixed inset-y-0 left-0 z-50 w-[280px] bg-white shadow-[10px_0_40px_rgba(0,0,0,0.04)] transform transition-transform duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] lg:translate-x-0 lg:relative flex-shrink-0 flex flex-col h-screen border-r border-slate-100',
                 sidebarOpen ? 'translate-x-0' : '-translate-x-full',
             ]"
         >
-            <div
-                class="flex items-center justify-between p-8 border-b border-white border-opacity-20"
-            >
+            <div class="flex items-center justify-between p-8">
                 <Link
                     :href="route('restaurant.dashboard')"
-                    class="flex flex-col"
+                    class="flex flex-col relative group"
                 >
-                    <span
-                        class="text-2xl font-black text-white italic tracking-tighter"
-                        >FoodXpress</span
-                    >
-                    <span
-                        class="text-[10px] font-bold text-white text-opacity-80 uppercase tracking-[0.2em]"
-                        >Restaurant Hub</span
-                    >
+                    <span class="absolute -inset-4 bg-orange-50 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity z-0"></span>
+                    <div class="relative z-10">
+                        <span class="text-3xl font-black text-slate-900 italic tracking-tighter">
+                            Food<span class="text-orange-500">Xpress</span>
+                        </span>
+                        <span class="block mt-1 text-[9px] font-black text-slate-400 uppercase tracking-[0.25em]">
+                            Restaurant Hub
+                        </span>
+                    </div>
                 </Link>
                 <button
                     @click="sidebarOpen = false"
-                    class="lg:hidden p-2 text-white"
+                    class="lg:hidden p-2 text-slate-400 hover:text-orange-500 bg-slate-50 hover:bg-orange-50 rounded-xl transition-colors"
                 >
-                    <svg
-                        class="w-6 h-6"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path d="M6 18L18 6M6 6l12 12" stroke-width="2"></path>
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" stroke-width="2"></path>
                     </svg>
                 </button>
             </div>
 
-            <nav
-                class="flex-1 px-4 py-6 space-y-2 overflow-y-auto custom-scrollbar-sidebar"
-            >
+            <nav class="flex-1 px-4 py-2 space-y-1 overflow-y-auto custom-scrollbar-sidebar">
+                <p class="px-6 mb-4 text-[10px] font-black text-slate-300 uppercase tracking-widest">Menu</p>
                 <Link
                     v-for="(item, index) in menuItems"
                     :key="item.name"
                     :href="route(item.href)"
                     :class="[
-                        'flex items-center gap-4 px-6 py-4 rounded-2xl font-semibold text-sm transition-all duration-300 group shadow-sm',
+                        'flex items-center gap-4 px-6 py-4 rounded-2xl font-bold text-sm transition-all duration-300 group relative overflow-hidden',
                         currentComponent === item.component ||
                         (item.component !== 'Restaurant/Dashboard' &&
                             currentComponent?.startsWith(item.component))
-                            ? 'bg-white text-orange-600 shadow-xl scale-105 translate-x-2'
-                            : 'text-white hover:bg-white hover:bg-opacity-10',
+                            ? 'text-orange-600 bg-orange-50/80 shadow-sm border border-orange-100/50'
+                            : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
                     ]"
                 >
-                    <span class="text-xl" v-html="item.icon"></span>
-                    <span class="flex-1">{{ item.name }}</span>
+                    <div 
+                        v-if="currentComponent === item.component || (item.component !== 'Restaurant/Dashboard' && currentComponent?.startsWith(item.component))"
+                        class="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-orange-500 rounded-r-full shadow-[0_0_10px_rgba(249,115,22,0.4)]"
+                    ></div>
+                    <span 
+                        class="text-[22px] transition-transform duration-300 group-hover:scale-110" 
+                        :class="currentComponent === item.component || (item.component !== 'Restaurant/Dashboard' && currentComponent?.startsWith(item.component)) ? 'text-orange-500' : 'text-slate-400'"
+                        v-html="item.icon"
+                    ></span>
+                    <span class="flex-1 tracking-wide">{{ item.name }}</span>
                     <span
                         v-if="item.badge"
-                        class="bg-red-500 text-white text-[10px] px-2 py-1 rounded-full animate-pulse"
-                        >{{ item.badge }}</span
-                    >
+                        class="bg-red-500 text-white text-[10px] px-2.5 py-0.5 rounded-full font-black shadow-lg shadow-red-500/30 animate-pulse"
+                    >{{ item.badge }}</span>
                 </Link>
             </nav>
 
-            <div
-                class="p-4 border-t border-white border-opacity-20 bg-black bg-opacity-10"
-            >
-                <div
-                    class="flex items-center gap-3 mb-4 p-3 bg-white rounded-2xl shadow-inner"
-                >
-                    <UserAvatar
-                        :user="$page.props.auth.user"
-                        size="sm"
-                        rounded="lg"
-                    />
-                    <div class="flex-1 min-w-0">
-                        <p class="text-xs font-black text-gray-900 truncate">
-                            {{
-                                $page.props.auth.user.restaurant_name ||
-                                "Chủ quán"
-                            }}
-                        </p>
-                        <p
-                            class="text-[9px] text-gray-500 truncate font-bold uppercase tracking-tighter"
+            <div class="p-6">
+                <div class="p-5 bg-slate-50 border border-slate-100 rounded-3xl relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-gradient-to-br from-orange-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div class="relative z-10">
+                        <div class="flex items-center gap-4 mb-5">
+                            <UserAvatar
+                                :user="$page.props.auth.user"
+                                size="md"
+                                rounded="xl"
+                                class="ring-2 ring-white shadow-sm"
+                            />
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-black text-slate-900 truncate">
+                                    {{ $page.props.auth.user.restaurant_name || "Chủ quán" }}
+                                </p>
+                                <div class="mt-1">
+                                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Ví của quán</p>
+                                    <p class="text-xs font-black text-emerald-500">
+                                        {{ new Intl.NumberFormat('vi-VN').format($page.props.auth.user.wallet_balance || 0) }}<span class="text-[10px] text-emerald-400">đ</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <Link
+                            :href="route('logout')"
+                            method="post"
+                            as="button"
+                            class="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-white border border-slate-200 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all duration-300 shadow-sm"
                         >
-                            {{ $page.props.auth.user.email }}
-                        </p>
+                            ĐĂNG XUẤT
+                        </Link>
                     </div>
                 </div>
-                <Link
-                    :href="route('logout')"
-                    method="post"
-                    as="button"
-                    class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg"
-                    >ĐĂNG XUẤT</Link
-                >
             </div>
         </aside>
 
-        <div class="flex-1 flex flex-col h-screen overflow-hidden">
-            <header
-                class="lg:hidden bg-white shadow-sm border-b border-gray-100 px-6 py-4 flex-shrink-0"
-            >
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col h-screen overflow-hidden relative z-10">
+            <!-- Mobile Header -->
+            <header class="lg:hidden bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-100 px-4 py-4 flex-shrink-0 sticky top-0 z-30">
                 <div class="flex items-center justify-between">
                     <button
                         @click="sidebarOpen = true"
-                        class="p-2 rounded-xl bg-orange-50 text-orange-500"
+                        class="p-2.5 rounded-2xl bg-white border border-slate-100 text-slate-600 shadow-sm active:scale-95 transition-transform"
                     >
-                        <svg
-                            class="w-6 h-6"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                d="M4 6h16M4 12h16M4 18h16"
-                                stroke-width="2.5"
-                                stroke-linecap="round"
-                            ></path>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                         </svg>
                     </button>
-                    <h1
-                        class="text-sm font-black text-gray-900 uppercase tracking-widest"
-                    >
+                    <h1 class="text-sm font-black text-slate-900 uppercase tracking-[0.15em]">
                         {{ getPageTitle() }}
                     </h1>
-                    <div class="w-10"></div>
+                    <div class="w-10">
+                        <UserAvatar v-if="$page.props.auth.user" :user="$page.props.auth.user" size="sm" rounded="lg" />
+                    </div>
                 </div>
             </header>
 
-            <main class="flex-1 overflow-y-auto p-6 lg:p-10 bg-[#fdf2f0]/50">
-                <div class="max-w-7xl mx-auto">
+            <!-- Page Content -->
+            <main class="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8 lg:p-10 scroll-smooth">
+                <div class="max-w-7xl mx-auto animate-fade-in-up">
                     <slot />
                 </div>
             </main>
         </div>
     </div>
 </template>
+
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600;1,800&display=swap');
+
 * {
-    font-family: "Inter", sans-serif;
+    font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
-/* Enhanced scrollbar */
-aside::-webkit-scrollbar {
-    width: 6px;
+.custom-scrollbar-sidebar::-webkit-scrollbar {
+    width: 4px;
 }
 
-aside::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
+.custom-scrollbar-sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar-sidebar::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
     border-radius: 10px;
 }
 
-aside::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 10px;
+.custom-scrollbar-sidebar:hover::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
 }
 
-aside::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.5);
+/* Base animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-/* Smooth transitions */
-aside {
-    transition:
-        transform 0.3s ease-in-out,
-        box-shadow 0.3s ease-in-out;
+.animate-fade-in-up {
+    animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Mobile responsive adjustments */
-@media (max-width: 1024px) {
-    aside {
-        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2);
-    }
-
-    /* Increase mobile header padding */
-    header {
-        padding: 1rem;
-    }
-
-    /* Better spacing for main content on mobile */
-    main {
-        padding: 1.5rem;
-    }
+/* Glassmorphism utilities */
+.glass {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
 }
 </style>

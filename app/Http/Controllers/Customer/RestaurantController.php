@@ -21,7 +21,7 @@ class RestaurantController extends Controller
         // 2. Lấy Menu và nhóm theo danh mục
         $menu = Product::where('user_id', $id)
             ->approved()
-            ->where('is_available', true)
+            //->where('is_available', true)
             ->with(['category', 'options', 'gallery'])
             ->get()
             ->groupBy(fn($item) => $item->category->name);

@@ -28,7 +28,7 @@ class PaymentController extends Controller
         $vnp_OrderType = 'billpayment';
         $vnp_Amount = $order->total * 100; // VNPay yêu cầu số tiền * 100
         $vnp_Locale = 'vn';
-        $vnp_BankCode = '';
+        $vnp_BankCode = $request->bank_code ?? '';
         $vnp_IpAddr = $request->ip();
 
         $inputData = array(
@@ -154,6 +154,84 @@ class PaymentController extends Controller
             return response('OK', 200);
         } else {
             return response('Invalid signature', 400);
+        }
+    }
+
+    public function vnpayWalletReturn(Request $request)
+    {
+        $vnp_HashSecret = config('vnpay.hash_secret');
+
+        $inputData = array();
+        foreach ($request->all() as $key => $value) {
+            if (substr($key, 0, 4) == "vnp_") {
+                $inputData[$key] = $value;
+            }
+        }
+
+        unset($inputData['vnp_SecureHash']);
+        ksort($inputData);
+        $i = 0;
+        $hashData = "";
+        foreach ($inputData as $key => $value) {
+            if ($i == 1) {
+                $hashData = $hashData . '&' . urlencode($key) . "=" . urlencode($value);
+            } else {
+                $hashData = $hashData . urlencode($key) . "=" . urlencode($value);
+                $i = 1;
+            }
+        }
+
+        $secureHash = hash_hmac('sha512', $hashData, $vnp_HashSecret);
+        $txnRef = $inputData['vnp_TxnRef']; // WALLET_DEPOSIT_userId_timestamp
+
+        // Determine redirect route based on user role (which we can infer or just redirect to dashboard and let them navigate)
+        // Better yet, just redirect to a generic wallet page or their respective wallet page.
+        // Let's assume the user is still logged in.
+        $user = \Illuminate\Support\Facades\Auth::user();
+        $redirectRoute = $user && $user->role === 'shipper' ? 'shipper.wallet' : 'restaurant.wallet';
+
+        if ($secureHash == $request->vnp_SecureHash) {
+            if ($request->vnp_ResponseCode == '00') {
+                // Lấy userId từ TxnRef
+                preg_match('/WALLET_DEPOSIT_(\d+)_/', $txnRef, $matches);
+                if (isset($matches[1])) {
+                    $userId = $matches[1];
+                    $amount = $inputData['vnp_Amount'] / 100;
+
+                    // Để tránh duplicate, ta nên check trong DB xem vnp_TxnRef đã được xử lý chưa.
+                    $exists = \App\Models\WalletTransaction::where('reference_id', $txnRef)->exists();
+                    if (!$exists) {
+                        \Illuminate\Support\Facades\DB::beginTransaction();
+                        try {
+                            $targetUser = \App\Models\User::find($userId);
+                            if ($targetUser) {
+                                $balanceBefore = $targetUser->wallet_balance;
+                                $targetUser->wallet_balance += $amount;
+                                $targetUser->save();
+
+                                \App\Models\WalletTransaction::create([
+                                    'user_id' => $targetUser->id,
+                                    'type' => 'deposit',
+                                    'amount' => $amount,
+                                    'balance_before' => $balanceBefore,
+                                    'balance_after' => $targetUser->wallet_balance,
+                                    'description' => 'Nạp tiền qua VNPay',
+                                    'reference_id' => $txnRef,
+                                ]);
+                            }
+                            \Illuminate\Support\Facades\DB::commit();
+                        } catch (\Exception $e) {
+                            \Illuminate\Support\Facades\DB::rollBack();
+                            return redirect()->route($redirectRoute)->with('error', 'Lỗi hệ thống khi cộng tiền!');
+                        }
+                    }
+                }
+                return redirect()->route($redirectRoute)->with('success', 'Nạp tiền thành công!');
+            } else {
+                return redirect()->route($redirectRoute)->with('error', 'Nạp tiền thất bại hoặc bị hủy!');
+            }
+        } else {
+            return redirect()->route($redirectRoute)->with('error', 'Chữ ký không hợp lệ!');
         }
     }
 }
