@@ -11,6 +11,18 @@ use Illuminate\Support\Facades\DB;
 
 class WalletController extends Controller
 {
+    public function customerWallet()
+    {
+        $user = Auth::user();
+        $transactions = WalletTransaction::where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+
+        return Inertia::render('Customer/Wallet', [
+            'transactions' => $transactions
+        ]);
+    }
+
     public function restaurantWallet()
     {
         $user = Auth::user();

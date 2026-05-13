@@ -9,9 +9,11 @@ import "leaflet/dist/leaflet.css";
 
 // Import Swiper Vue.js components & modules
 import { Swiper, SwiperSlide } from "swiper/vue";
-import { Autoplay, EffectFade } from "swiper/modules";
+import { Autoplay, EffectFade, FreeMode, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-fade";
+import "swiper/css/free-mode";
+import "swiper/css/pagination";
 
 const props = defineProps({
     auth: Object,
@@ -117,24 +119,21 @@ const initMap = () => {
         }
     }).setView([16.061, 108.2158], 13);
 
-    // Sử dụng tile layer chất lượng cao hơn
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    // Sử dụng tile layer CartoDB Voyager cho tốc độ tải siêu nhanh và giao diện sáng, nhẹ
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        subdomains: "abc",
-        maxZoom: 22,
+        subdomains: "abcd",
+        maxZoom: 20,
         minZoom: 3,
     }).addTo(map);
 
     markersGroup.value = L.featureGroup();
 
-    // Icon cho quán ăn với animation
+    // Tối ưu hóa Icon: Giảm DOM thừa, loại bỏ hiệu ứng ping liên tục để tránh lag khi có nhiều marker
     const foodIcon = L.divIcon({
         html: `
-            <div class="relative">
-                <div class="absolute -top-3 -left-3 w-10 h-10 bg-orange-500/30 rounded-full animate-ping"></div>
-                <div class="relative bg-orange-500 w-8 h-8 rounded-2xl flex items-center justify-center shadow-lg border-2 border-white text-white rotate-45 hover:scale-110 transition-all duration-200">
-                    <span class="-rotate-45 text-sm">🍕</span>
-                </div>
+            <div class="relative bg-orange-500 w-8 h-8 rounded-2xl flex items-center justify-center shadow-lg border-2 border-white text-white hover:scale-110 transition-transform duration-200">
+                <span class="text-sm">🍕</span>
             </div>
         `,
         className: "custom-food-marker",
@@ -309,26 +308,28 @@ const handleAddToCart = (data) => {
                     <div
                         class="relative z-10 h-full flex flex-col justify-center px-6 md:px-16 lg:px-20 text-white"
                     >
-                        <span
-                            class="inline-flex items-center gap-2 bg-orange-500/90 text-[10px] font-black uppercase tracking-[0.4em] px-4 py-2 rounded-full mb-6 w-fit animate-pulse shadow-xl"
-                        >
-                            <span class="w-2 h-2 rounded-full bg-white"></span>
-                            FoodXpress Đà Nẵng
-                        </span>
-                        <h1
-                            class="text-4xl md:text-5xl lg:text-6xl font-black mb-4 leading-[0.92] tracking-tight italic drop-shadow-2xl"
-                        >
-                            {{ slide.slogan }}<br />
-                            <span class="block text-orange-300"
-                                >Món ngon đợi bạn</span
+                        <div class="max-w-2xl bg-white/10 backdrop-blur-md border border-white/20 p-8 md:p-12 rounded-[2.5rem] shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] transform transition-all duration-500 hover:scale-[1.02]">
+                            <span
+                                class="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 text-[10px] font-black uppercase tracking-[0.4em] px-4 py-2 rounded-full mb-6 w-fit animate-pulse shadow-xl shadow-orange-500/30"
                             >
-                        </h1>
-                        <p
-                            class="text-sm md:text-base lg:text-lg font-medium text-slate-200 max-w-xl tracking-wide leading-relaxed drop-shadow-lg"
-                        >
-                            {{ slide.sub }} Hãy tìm món, lọc nhanh và đặt ngay
-                            trong vài giây.
-                        </p>
+                                <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
+                                <span class="relative w-2 h-2 -ml-4 rounded-full bg-white"></span>
+                                FoodXpress
+                            </span>
+                            <h1
+                                class="text-4xl md:text-5xl lg:text-6xl font-black mb-4 leading-[1.1] tracking-tight drop-shadow-2xl text-transparent bg-clip-text bg-gradient-to-r from-white via-orange-100 to-white"
+                            >
+                                {{ slide.slogan }}<br />
+                                <span class="block text-orange-400 mt-2"
+                                    >Món ngon đợi bạn</span
+                                >
+                            </h1>
+                            <p
+                                class="text-sm md:text-base lg:text-lg font-medium text-slate-100/90 tracking-wide leading-relaxed drop-shadow-lg mt-4"
+                            >
+                                {{ slide.sub }} Hãy tìm món, lọc nhanh và đặt ngay trong vài giây.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </swiper-slide>
@@ -336,45 +337,49 @@ const handleAddToCart = (data) => {
     </div>
 
     <div class="relative -mt-24 px-4 md:px-6 z-20">
-        <div class="mx-auto max-w-6xl">
+        <div class="mx-auto max-w-[1400px]">
             <div
-                class="rounded-[3rem] border border-white/80 bg-white/95 backdrop-blur-2xl shadow-[0_45px_120px_rgba(15,23,42,0.16)] p-6 md:p-8"
+                class="rounded-[3rem] border border-white bg-white/80 backdrop-blur-xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] hover:shadow-[0_30px_70px_-15px_rgba(249,115,22,0.15)] transition-all duration-500 p-8 md:p-10 relative overflow-hidden"
             >
+                <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-orange-400/20 to-red-400/20 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
+                <div class="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-blue-400/10 to-transparent rounded-full blur-3xl -ml-32 -mb-32 pointer-events-none"></div>
+                
                 <div
-                    class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
+                    class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between relative z-10"
                 >
                     <div>
                         <p
-                            class="text-xs uppercase tracking-[0.35em] text-orange-500 font-black mb-2"
+                            class="text-xs uppercase tracking-[0.35em] text-orange-500 font-black mb-2 flex items-center gap-2"
                         >
+                            <span class="w-2 h-2 rounded-full bg-orange-500 inline-block"></span>
                             Tìm món nhanh
                         </p>
                         <h2
-                            class="text-2xl md:text-3xl font-black text-slate-900"
+                            class="text-3xl md:text-4xl font-black text-slate-900 tracking-tight"
                         >
-                            Hàm ý món ngon ngay tức thì
+                            Hương vị trong tầm tay
                         </h2>
                     </div>
                     <div class="flex flex-wrap gap-3">
                         <div
-                            class="rounded-full bg-slate-900 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-white shadow-sm"
+                            class="rounded-2xl bg-slate-900/5 backdrop-blur-sm border border-slate-900/10 px-5 py-2.5 text-xs font-black uppercase tracking-[0.2em] text-slate-900 shadow-sm flex items-center gap-2"
                         >
-                            {{ restaurants.length }} quán
+                            <span class="text-lg">🏪</span> {{ restaurants.length }} quán
                         </div>
                         <div
-                            class="rounded-full bg-orange-500 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-white shadow-sm"
+                            class="rounded-2xl bg-orange-500/10 backdrop-blur-sm border border-orange-500/20 px-5 py-2.5 text-xs font-black uppercase tracking-[0.2em] text-orange-600 shadow-sm flex items-center gap-2"
                         >
-                            {{ products.length }} món
+                            <span class="text-lg">🍔</span> {{ products.length }} món
                         </div>
                     </div>
                 </div>
 
                 <div
-                    class="mt-6 grid gap-3 md:grid-cols-[2fr_1fr_1fr_auto] items-center"
+                    class="mt-8 grid gap-4 md:grid-cols-[2fr_1fr_1fr_auto] items-center relative z-10"
                 >
-                    <div class="relative">
+                    <div class="relative group">
                         <div
-                            class="absolute left-4 top-1/2 -translate-y-1/2 text-orange-400"
+                            class="absolute left-5 top-1/2 -translate-y-1/2 text-orange-400 transition-transform group-focus-within:scale-110"
                         >
                             <svg
                                 class="w-5 h-5"
@@ -385,7 +390,7 @@ const handleAddToCart = (data) => {
                                 <path
                                     stroke-linecap="round"
                                     stroke-linejoin="round"
-                                    stroke-width="2"
+                                    stroke-width="2.5"
                                     d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                                 />
                             </svg>
@@ -394,46 +399,56 @@ const handleAddToCart = (data) => {
                             v-model="search"
                             type="text"
                             placeholder="Bạn muốn ăn gì hôm nay?"
-                            class="w-full h-14 rounded-3xl border border-slate-200 bg-slate-50 text-slate-900 pl-14 pr-4 shadow-sm focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all"
+                            class="w-full h-16 rounded-[2rem] border-2 border-slate-100 bg-white text-slate-900 pl-14 pr-6 shadow-sm focus:border-orange-400 focus:ring-0 transition-all font-medium text-lg placeholder:text-slate-400"
                         />
                     </div>
-                    <select
-                        v-model="priceRange"
-                        class="h-14 rounded-3xl border border-slate-200 bg-slate-50 text-slate-900 px-4 shadow-sm focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all"
-                    >
-                        <option value="">Mức giá</option>
-                        <option value="0-50000">Dưới 50k</option>
-                        <option value="50000-100000">50k - 100k</option>
-                        <option value="100000+">Trên 100k</option>
-                    </select>
-                    <select
-                        v-model="deliveryType"
-                        class="h-14 rounded-3xl border border-slate-200 bg-slate-50 text-slate-900 px-4 shadow-sm focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all"
-                    >
-                        <option value="">Loại phục vụ</option>
-                        <option value="takeaway">Mang về</option>
-                        <option value="delivery">Giao tận nơi</option>
-                        <option value="dinein">Ăn tại quán</option>
-                    </select>
+                    <div class="relative">
+                        <select
+                            v-model="priceRange"
+                            class="w-full h-16 rounded-[2rem] border-2 border-slate-100 bg-white text-slate-900 px-6 shadow-sm focus:border-orange-400 focus:ring-0 transition-all font-medium appearance-none cursor-pointer"
+                        >
+                            <option value="">💰 Mức giá</option>
+                            <option value="0-50000">Dưới 50k</option>
+                            <option value="50000-100000">50k - 100k</option>
+                            <option value="100000+">Trên 100k</option>
+                        </select>
+                        <div class="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <select
+                            v-model="deliveryType"
+                            class="w-full h-16 rounded-[2rem] border-2 border-slate-100 bg-white text-slate-900 px-6 shadow-sm focus:border-orange-400 focus:ring-0 transition-all font-medium appearance-none cursor-pointer"
+                        >
+                            <option value="">🛵 Phục vụ</option>
+                            <option value="takeaway">Mang về</option>
+                            <option value="delivery">Giao tận nơi</option>
+                            <option value="dinein">Ăn tại quán</option>
+                        </select>
+                        <div class="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
                     <button
                         @click="updateFilters()"
-                        class="h-14 rounded-3xl bg-orange-500 px-6 text-sm font-black uppercase tracking-[0.12em] text-white shadow-xl hover:bg-orange-600 transition-all"
+                        class="h-16 rounded-[2rem] bg-gradient-to-r from-orange-500 to-red-500 px-10 text-sm font-black uppercase tracking-[0.15em] text-white shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 hover:-translate-y-1 transition-all flex items-center justify-center gap-2"
                     >
-                        Tìm
+                        <span>Tìm Kiếm</span>
                     </button>
                 </div>
 
-                <div class="mt-5 flex flex-wrap gap-2">
+                <div class="mt-6 flex flex-wrap gap-3 relative z-10">
                     <button
                         v-for="tab in searchTabs"
                         :key="tab"
                         @click="activeTab = tab"
                         :class="
                             activeTab === tab
-                                ? 'bg-orange-500 text-white shadow-lg'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20 scale-105'
+                                : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                         "
-                        class="rounded-full px-4 py-2 text-xs md:px-5 md:py-2 md:text-sm font-semibold transition-all"
+                        class="rounded-full px-5 py-2.5 text-xs md:text-sm font-bold transition-all duration-300 border border-slate-200"
                     >
                         {{ tab }}
                     </button>
@@ -536,48 +551,45 @@ const handleAddToCart = (data) => {
         </div>
     </section>
 
-    <section class="mb-16 px-2 md:px-6">
+    <section class="mb-20 px-4 md:px-6 max-w-[1400px] mx-auto">
         <div
-            class="mb-8 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between"
+            class="mb-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between"
         >
             <div>
                 <p
-                    class="text-xs uppercase tracking-[0.35em] text-orange-500 font-black mb-2"
+                    class="text-xs uppercase tracking-[0.35em] text-orange-500 font-black mb-2 flex items-center gap-2"
                 >
+                    <span class="w-2 h-2 rounded-full bg-orange-500 inline-block"></span>
                     Khám phá nhanh
                 </p>
                 <h2
-                    class="text-3xl md:text-4xl font-black text-slate-900 tracking-tight"
+                    class="text-3xl md:text-5xl font-black text-slate-900 tracking-tight"
                 >
-                    Quán ăn tại khu vực của bạn
+                    Quán ngon quanh bạn
                 </h2>
             </div>
             <div class="grid gap-3 sm:auto-cols-min sm:grid-flow-col">
                 <div
-                    class="rounded-full bg-slate-900 px-4 py-3 text-xs font-black uppercase tracking-[0.18em] text-white shadow-sm"
+                    class="rounded-2xl bg-slate-900 px-5 py-3 text-xs font-black uppercase tracking-[0.15em] text-white shadow-lg flex items-center gap-2"
                 >
-                    {{ restaurants.length }} quán
-                </div>
-                <div
-                    class="rounded-full bg-orange-500 px-4 py-3 text-xs font-black uppercase tracking-[0.18em] text-white shadow-sm"
-                >
-                    {{ products.length }} món
+                    <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                    {{ restaurants.length }} quán đang mở
                 </div>
             </div>
         </div>
 
-        <div class="overflow-x-auto no-scrollbar pb-2 mb-8">
-            <div class="inline-flex gap-3">
+        <div class="overflow-x-auto no-scrollbar pb-4 mb-8">
+            <div class="inline-flex gap-3 px-1">
                 <button
                     @click="selectedCat = ''"
                     :class="
                         selectedCat === ''
-                            ? 'bg-orange-500 text-white shadow-xl'
-                            : 'bg-white text-slate-500 hover:bg-slate-50'
+                            ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20'
+                            : 'bg-white text-slate-600 hover:bg-slate-50'
                     "
-                    class="rounded-full px-6 py-3 text-xs md:text-sm font-black uppercase tracking-[0.18em] transition-all border border-slate-100"
+                    class="rounded-full px-6 py-3 text-xs md:text-sm font-bold transition-all border border-slate-200 flex items-center gap-2"
                 >
-                    🔥 Tất cả
+                    <span>🔥</span> Tất cả
                 </button>
                 <button
                     v-for="cat in categories"
@@ -585,115 +597,159 @@ const handleAddToCart = (data) => {
                     @click="selectedCat = cat.id"
                     :class="
                         selectedCat == cat.id
-                            ? 'bg-orange-500 text-white shadow-xl'
-                            : 'bg-white text-slate-500 hover:bg-slate-50'
+                            ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20'
+                            : 'bg-white text-slate-600 hover:bg-slate-50'
                     "
-                    class="rounded-full px-6 py-3 text-xs md:text-sm font-black uppercase tracking-[0.18em] transition-all border border-slate-100 flex items-center gap-2 whitespace-nowrap"
+                    class="rounded-full px-6 py-3 text-xs md:text-sm font-bold transition-all border border-slate-200 flex items-center gap-2 whitespace-nowrap"
                 >
-                    <span>{{ cat.icon || "🍱" }}</span> {{ cat.name }}
+                    <span>{{ cat.icon || '🍱' }}</span> {{ cat.name }}
                 </button>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-4">
-            <Link
-                v-for="shop in restaurants"
-                :key="shop.id"
-                :href="route('restaurant.menu', shop.id)"
-                class="group relative overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white shadow-sm transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl"
+        <div class="w-full relative">
+            <swiper
+                :modules="[FreeMode, Pagination]"
+                :slidesPerView="1.2"
+                :spaceBetween="20"
+                :freeMode="true"
+                :pagination="{ clickable: true, dynamicBullets: true }"
+                :breakpoints="{
+                    '640': { slidesPerView: 2.2, spaceBetween: 20 },
+                    '768': { slidesPerView: 3.2, spaceBetween: 24 },
+                    '1024': { slidesPerView: 4.2, spaceBetween: 24 }
+                }"
+                class="pb-12 px-2"
             >
-                <div class="relative h-80 overflow-hidden">
+                <swiper-slide v-for="shop in restaurants" :key="shop.id" class="h-auto">
+                    <Link
+                        :href="route('restaurant.menu', shop.id)"
+                        class="group block relative flex flex-col h-full bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] transition-all duration-500 overflow-hidden hover:-translate-y-2"
+                    >
+                <div class="relative h-64 overflow-hidden rounded-t-[2rem]">
                     <img
                         :src="
                             shop.cover_image ||
                             'https://images.unsplash.com/photo-1498654896293-37aacf113fd9?auto=format&fit=crop&w=1200&q=80'
                         "
-                        class="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                        class="h-full w-full object-cover transition duration-700 group-hover:scale-110"
                     />
                     <div
-                        class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent"
+                        class="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-transparent"
                     ></div>
-                    <div class="absolute bottom-6 left-6 right-6 text-white">
-                        <div
-                            class="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-2 text-[10px] uppercase tracking-[0.25em] text-white backdrop-blur-sm"
-                        >
-                            📍
-                            {{
-                                shop.address
-                                    ? shop.address.split(",")[0]
-                                    : "Đà Nẵng"
-                            }}
-                        </div>
+                    
+                    <div class="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wider flex items-center gap-1 shadow-sm text-slate-900">
+                        <span class="text-yellow-500 text-sm">★</span> 4.8
+                    </div>
+
+                    <div class="absolute bottom-5 left-5 right-5 text-white">
                         <h3
-                            class="text-2xl font-black leading-tight tracking-tight group-hover:text-orange-300 transition-colors"
+                            class="text-2xl font-black leading-tight tracking-tight group-hover:text-orange-400 transition-colors mb-2"
                         >
                             {{ shop.restaurant_name || shop.name }}
                         </h3>
+                        <div class="flex items-center gap-3 text-xs font-medium text-slate-300">
+                            <span class="flex items-center gap-1"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg> {{ shop.address ? shop.address.split(',')[0] : 'Đà Nẵng' }}</span>
+                            <span class="w-1 h-1 rounded-full bg-slate-500"></span>
+                            <span class="flex items-center gap-1"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> ~20 min</span>
+                        </div>
                     </div>
                 </div>
-                <div class="p-5 border-t border-slate-100">
-                    <p
-                        class="text-xs uppercase tracking-[0.25em] text-slate-400 mb-2"
-                    >
-                        Quán ăn
-                    </p>
-                    <div class="text-sm font-black text-slate-900">
-                        {{ shop.restaurant_name || shop.name }}
+                <div class="p-5 flex items-center justify-between bg-white relative z-10 group-hover:bg-slate-50 transition-colors border-t border-slate-100">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-500 font-black text-sm">
+                            {{ (shop.restaurant_name || shop.name).charAt(0) }}
+                        </div>
+                        <div>
+                            <p class="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold mb-0.5">Đối tác</p>
+                            <p class="text-sm font-bold text-slate-900">FoodXpress</p>
+                        </div>
+                    </div>
+                    <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-orange-500 group-hover:text-white transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                     </div>
                 </div>
-            </Link>
+                    </Link>
+                </swiper-slide>
+            </swiper>
         </div>
     </section>
 
-    <section class="mb-20 px-2">
-        <h2
-            class="text-4xl font-black text-gray-900 mb-10 tracking-tighter italic uppercase"
-        >
-            Gợi ý món ngon ✨
-        </h2>
-        <div
-            v-if="products.length > 0"
-            class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-8"
-        >
-            <div
-                v-for="product in products"
-                :key="product.id"
-                @click="openProductModal(product)"
-                class="bg-white rounded-[2.5rem] md:rounded-[3rem] p-4 border border-gray-50 shadow-sm hover:shadow-2xl hover:shadow-orange-200/50 hover:-translate-y-4 transition-all duration-500 cursor-pointer group overflow-hidden"
+    <section class="mb-20 px-4 md:px-6 max-w-[1400px] mx-auto">
+        <div class="flex items-end justify-between mb-10">
+            <div>
+                <p class="text-xs uppercase tracking-[0.35em] text-orange-500 font-black mb-2 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-orange-500 inline-block"></span>
+                    Hôm nay ăn gì
+                </p>
+                <h2 class="text-3xl md:text-5xl font-black text-slate-900 tracking-tight">
+                    Gợi ý món ngon ✨
+                </h2>
+            </div>
+        </div>
+        
+        <div v-if="products.length > 0" class="w-full relative">
+            <swiper
+                :modules="[FreeMode, Pagination]"
+                :slidesPerView="2.2"
+                :spaceBetween="16"
+                :freeMode="true"
+                :pagination="{ clickable: true, dynamicBullets: true }"
+                :breakpoints="{
+                    '640': { slidesPerView: 3.2, spaceBetween: 20 },
+                    '768': { slidesPerView: 4.2, spaceBetween: 24 },
+                    '1024': { slidesPerView: 5.2, spaceBetween: 24 }
+                }"
+                class="pb-12 px-2"
             >
+                <swiper-slide v-for="product in products" :key="product.id" class="h-auto">
+                    <div
+                        @click="openProductModal(product)"
+                        class="h-full bg-white rounded-[2rem] p-3 md:p-4 border border-slate-100 shadow-sm hover:shadow-[0_20px_50px_-12px_rgba(249,115,22,0.25)] hover:-translate-y-2 transition-all duration-500 cursor-pointer group relative overflow-hidden flex flex-col"
+                    >
+                <div class="absolute inset-0 bg-gradient-to-b from-orange-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+                
                 <div
-                    class="relative h-40 md:h-48 rounded-[2rem] overflow-hidden mb-4 shadow-inner group-hover:shadow-lg transition-shadow"
+                    class="relative h-40 md:h-48 rounded-[1.5rem] overflow-hidden mb-4 shadow-sm"
                 >
                     <img
-                        :src="'/storage/' + product.image"
+                        :src="product.image ? (product.image.startsWith('http') ? product.image : '/storage/' + product.image) : '/images/default-food.png'"
                         class="w-full h-full object-cover group-hover:scale-110 transition duration-700"
                     />
-                    <div
-                        class="absolute top-3 right-3 bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1 rounded-full text-[10px] font-black shadow-lg font-sans"
-                    >
-                        {{ Number(product.price).toLocaleString() }}đ
+                    <!-- Price Ribbon -->
+                    <div class="absolute top-3 left-0 bg-slate-900/80 backdrop-blur-md text-white px-4 py-1.5 rounded-r-full text-xs font-black shadow-lg flex items-center gap-1 border-y border-r border-white/20 z-10">
+                        <span class="text-orange-400">🔥</span> {{ Number(product.price).toLocaleString() }}đ
                     </div>
+                    
                     <div
-                        class="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
-                    ></div>
+                        class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end p-4 translate-y-4 group-hover:translate-y-0"
+                    >
+                        <button
+                            @click.stop="handleAddToCart({ product_id: product.id, options: [], quantity: 1, note: '' })"
+                            class="w-full bg-orange-500 text-white font-black text-sm py-2.5 px-4 rounded-xl hover:bg-orange-600 transition-colors shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                        >
+                            <span>Thêm vào giỏ</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        </button>
+                    </div>
                 </div>
-                <h4
-                    class="font-black text-gray-800 text-base md:text-lg italic truncate group-hover:text-orange-500 transition-colors font-sans leading-tight"
-                >
-                    {{ product.name }}
-                </h4>
-                <p
-                    class="text-xs font-bold text-gray-400 uppercase mt-2 flex items-center gap-1 font-sans"
-                >
-                    🏪 {{ product.user?.restaurant_name || product.user?.name }}
-                </p>
-                <button
-                    @click.stop="handleAddToCart({ product_id: product.id, options: [], quantity: 1, note: '' })"
-                    class="mt-3 w-full bg-gradient-to-r from-orange-500 to-red-500 text-white font-black text-sm py-2 px-4 rounded-full hover:from-orange-600 hover:to-red-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
-                >
-                    Đặt hàng ngay 🚀
-                </button>
-            </div>
+                
+                <div class="flex-1 flex flex-col relative z-10">
+                    <h4
+                        class="font-black text-slate-800 text-base md:text-lg truncate group-hover:text-orange-600 transition-colors leading-tight mb-2"
+                    >
+                        {{ product.name }}
+                    </h4>
+                    <p
+                        class="text-[11px] font-bold text-slate-500 uppercase mt-auto flex items-center gap-1.5"
+                    >
+                        <span class="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px]">🏪</span>
+                        <span class="truncate">{{ product.user?.restaurant_name || product.user?.name }}</span>
+                    </p>
+                </div>
+                    </div>
+                </swiper-slide>
+            </swiper>
         </div>
     </section>
 

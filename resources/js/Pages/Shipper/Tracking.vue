@@ -61,6 +61,27 @@
                 </div>
             </section>
 
+            <!-- Wallet Warning Section -->
+            <section
+                v-if="shipper && shipper.wallet_balance < 0"
+                class="mb-6 rounded-[2rem] bg-rose-50 border-2 border-rose-200 p-5 shadow-sm"
+            >
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center shrink-0">
+                        <span class="text-2xl">⚠️</span>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-black text-rose-700 tracking-tight">
+                            Tài khoản đang âm!
+                        </h2>
+                        <p class="text-sm font-medium text-rose-600 mt-1">
+                            Số dư ví của bạn đang là <span class="font-bold">{{ formatCurrency(shipper.wallet_balance) }}</span>. 
+                            Hệ thống đã tạm khóa tính năng nhận đơn mới. Vui lòng nạp tiền vào ví để tiếp tục hoạt động.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
             <!-- Assigned Orders Section (Highlighted) -->
             <section
                 v-if="assignedOrders.length > 0"
@@ -248,9 +269,11 @@
                             </div>
                             <button
                                 @click="showAcceptDialog(order)"
-                                class="mt-4 w-full rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-indigo-700 active:scale-[0.98] shadow-md shadow-indigo-600/20"
+                                :disabled="shipper && shipper.wallet_balance < 0"
+                                :class="shipper && shipper.wallet_balance < 0 ? 'bg-slate-300 cursor-not-allowed text-slate-500' : 'bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-600/20 active:scale-[0.98] text-white'"
+                                class="mt-4 w-full rounded-2xl px-4 py-3 text-sm font-bold transition"
                             >
-                                Nhận đơn
+                                {{ shipper && shipper.wallet_balance < 0 ? 'Tài khoản âm' : 'Nhận đơn' }}
                             </button>
                         </div>
                     </div>
@@ -402,8 +425,8 @@
 </style>
 
 <script setup>
-import { ref, watch, computed, onMounted } from "vue";
-import { Link, router } from "@inertiajs/vue3";
+import { ref, watch, computed, onMounted, onUnmounted } from "vue";
+import { Link, router, usePage } from "@inertiajs/vue3";
 import { useToast } from "vue-toastification";
 import ShipperLayout from "@/Layouts/ShipperLayout.vue";
 import ConfirmDialog from "@/Components/ConfirmDialog.vue";
@@ -430,6 +453,8 @@ const showAssignmentModal = ref(false);
 const dismissedAssignedOrderId = ref(null);
 const hasPlayedAssignmentSound = ref(false);
 const hasAutoCheckedIn = ref(window.shipperHasAutoCheckedIn === true);
+
+const page = usePage();
 
 const authHeaders = {
     Accept: "application/json",
@@ -465,35 +490,75 @@ const fetchDashboard = async () => {
 
 const playNotificationSound = () => {
     try {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        const context = new AudioContext();
-        const oscillator = context.createOscillator();
-        const gain = context.createGain();
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Helper to play a note with a bell-like envelope
+        const playNote = (freq, type, startTime, duration, vol = 0.5) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, startTime);
+            
+            // Envelope (ADSR) for a plucky/bell-like sound
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(vol, startTime + 0.02); // Fast attack
+            gain.gain.exponentialRampToValueAtTime(vol * 0.3, startTime + 0.1); // Decay
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration); // Release
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.start(startTime);
+            osc.stop(startTime + duration);
+        };
 
-        oscillator.type = "sine";
-        oscillator.frequency.setValueAtTime(880, context.currentTime);
-        gain.gain.setValueAtTime(0.12, context.currentTime);
+        const now = audioCtx.currentTime;
+        
+        // Melody sequence: C5 -> F5 -> A5 -> C6 (Upbeat ascending arpeggio)
+        const notes = [
+            { f: 523.25, t: now },         // C5
+            { f: 698.46, t: now + 0.15 },  // F5
+            { f: 880.00, t: now + 0.30 },  // A5
+            { f: 1046.50, t: now + 0.45 }  // C6
+        ];
 
-        oscillator.connect(gain);
-        gain.connect(context.destination);
+        // Play the arpeggio (combining triangle and sine for a richer bell tone)
+        notes.forEach(note => {
+            playNote(note.f, 'triangle', note.t, 0.5, 0.6);
+            playNote(note.f * 2, 'sine', note.t, 0.5, 0.2); // subtle overtone
+        });
 
-        oscillator.start();
-        setTimeout(() => {
-            oscillator.frequency.setValueAtTime(1200, context.currentTime);
-        }, 120);
-        setTimeout(() => {
-            gain.gain.exponentialRampToValueAtTime(
-                0.0001,
-                context.currentTime + 0.2,
-            );
-        }, 220);
-        setTimeout(() => {
-            oscillator.stop();
-            context.close();
-        }, 400);
-    } catch (error) {
-        console.warn("Notification sound unavailable:", error);
+        // The final "Chime" chord (F Major chord) played together at the end
+        const finalTime = now + 0.65;
+        playNote(698.46, 'triangle', finalTime, 1.5, 0.5);  // F5
+        playNote(880.00, 'triangle', finalTime, 1.5, 0.4);  // A5
+        playNote(1046.50, 'triangle', finalTime, 1.5, 0.3); // C6
+        playNote(1396.91, 'sine', finalTime, 1.5, 0.2);     // F6 (sparkle)
+
+    } catch (e) {
+        console.warn("Could not play sound", e);
     }
+};
+
+let alarmInterval = null;
+
+const startAlarm = () => {
+    if (alarmInterval) clearInterval(alarmInterval);
+    const trigger = () => {
+        playNotificationSound();
+        setTimeout(() => {
+            const msg = new SpeechSynthesisUtterance("Có đơn mới, giao ngay thôi");
+            msg.lang = 'vi-VN';
+            window.speechSynthesis.speak(msg);
+        }, 1000);
+    };
+    trigger();
+    alarmInterval = setInterval(trigger, 6000);
+};
+
+const stopAlarm = () => {
+    if (alarmInterval) clearInterval(alarmInterval);
+    window.speechSynthesis.cancel();
 };
 
 const handleNewAssignedOrders = () => {
@@ -517,7 +582,7 @@ const handleNewAssignedOrders = () => {
     newAssignedOrder.value = assignedOrder;
     showAssignmentModal.value = true;
     if (!hasPlayedAssignmentSound.value) {
-        playNotificationSound();
+        startAlarm();
         hasPlayedAssignmentSound.value = true;
     }
 };
@@ -539,6 +604,7 @@ const rejectAssignedOrder = async (orderId) => {
 };
 
 const closeAssignmentModal = async () => {
+    stopAlarm();
     if (selectedOrder.value?.status === "assigned") {
         try {
             await rejectAssignedOrder(selectedOrder.value.id);
@@ -918,6 +984,7 @@ const hideAcceptDialog = () => {
 };
 
 const handleAcceptOrder = async () => {
+    stopAlarm();
     if (!selectedOrder.value) return;
 
     const orderId = selectedOrder.value.id;
@@ -1025,5 +1092,9 @@ onMounted(async () => {
     if (shipper.value.status === "offline" && !hasAutoCheckedIn.value) {
         await autoCheckIn();
     }
+});
+
+onUnmounted(() => {
+    stopAlarm();
 });
 </script>

@@ -694,7 +694,7 @@
 </template>
 <script setup>
 import { computed, ref, onMounted, watch, onUnmounted } from "vue";
-import { Head } from "@inertiajs/vue3";
+import { Head, usePage } from "@inertiajs/vue3";
 import GuestLayout from "@/Layouts/GuestLayout.vue";
 import UserAvatar from "@/Components/UserAvatar.vue";
 import ChatWidget from "@/Components/ChatWidget.vue";
@@ -703,6 +703,8 @@ import "leaflet/dist/leaflet.css";
 import Swal from "sweetalert2";
 
 const props = defineProps({ order: Object });
+
+const page = usePage();
 
 const map = ref(null);
 const orderData = ref(props.order);
@@ -987,7 +989,7 @@ const initMap = () => {
             <div class="absolute inset-0 bg-orange-500 rounded-full animate-ping opacity-20"></div>
             <div class="relative flex items-center justify-center w-12 h-12 bg-orange-500 rounded-full shadow-xl border-2 border-white text-2xl shadow-orange-500/50 z-10">🛵</div>
         </div>`,
-        className: "",
+        className: "transition-transform duration-1000 ease-linear",
         iconSize: [48, 48],
         iconAnchor: [24, 24],
         popupAnchor: [0, -24]
@@ -1022,6 +1024,17 @@ watch(showTrackingMap, (v) => {
 });
 
 onMounted(() => {
+    if (page.props.flash.success) {
+        Swal.fire({
+            title: 'Đặt hàng thành công! 🎉',
+            text: page.props.flash.success,
+            icon: 'success',
+            confirmButtonColor: '#f97316',
+            confirmButtonText: 'Tuyệt vời',
+            customClass: { popup: 'rounded-[2rem]' }
+        });
+    }
+
     if (showTrackingMap.value) setTimeout(initMap, 500);
     // Vẫn giữ fallback polling cho chắc chắn
     if (["shipping", "arrived", "picked_up"].includes(orderData.value.status))
@@ -1038,17 +1051,6 @@ onMounted(() => {
                         updateOrderData(); // Fetch full order if shipper is missing
                     }
                 }
-                
-                // Show a toast when status changes
-                Swal.fire({
-                    title: 'Trạng thái cập nhật',
-                    text: getStatusHeadline(e.order.status),
-                    icon: 'info',
-                    toast: true,
-                    position: 'top-end',
-                    showConfirmButton: false,
-                    timer: 3000
-                });
             })
             .listen('ShipperLocationUpdated', (e) => {
                 console.log('Shipper location updated:', e);

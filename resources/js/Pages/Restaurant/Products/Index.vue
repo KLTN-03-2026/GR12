@@ -103,6 +103,12 @@ const formatPrice = (price) => {
                         >
                             Chờ duyệt
                         </span>
+                        <span
+                            v-if="product.status === 'rejected'"
+                            class="bg-red-600 text-white text-[9px] font-black px-3 py-1.5 rounded-full uppercase shadow-lg"
+                        >
+                            Đã bị từ chối
+                        </span>
                     </div>
 
                     <!-- Hover Actions -->
@@ -142,6 +148,16 @@ const formatPrice = (price) => {
                             </div>
                             <p class="text-orange-600 font-black text-xl whitespace-nowrap bg-orange-50 px-3 py-1.5 rounded-xl border border-orange-100">
                                 {{ formatPrice(product.price) }}
+                            </p>
+                        </div>
+                        
+                        <div v-if="product.status === 'rejected' && product.reject_reason" class="mt-2 bg-red-50 p-2.5 rounded-xl border border-red-100">
+                            <p class="text-[10px] font-black text-red-600 uppercase mb-1 flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                Lý do từ chối:
+                            </p>
+                            <p class="text-xs text-red-700 font-medium leading-tight">
+                                {{ product.reject_reason }}
                             </p>
                         </div>
                     </div>

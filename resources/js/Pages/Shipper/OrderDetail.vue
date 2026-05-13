@@ -367,6 +367,52 @@
                 <div v-if="order.status === 'pending'" class="flex items-center justify-center gap-2 h-[60px] bg-slate-50 rounded-full text-slate-500 font-bold border border-slate-200">
                     <span class="text-xl animate-pulse">⏳</span> Chờ quán xác nhận
                 </div>
+
+                <!-- Báo cáo sự cố Button -->
+                <div v-if="['shipping', 'arrived', 'picked_up'].includes(order.status)" class="mt-4 text-center">
+                    <button @click="showIncidentModal = true" class="text-sm font-bold text-red-400 hover:text-red-500 underline underline-offset-2 transition-colors">
+                        Báo cáo sự cố / Hủy đơn
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Incident Modal -->
+        <div v-if="showIncidentModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+            <div class="bg-white rounded-[2rem] shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate-slide-up">
+                <div class="flex justify-between items-center p-5 border-b border-slate-100">
+                    <h2 class="text-lg font-black text-slate-900">⚠️ Báo cáo sự cố</h2>
+                    <button @click="showIncidentModal = false" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold active:scale-95 transition-all">
+                        ✕
+                    </button>
+                </div>
+                <div class="p-5 overflow-y-auto space-y-4">
+                    <p class="text-sm text-slate-600">Vui lòng chọn lý do hoặc nhập chi tiết sự cố. Đơn hàng sẽ bị hoàn về hệ thống hoặc hủy bỏ tùy theo trạng thái.</p>
+                    
+                    <div class="space-y-2">
+                        <button v-for="reason in predefinedReasons" :key="reason"
+                            @click="incidentReason = reason"
+                            :class="incidentReason === reason ? 'border-red-500 bg-red-50 text-red-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'"
+                            class="w-full text-left px-4 py-3 rounded-xl border font-medium transition-all text-sm"
+                        >
+                            {{ reason }}
+                        </button>
+                    </div>
+
+                    <div class="mt-4">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Chi tiết (tùy chọn)</label>
+                        <textarea v-model="incidentReason" rows="3" placeholder="Nhập lý do cụ thể..." class="w-full rounded-xl border-slate-200 focus:border-red-500 focus:ring focus:ring-red-200 transition-all text-sm"></textarea>
+                    </div>
+                </div>
+                <div class="p-5 border-t border-slate-100 bg-slate-50 flex gap-3">
+                    <button @click="showIncidentModal = false" class="flex-1 py-3.5 rounded-xl font-bold text-slate-600 bg-white border border-slate-200 active:scale-95 transition-transform">
+                        Đóng
+                    </button>
+                    <button @click="submitIncident" :disabled="!incidentReason || isSubmittingIncident" class="flex-1 py-3.5 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2">
+                        <span v-if="isSubmittingIncident" class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                        Xác nhận
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -524,6 +570,18 @@ const showCustomerMap = ref(false);
 const showRestaurantMap = ref(false);
 const customerMapInstance = ref(null);
 const restaurantMapInstance = ref(null);
+
+// Incident state
+const showIncidentModal = ref(false);
+const incidentReason = ref("");
+const isSubmittingIncident = ref(false);
+const predefinedReasons = [
+    "Xe hỏng / Tai nạn",
+    "Quán đóng cửa / Hết món",
+    "Khách không nghe máy / Bom hàng",
+    "Kẹt xe / Thời tiết xấu",
+    "Khác"
+];
 
 // Action state
 const isLoading = ref(false);
@@ -798,6 +856,51 @@ const arriveAtRestaurant = async () => {
     }
 };
 
+const submitIncident = async () => {
+    if (!incidentReason.value) return;
+    
+    try {
+        isSubmittingIncident.value = true;
+        const response = await csrfFetch(
+            `/api/shipper/orders/${order.value.id}/report-incident`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                body: JSON.stringify({ reason: incidentReason.value })
+            }
+        );
+        
+        if (response.ok) {
+            const data = await response.json();
+            showToast("success", data.message || "Báo cáo thành công");
+            showIncidentModal.value = false;
+            
+            // Cập nhật giao diện cục bộ (hoặc chuyển hướng)
+            if (data.message.includes('Hủy đơn')) {
+                order.value.status = 'cancelled';
+            } else {
+                order.value.status = 'confirmed';
+            }
+            
+            // Chuyển hướng về Dashboard sau 1s
+            setTimeout(() => {
+                router.visit('/shipper/dashboard');
+            }, 1000);
+        } else {
+            const error = await response.json();
+            throw new Error(error?.error || "Không thể báo cáo sự cố.");
+        }
+    } catch (error) {
+        console.error("Error reporting incident:", error);
+        showToast("error", error.message || "❌ Có lỗi khi báo cáo sự cố");
+    } finally {
+        isSubmittingIncident.value = false;
+    }
+};
+
 const confirmPickup = async () => {
     try {
         isLoading.value = true;
@@ -951,69 +1054,3 @@ const completeOrder = async () => {
     }
 };
 </script>
-
-<style scoped>
-/* Mobile-optimized toast styles */
-@media (max-width: 768px) {
-    .mobile-toast {
-        margin: 0 8px !important;
-        border-radius: 12px !important;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important;
-        backdrop-filter: blur(10px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    }
-
-    .mobile-toast-body {
-        font-size: 16px !important;
-        line-height: 1.5 !important;
-        padding: 16px !important;
-        font-weight: 500 !important;
-    }
-
-    .mobile-toast-progress {
-        height: 3px !important;
-        border-radius: 0 0 12px 12px !important;
-    }
-
-    /* Toast container positioning for mobile */
-    .Vue-Toastification__container--bottom-center {
-        bottom: 20px !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        width: calc(100vw - 32px) !important;
-        max-width: 400px !important;
-    }
-
-    /* Success toast styling */
-    .Vue-Toastification__toast--success {
-        background: linear-gradient(135deg, #10b981, #059669) !important;
-        color: white !important;
-    }
-
-    /* Error toast styling */
-    .Vue-Toastification__toast--error {
-        background: linear-gradient(135deg, #ef4444, #dc2626) !important;
-        color: white !important;
-    }
-
-    /* Warning toast styling */
-    .Vue-Toastification__toast--warning {
-        background: linear-gradient(135deg, #f59e0b, #d97706) !important;
-        color: white !important;
-    }
-
-    /* Info toast styling */
-    .Vue-Toastification__toast--info {
-        background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
-        color: white !important;
-    }
-}
-
-/* Desktop toast styles for consistency */
-@media (min-width: 769px) {
-    .Vue-Toastification__toast {
-        border-radius: 8px !important;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
-    }
-}
-</style>

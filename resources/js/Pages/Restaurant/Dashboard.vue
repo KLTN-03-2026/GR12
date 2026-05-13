@@ -179,6 +179,52 @@ defineOptions({ layout: RestaurantLayout });
             </div>
         </div>
 
+        <!-- 7-Day Revenue Chart Section -->
+        <div class="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden group">
+            <div class="flex items-center justify-between mb-8 relative z-10">
+                <div>
+                    <h3 class="text-xl font-black text-slate-900 tracking-tight">Doanh thu 7 ngày qua</h3>
+                    <p class="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Hiệu suất kinh doanh</p>
+                </div>
+                <div class="p-3 bg-orange-50 rounded-xl text-orange-500">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+                </div>
+            </div>
+
+            <!-- CSS Bar Chart -->
+            <div class="flex items-end justify-between h-48 gap-2 md:gap-4 relative z-10">
+                <template v-if="stats.chart_data && stats.chart_data.length > 0">
+                    <div 
+                        v-for="(item, index) in stats.chart_data" 
+                        :key="index"
+                        class="flex flex-col items-center flex-1 group/bar cursor-pointer"
+                    >
+                        <div class="relative w-full flex justify-center h-40 items-end">
+                            <!-- Tooltip -->
+                            <div class="absolute -top-10 opacity-0 group-hover/bar:opacity-100 group-hover/bar:-top-12 transition-all duration-300 pointer-events-none z-20">
+                                <div class="bg-slate-900 text-white text-xs font-black py-1.5 px-3 rounded-lg shadow-xl whitespace-nowrap">
+                                    {{ new Intl.NumberFormat('vi-VN').format(item.revenue) }}đ
+                                </div>
+                                <div class="w-2 h-2 bg-slate-900 transform rotate-45 mx-auto -mt-1"></div>
+                            </div>
+
+                            <!-- Bar -->
+                            <div 
+                                class="w-full max-w-[48px] bg-gradient-to-t from-orange-100 to-orange-200 rounded-t-xl group-hover/bar:from-orange-400 group-hover/bar:to-orange-500 transition-all duration-500 shadow-sm"
+                                :style="{ height: `${Math.max((item.revenue / Math.max(...stats.chart_data.map(d => d.revenue || 1))) * 100, 5)}%` }"
+                            ></div>
+                        </div>
+                        <span class="text-[10px] font-black text-slate-400 mt-3">{{ item.date }}</span>
+                    </div>
+                </template>
+                <div v-else class="w-full h-full flex items-center justify-center">
+                    <p class="text-sm font-bold text-slate-400 italic">Chưa có dữ liệu</p>
+                </div>
+            </div>
+            
+            <div class="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-orange-50/50 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-1000 z-0"></div>
+        </div>
+
         <div
             class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-[3rem] p-8 md:p-12 text-white relative overflow-hidden shadow-2xl shadow-slate-900/20 group"
         >

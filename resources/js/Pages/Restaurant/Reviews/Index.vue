@@ -16,6 +16,28 @@ const averageRatingLabel = computed(() => {
     }
     return `${props.averageRating} / 5`;
 });
+
+import { useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
+
+const replyingTo = ref(null);
+const replyForm = useForm({
+    restaurant_reply: ''
+});
+
+const openReply = (review) => {
+    replyingTo.value = review.id;
+    replyForm.restaurant_reply = review.restaurant_reply || '';
+};
+
+const submitReply = (reviewId) => {
+    replyForm.post(route('restaurant.reviews.reply', reviewId), {
+        preserveScroll: true,
+        onSuccess: () => {
+            replyingTo.value = null;
+        }
+    });
+};
 </script>
 
 <template>
@@ -102,6 +124,45 @@ const averageRatingLabel = computed(() => {
                             class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         />
                     </div>
+                </div>
+
+                <!-- Reply Section -->
+                <div class="mt-6 pt-5 border-t border-slate-100">
+                    <div v-if="review.restaurant_reply && replyingTo !== review.id" class="bg-orange-50/50 p-4 rounded-2xl border border-orange-100">
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-[10px] font-black text-orange-600 uppercase tracking-widest flex items-center gap-1.5">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
+                                Quán phản hồi
+                            </p>
+                            <button @click="openReply(review)" class="text-[10px] text-slate-400 font-bold hover:text-orange-500 transition-colors">
+                                Chỉnh sửa
+                            </button>
+                        </div>
+                        <p class="text-sm text-slate-700 font-medium">
+                            {{ review.restaurant_reply }}
+                        </p>
+                    </div>
+
+                    <div v-else-if="replyingTo === review.id" class="animate-fade-in-up">
+                        <textarea 
+                            v-model="replyForm.restaurant_reply" 
+                            class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-orange-200 focus:border-orange-400 transition-all mb-3 resize-none"
+                            rows="3"
+                            placeholder="Nhập nội dung phản hồi của quán..."
+                        ></textarea>
+                        <div class="flex items-center justify-end gap-3">
+                            <button @click="replyingTo = null" class="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-50 rounded-xl transition-colors">Hủy</button>
+                            <button @click="submitReply(review.id)" :disabled="replyForm.processing" class="px-5 py-2.5 bg-slate-900 text-white text-xs font-black rounded-xl hover:bg-slate-800 transition-all disabled:opacity-50 flex items-center gap-2">
+                                <svg v-if="replyForm.processing" class="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                Gửi Phản Hồi
+                            </button>
+                        </div>
+                    </div>
+
+                    <button v-else @click="openReply(review)" class="text-xs font-bold text-slate-500 hover:text-orange-600 transition-colors flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
+                        Phản hồi khách hàng
+                    </button>
                 </div>
             </div>
         </div>

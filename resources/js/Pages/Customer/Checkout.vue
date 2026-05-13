@@ -12,6 +12,7 @@ const props = defineProps({
     user: Object,
     vouchers: Array,
     restaurant: Object,
+    settings: Object,
 });
 
 const localCartItems = ref([...(props.cartItems || [])]);
@@ -284,11 +285,14 @@ const subtotal = computed(() => {
 });
 
 const shippingFee = computed(() => {
-    if (!distance.value) return 15000; // Fallback 15k nếu không có distance
+    const baseFee = Number(props.settings?.base_shipping_fee) || 15000;
+    const baseRadius = Number(props.settings?.base_radius_km) || 2;
+    const extraFee = Number(props.settings?.extra_shipping_fee_per_km) || 3000;
 
-    // Tính phí giao: 15k cơ bản + 3k/km từ km thứ 3
-    const baseFee = 15000;
-    const additionalFee = Math.max(0, distance.value - 2) * 3000;
+    if (!distance.value) return baseFee; // Fallback nếu không có distance
+
+    // Tính phí giao: Phí cơ bản + Phí cộng thêm mỗi km vượt mức
+    const additionalFee = Math.max(0, distance.value - baseRadius) * extraFee;
     return baseFee + additionalFee;
 });
 
@@ -477,576 +481,384 @@ onMounted(() => {
 <template>
     <Head title="Thanh toán - FoodXpress" />
 
-    <div
-        class="min-h-screen bg-gradient-to-br from-orange-50 via-white to-pink-50 py-12"
-    >
-        <div class="max-w-6xl mx-auto px-4">
+    <div class="min-h-screen bg-[#f8fafc] py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div v-if="cartItems && cartItems.length > 0">
-                <h1
-                    class="text-4xl font-black text-gray-900 mb-10 tracking-tighter italic bg-gradient-to-r from-orange-600 to-pink-600 bg-clip-text text-transparent animate-pulse"
-                >
-                    Xác nhận đơn hàng 🚀
-                </h1>
+                <div class="flex items-center gap-3 mb-8">
+                    <span class="text-3xl">🔒</span>
+                    <h1 class="text-3xl font-black text-gray-900 tracking-tight">Thanh toán an toàn</h1>
+                </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div class="lg:col-span-2 space-y-6">
-                        <!-- Thông tin quán ăn -->
-                        <div
-                            class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-[2.5rem] p-8 shadow-lg border border-blue-200"
-                        >
-                            <h3
-                                class="text-xl font-black text-blue-900 mb-6 flex items-center gap-3"
-                            >
-                                <span class="text-3xl">🏪</span>
-                                <span>Thông tin quán ăn</span>
-                            </h3>
-                            <div v-if="props.restaurant" class="space-y-4">
-                                <div class="flex items-start gap-3">
-                                    <span class="text-2xl">🏘️</span>
-                                    <div class="flex-1">
-                                        <p
-                                            class="text-xs font-black text-blue-600 uppercase tracking-widest mb-1"
-                                        >
-                                            Địa chỉ quán
-                                        </p>
-                                        <p class="font-bold text-gray-800">
-                                            {{
-                                                props.restaurant
-                                                    .restaurant_name ||
-                                                props.restaurant.name
-                                            }}
-                                        </p>
-                                        <p class="text-sm text-gray-600 mt-1">
-                                            {{ props.restaurant.address }}
-                                        </p>
-                                    </div>
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
+                    <!-- Left Column: Forms -->
+                    <div class="lg:col-span-8 space-y-6">
+                        
+                        <!-- 1. Restaurant Info -->
+                        <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100 transition-shadow hover:shadow-md">
+                            <div class="flex items-start gap-4">
+                                <div class="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center shrink-0 border border-orange-100">
+                                    <span class="text-2xl">🏪</span>
                                 </div>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div
-                                        v-if="distance"
-                                        class="bg-white rounded-2xl p-4 border border-blue-200"
-                                    >
-                                        <p
-                                            class="text-xs font-black text-blue-600 uppercase tracking-widest mb-2"
-                                        >
-                                            📏 Khoảng cách
-                                        </p>
-                                        <p
-                                            class="text-2xl font-black text-blue-900"
-                                        >
-                                            {{ distance.toFixed(1) }} km
-                                        </p>
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <h3 class="text-lg font-black text-gray-900">Thông tin quán ăn</h3>
+                                        <span class="text-[10px] font-black uppercase text-orange-600 bg-orange-50 px-2 py-1 rounded-full tracking-widest">Chi nhánh chính</span>
                                     </div>
-                                    <div
-                                        v-if="estimatedDeliveryTime"
-                                        class="bg-white rounded-2xl p-4 border border-blue-200"
-                                    >
-                                        <p
-                                            class="text-xs font-black text-blue-600 uppercase tracking-widest mb-2"
-                                        >
-                                            ⏱️ Thời gian giao
-                                        </p>
-                                        <p
-                                            class="text-2xl font-black text-blue-900"
-                                        >
-                                            {{ estimatedDeliveryTime }} phút
-                                        </p>
+                                    <div v-if="props.restaurant" class="mt-3 bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                                        <p class="font-bold text-gray-800 text-base mb-1">{{ props.restaurant.restaurant_name || props.restaurant.name }}</p>
+                                        <p class="text-sm text-gray-500 mb-4">{{ props.restaurant.address }}</p>
+                                        <div class="flex gap-6">
+                                            <div v-if="distance" class="flex flex-col">
+                                                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Khoảng cách</span>
+                                                <span class="font-black text-gray-800">{{ distance.toFixed(1) }} km</span>
+                                            </div>
+                                            <div v-if="estimatedDeliveryTime" class="flex flex-col">
+                                                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Thời gian giao</span>
+                                                <span class="font-black text-gray-800">{{ estimatedDeliveryTime }} phút</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div
-                            class="bg-gradient-to-br from-white to-gray-50 rounded-[2.5rem] p-8 shadow-xl border border-gray-200 hover:shadow-2xl transition-all duration-300"
-                        >
-                            <h3
-                                class="text-xl font-black text-gray-800 mb-6 flex items-center gap-3"
-                            >
-                                <span
-                                    class="w-10 h-10 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-xl flex items-center justify-center text-sm font-black shadow-lg"
-                                    >01</span
-                                >
-                                <span
-                                    class="bg-gradient-to-r from-gray-700 to-gray-900 bg-clip-text text-transparent"
-                                    >Thông tin nhận hàng</span
-                                >
-                            </h3>
+                        <!-- 2. Shipping Address -->
+                        <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100 transition-shadow hover:shadow-md">
+                            <div class="flex items-center gap-3 mb-6">
+                                <div class="w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center font-black text-sm">1</div>
+                                <h3 class="text-xl font-black text-gray-900">Thông tin nhận hàng</h3>
+                            </div>
 
-                            <div class="grid grid-cols-1 gap-6">
+                            <div class="space-y-6 pl-0 sm:pl-11">
+                                <!-- Address Input -->
                                 <div>
-                                    <label
-                                        class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4 mb-2 block"
-                                        >Địa chỉ giao hàng *</label
-                                    >
-                                    <input
-                                        v-model="form.address"
-                                        type="text"
-                                        placeholder="Nhập địa chỉ tại Đà Nẵng để tự động định vị..."
-                                        :class="{
-                                            'ring-2 ring-red-500 bg-red-50':
-                                                form.errors.address,
-                                        }"
-                                        class="w-full bg-gradient-to-r from-gray-50 to-gray-100 border-none rounded-2xl p-4 focus:ring-4 focus:ring-orange-200 transition-all duration-300 font-bold text-gray-800 shadow-inner hover:shadow-lg transform hover:scale-[1.01]"
-                                    />
-                                    <p
-                                        v-if="form.errors.address"
-                                        class="text-red-500 text-xs mt-2 ml-4 font-bold"
-                                    >
-                                        {{ form.errors.address }}
-                                    </p>
-
-                                    <div class="flex flex-col gap-3 mt-4">
-                                        <div class="flex flex-wrap gap-3">
-                                            <button
-                                                type="button"
-                                                @click="getCurrentLocation"
-                                                :disabled="isFetchingLocation"
-                                                class="flex-1 inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white border border-blue-300 rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-widest transition-all duration-300 hover:from-blue-600 hover:to-blue-700 hover:shadow-lg disabled:opacity-50 transform hover:scale-105 active:scale-95"
-                                            >
-                                                📍 Lấy vị trí
-                                            </button>
-                                            <button
-                                                type="button"
-                                                @click="openMapModal"
-                                                class="flex-1 inline-flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-widest transition-all duration-300 hover:from-emerald-600 hover:to-emerald-700 hover:shadow-lg transform hover:scale-105 active:scale-95"
-                                            >
-                                                🗺️ Chọn trên bản đồ
-                                            </button>
-                                            <button
-                                                type="button"
-                                                @click="addSavedAddress"
-                                                class="flex-1 inline-flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-widest transition-all duration-300 hover:from-orange-600 hover:to-pink-600 hover:shadow-lg transform hover:scale-105 active:scale-95"
-                                            >
-                                                💾 Lưu địa chỉ này
-                                            </button>
-                                        </div>
-                                        <p
-                                            v-if="geoStatus"
-                                            class="text-xs text-gray-500"
-                                        >
-                                            {{ geoStatus }}
-                                        </p>
+                                    <label class="text-xs font-black text-gray-700 uppercase tracking-widest mb-2 block">Địa chỉ giao hàng <span class="text-red-500">*</span></label>
+                                    <div class="relative">
+                                        <input
+                                            v-model="form.address"
+                                            type="text"
+                                            placeholder="Nhập địa chỉ của bạn..."
+                                            :class="{'ring-2 ring-red-500 bg-red-50': form.errors.address, 'focus:ring-2 focus:ring-orange-500 focus:bg-white bg-gray-50 border-gray-200': !form.errors.address}"
+                                            class="w-full rounded-2xl p-4 pl-12 transition-all duration-200 font-medium text-gray-800 border"
+                                        />
+                                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">📍</span>
                                     </div>
+                                    <p v-if="form.errors.address" class="text-red-500 text-xs mt-2 font-bold">{{ form.errors.address }}</p>
 
-                                    <div
-                                        v-if="savedAddresses.length"
-                                        class="bg-gradient-to-br from-gray-50 to-white rounded-[2rem] border border-gray-200 p-4 mt-4 shadow-inner"
-                                    >
-                                        <div
-                                            class="flex items-center justify-between mb-4"
-                                        >
-                                            <p
-                                                class="text-xs font-black uppercase tracking-[0.2em] text-gray-500"
-                                            >
-                                                📍 Địa chỉ đã lưu
-                                            </p>
-                                            <span
-                                                class="text-[10px] font-black uppercase text-orange-500 bg-orange-100 px-2 py-1 rounded-full"
-                                            >
-                                                Chọn nhanh
-                                            </span>
-                                        </div>
-                                        <div class="space-y-3">
-                                            <div
-                                                v-for="(
-                                                    address, index
-                                                ) in savedAddresses"
-                                                :key="address"
-                                                class="flex items-start justify-between gap-3 p-4 rounded-3xl border border-gray-200 bg-white hover:border-orange-300 hover:shadow-md transition-all duration-300 group"
-                                            >
-                                                <button
-                                                    type="button"
-                                                    @click="
-                                                        selectSavedAddress(
-                                                            index,
-                                                        )
-                                                    "
-                                                    class="text-left flex-1"
-                                                >
-                                                    <p
-                                                        class="font-black text-sm text-gray-800 leading-tight group-hover:text-orange-600 transition-colors"
-                                                    >
-                                                        {{ address }}
-                                                    </p>
-                                                    <p
-                                                        class="text-[10px] text-gray-500 uppercase tracking-[0.2em] mt-1"
-                                                    >
-                                                        {{
-                                                            selectedSavedAddressIndex ===
-                                                            index
-                                                                ? "✅ Đã chọn"
-                                                                : "👆 Chọn địa chỉ"
-                                                        }}
-                                                    </p>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    @click="
-                                                        removeSavedAddress(
-                                                            index,
-                                                        )
-                                                    "
-                                                    class="text-[10px] font-black uppercase tracking-[0.2em] text-red-500 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all duration-300 transform hover:scale-110"
-                                                >
-                                                    🗑️ Xóa
-                                                </button>
+                                    <!-- Quick Actions -->
+                                    <div class="flex flex-wrap items-center gap-3 mt-3">
+                                        <button type="button" @click="getCurrentLocation" :disabled="isFetchingLocation" class="text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-xl transition-colors flex items-center gap-1.5 disabled:opacity-50">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                            Vị trí hiện tại
+                                        </button>
+                                        <button type="button" @click="openMapModal" class="text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-xl transition-colors flex items-center gap-1.5">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+                                            Bản đồ
+                                        </button>
+                                        <button type="button" @click="addSavedAddress" class="text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 px-3 py-2 rounded-xl transition-colors ml-auto flex items-center gap-1.5">
+                                            Lưu địa chỉ
+                                        </button>
+                                    </div>
+                                    <p v-if="geoStatus" class="text-[10px] text-gray-500 mt-2 italic">{{ geoStatus }}</p>
+                                </div>
+
+                                <!-- Saved Addresses -->
+                                <div v-if="savedAddresses.length > 0" class="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                                    <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">Sổ địa chỉ</p>
+                                    <div class="space-y-2">
+                                        <div v-for="(addr, idx) in savedAddresses" :key="addr" class="flex items-center justify-between bg-white p-3 rounded-xl border border-gray-200 hover:border-orange-300 transition-colors cursor-pointer group" @click="selectSavedAddress(idx)">
+                                            <div class="flex items-center gap-3 overflow-hidden">
+                                                <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0" :class="selectedSavedAddressIndex === idx ? 'border-orange-500' : 'border-gray-300'">
+                                                    <div v-if="selectedSavedAddressIndex === idx" class="w-2 h-2 bg-orange-500 rounded-full"></div>
+                                                </div>
+                                                <span class="text-sm font-medium text-gray-700 truncate group-hover:text-orange-600 transition-colors">{{ addr }}</span>
                                             </div>
+                                            <button @click.stop="removeSavedAddress(idx)" class="text-gray-400 hover:text-red-500 p-1 rounded-md transition-colors opacity-0 group-hover:opacity-100">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div
-                                    class="grid grid-cols-1 md:grid-cols-2 gap-6"
-                                >
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <!-- Phone -->
                                     <div>
-                                        <label
-                                            class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4 mb-2 block"
-                                            >Số điện thoại *</label
-                                        >
-                                        <input
-                                            v-model="form.phone"
-                                            type="text"
-                                            :class="{
-                                                'ring-2 ring-red-500 bg-red-50':
-                                                    form.errors.phone,
-                                            }"
-                                            class="w-full bg-gradient-to-r from-gray-50 to-gray-100 border-none rounded-2xl p-4 focus:ring-4 focus:ring-orange-200 transition-all duration-300 font-bold text-gray-800 shadow-inner hover:shadow-lg transform hover:scale-[1.01]"
-                                        />
-                                        <p
-                                            v-if="form.errors.phone"
-                                            class="text-red-500 text-xs mt-2 ml-4 font-bold"
-                                        >
-                                            {{ form.errors.phone }}
-                                        </p>
+                                        <label class="text-xs font-black text-gray-700 uppercase tracking-widest mb-2 block">Số điện thoại <span class="text-red-500">*</span></label>
+                                        <div class="relative">
+                                            <input
+                                                v-model="form.phone"
+                                                type="tel"
+                                                placeholder="09..."
+                                                :class="{'ring-2 ring-red-500 bg-red-50': form.errors.phone, 'focus:ring-2 focus:ring-orange-500 focus:bg-white bg-gray-50 border-gray-200': !form.errors.phone}"
+                                                class="w-full rounded-2xl p-4 pl-12 transition-all duration-200 font-medium text-gray-800 border"
+                                            />
+                                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">📞</span>
+                                        </div>
+                                        <p v-if="form.errors.phone" class="text-red-500 text-xs mt-2 font-bold">{{ form.errors.phone }}</p>
                                     </div>
-                                    <div class="md:col-span-2 mt-4">
-                                        <label
-                                            class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4 mb-2 flex items-center gap-2"
-                                            ><span>📝</span> Ghi chú đơn hàng (Tùy chọn)</label
-                                        >
+                                    
+                                    <!-- Note -->
+                                    <div>
+                                        <label class="text-xs font-black text-gray-700 uppercase tracking-widest mb-2 flex items-center justify-between">
+                                            <span>Ghi chú</span>
+                                            <span class="text-[10px] text-gray-400 normal-case tracking-normal">Tùy chọn</span>
+                                        </label>
                                         <textarea
                                             v-model="form.note"
-                                            rows="3"
-                                            placeholder="Ví dụ: Cổng sau, đừng bấm chuông, cho thêm nhiều tương ớt..."
-                                            class="w-full bg-gradient-to-r from-gray-50 to-gray-100 border-none rounded-2xl p-4 focus:ring-4 focus:ring-orange-200 transition-all duration-300 font-bold text-gray-800 shadow-inner hover:shadow-lg resize-none"
+                                            rows="1"
+                                            placeholder="Đừng bấm chuông..."
+                                            class="w-full rounded-2xl p-4 bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all duration-200 font-medium text-gray-800 resize-none h-[58px]"
                                         ></textarea>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Bản đồ đã được chuyển vào Modal ẩn -->
+                        <!-- 3. Payment & Tip -->
+                        <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100 transition-shadow hover:shadow-md">
+                            <div class="flex items-center gap-3 mb-6">
+                                <div class="w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center font-black text-sm">2</div>
+                                <h3 class="text-xl font-black text-gray-900">Thanh toán & Tip</h3>
+                            </div>
 
-                        <div
-                            class="bg-gradient-to-br from-white to-gray-50 rounded-[2.5rem] p-8 shadow-xl border border-gray-200 hover:shadow-2xl transition-all duration-300"
-                        >
-                            <h3
-                                class="text-xl font-black text-gray-800 mb-6 flex items-center gap-3"
-                            >
-                                <span
-                                    class="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl flex items-center justify-center text-sm font-black shadow-lg"
-                                    >02</span
-                                >
-                                <span
-                                    class="bg-gradient-to-r from-gray-700 to-gray-900 bg-clip-text text-transparent"
-                                    >💳 Thanh toán & Tip</span
-                                >
-                            </h3>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <!-- Cột Thanh toán -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 pl-0 sm:pl-11">
+                                <!-- Payment Methods -->
                                 <div>
-                                    <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Phương thức thanh toán</h4>
+                                    <label class="text-xs font-black text-gray-700 uppercase tracking-widest mb-3 block">Phương thức thanh toán</label>
                                     <div class="space-y-3">
-                                        <div
-                                            @click="form.payment_method = 'cod'"
-                                            :class="
-                                                form.payment_method === 'cod'
-                                                    ? 'border-orange-400 bg-gradient-to-r from-orange-50 to-pink-50 shadow-lg scale-[1.02]'
-                                                    : 'border-gray-200 hover:border-orange-300 hover:shadow-md'
-                                            "
-                                            class="cursor-pointer border-2 p-4 rounded-2xl flex items-center gap-4 transition-all duration-300 group"
+                                        <!-- Tiền mặt -->
+                                        <label 
+                                            class="flex items-center p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 group"
+                                            :class="form.payment_method === 'cod' ? 'border-orange-500 bg-orange-50' : 'border-gray-100 hover:border-gray-300 bg-white'"
                                         >
-                                            <div
-                                                class="w-10 h-10 bg-gradient-to-r from-green-400 to-green-500 rounded-xl shadow-md flex items-center justify-center text-xl group-hover:scale-110 transition-transform"
-                                            >
-                                                💵
+                                            <input type="radio" v-model="form.payment_method" value="cod" class="hidden">
+                                            <div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xl mr-4 shrink-0">💵</div>
+                                            <div class="flex-1">
+                                                <p class="font-bold text-gray-900">Tiền mặt</p>
+                                                <p class="text-xs text-gray-500">Thanh toán khi nhận hàng</p>
                                             </div>
-                                            <span class="font-black text-sm text-gray-700 uppercase tracking-tight group-hover:text-orange-600 transition-colors"
-                                                >Tiền mặt</span
-                                            >
-                                        </div>
-                                        <div
-                                            @click="form.payment_method = 'vnpay'"
-                                            :class="
-                                                form.payment_method === 'vnpay'
-                                                    ? 'border-blue-400 bg-gradient-to-r from-blue-50 to-blue-50 shadow-lg scale-[1.02]'
-                                                    : 'border-gray-200 hover:border-blue-300 hover:shadow-md'
-                                            "
-                                            class="cursor-pointer border-2 p-4 rounded-2xl flex items-center gap-4 transition-all duration-300 group"
+                                            <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center" :class="form.payment_method === 'cod' ? 'border-orange-500 bg-orange-500' : 'border-gray-300'">
+                                                <svg v-if="form.payment_method === 'cod'" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                                            </div>
+                                        </label>
+
+                                        <!-- VNPay -->
+                                        <label 
+                                            class="flex items-center p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 group"
+                                            :class="form.payment_method === 'vnpay' ? 'border-blue-500 bg-blue-50' : 'border-gray-100 hover:border-gray-300 bg-white'"
                                         >
-                                            <div
-                                                class="w-10 h-10 bg-gradient-to-r from-blue-400 to-blue-500 rounded-xl shadow-md flex items-center justify-center text-xl group-hover:scale-110 transition-transform"
-                                            >
-                                                💳
+                                            <input type="radio" v-model="form.payment_method" value="vnpay" class="hidden">
+                                            <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl mr-4 shrink-0">💳</div>
+                                            <div class="flex-1">
+                                                <p class="font-bold text-gray-900">VNPay</p>
+                                                <p class="text-xs text-gray-500">Ví điện tử, thẻ ATM/Visa</p>
                                             </div>
-                                            <span class="font-black text-sm text-gray-700 uppercase tracking-tight group-hover:text-blue-600 transition-colors"
-                                                >VNPay</span
-                                            >
-                                        </div>
+                                            <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center" :class="form.payment_method === 'vnpay' ? 'border-blue-500 bg-blue-500' : 'border-gray-300'">
+                                                <svg v-if="form.payment_method === 'vnpay'" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                                            </div>
+                                        </label>
+
+                                        <!-- Ví FoodXpress -->
+                                        <label 
+                                            class="flex items-center p-4 rounded-2xl border-2 transition-all duration-200 group relative overflow-hidden"
+                                            :class="[
+                                                user.wallet_balance >= total 
+                                                    ? (form.payment_method === 'wallet' ? 'border-orange-500 bg-orange-50 cursor-pointer' : 'border-gray-100 hover:border-gray-300 bg-white cursor-pointer') 
+                                                    : 'border-gray-100 bg-gray-50 opacity-70 cursor-not-allowed'
+                                            ]"
+                                        >
+                                            <input type="radio" v-model="form.payment_method" value="wallet" class="hidden" :disabled="user.wallet_balance < total">
+                                            <div class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-xl mr-4 shrink-0">👛</div>
+                                            <div class="flex-1">
+                                                <p class="font-bold text-gray-900 flex items-center gap-2">
+                                                    Ví FoodXpress 
+                                                    <span class="text-[10px] font-black uppercase text-white bg-orange-500 px-2 py-0.5 rounded-full">Mượt mà</span>
+                                                </p>
+                                                <p class="text-xs font-medium" :class="user.wallet_balance >= total ? 'text-gray-500' : 'text-red-500'">
+                                                    Số dư: {{ formatPrice(user.wallet_balance || 0) }}
+                                                    <span v-if="user.wallet_balance < total"> (Không đủ)</span>
+                                                </p>
+                                            </div>
+                                            <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center" :class="form.payment_method === 'wallet' ? 'border-orange-500 bg-orange-500' : 'border-gray-300'">
+                                                <svg v-if="form.payment_method === 'wallet'" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                                            </div>
+                                            <a v-if="user.wallet_balance < total" href="/wallet" class="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <span class="text-sm font-bold text-orange-600 underline">Nạp tiền vào ví</span>
+                                            </a>
+                                        </label>
                                     </div>
-                                    
-                                    <!-- VNPay Options -->
-                                    <div v-if="form.payment_method === 'vnpay'" class="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-100 transition-all duration-300 animate-fade-in">
+
+                                    <!-- VNPay Sub-options -->
+                                    <div v-if="form.payment_method === 'vnpay'" class="mt-3 p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                                        <p class="text-[10px] font-black uppercase text-blue-800 mb-2">Chọn cổng thanh toán VNPay</p>
                                         <div class="grid grid-cols-3 gap-2">
-                                            <label class="flex flex-col items-center justify-center p-2 rounded-xl border-2 cursor-pointer transition-all bg-white"
-                                                :class="form.vnpay_bank_code === '' ? 'border-blue-500 shadow-md scale-105' : 'border-transparent hover:border-blue-200'">
+                                            <label class="flex flex-col items-center justify-center py-2 px-1 rounded-xl border border-transparent cursor-pointer transition-all bg-white"
+                                                :class="form.vnpay_bank_code === '' ? 'ring-2 ring-blue-500 shadow-sm' : 'hover:border-blue-200'">
                                                 <input type="radio" v-model="form.vnpay_bank_code" value="" class="hidden">
-                                                <span class="text-xl mb-1">📱</span>
-                                                <span class="text-[9px] font-bold text-gray-700 text-center">Cổng QR</span>
+                                                <span class="text-lg mb-0.5">📱</span>
+                                                <span class="text-[10px] font-bold text-gray-700 text-center">Cổng QR</span>
                                             </label>
-                                            <label class="flex flex-col items-center justify-center p-2 rounded-xl border-2 cursor-pointer transition-all bg-white"
-                                                :class="form.vnpay_bank_code === 'VNBANK' ? 'border-blue-500 shadow-md scale-105' : 'border-transparent hover:border-blue-200'">
+                                            <label class="flex flex-col items-center justify-center py-2 px-1 rounded-xl border border-transparent cursor-pointer transition-all bg-white"
+                                                :class="form.vnpay_bank_code === 'VNBANK' ? 'ring-2 ring-blue-500 shadow-sm' : 'hover:border-blue-200'">
                                                 <input type="radio" v-model="form.vnpay_bank_code" value="VNBANK" class="hidden">
-                                                <span class="text-xl mb-1">🏧</span>
-                                                <span class="text-[9px] font-bold text-gray-700 text-center">ATM Nội địa</span>
+                                                <span class="text-lg mb-0.5">🏧</span>
+                                                <span class="text-[10px] font-bold text-gray-700 text-center">ATM Nội địa</span>
                                             </label>
-                                            <label class="flex flex-col items-center justify-center p-2 rounded-xl border-2 cursor-pointer transition-all bg-white"
-                                                :class="form.vnpay_bank_code === 'INTCARD' ? 'border-blue-500 shadow-md scale-105' : 'border-transparent hover:border-blue-200'">
+                                            <label class="flex flex-col items-center justify-center py-2 px-1 rounded-xl border border-transparent cursor-pointer transition-all bg-white"
+                                                :class="form.vnpay_bank_code === 'INTCARD' ? 'ring-2 ring-blue-500 shadow-sm' : 'hover:border-blue-200'">
                                                 <input type="radio" v-model="form.vnpay_bank_code" value="INTCARD" class="hidden">
-                                                <span class="text-xl mb-1">🌍</span>
-                                                <span class="text-[9px] font-bold text-gray-700 text-center">Quốc tế</span>
+                                                <span class="text-lg mb-0.5">🌍</span>
+                                                <span class="text-[10px] font-bold text-gray-700 text-center">Quốc tế</span>
                                             </label>
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <!-- Cột Tiền Tip -->
+
+                                <!-- Tip -->
                                 <div>
-                                    <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Tip cho tài xế</h4>
-                                    <div class="grid grid-cols-2 gap-3 mb-4">
+                                    <label class="text-xs font-black text-gray-700 uppercase tracking-widest mb-3 flex items-center justify-between">
+                                        <span>Tip cho tài xế</span>
+                                        <span class="text-[10px] text-gray-400 normal-case tracking-normal">100% cho shipper</span>
+                                    </label>
+                                    <div class="grid grid-cols-4 gap-2">
                                         <button
                                             v-for="amount in [0, 10000, 15000, 20000]"
                                             :key="amount"
                                             type="button"
                                             @click="form.shipper_tip = amount"
-                                            :class="
-                                                form.shipper_tip === amount
-                                                    ? 'border-yellow-400 bg-gradient-to-r from-yellow-50 to-yellow-100 shadow-md scale-105 ring-2 ring-yellow-400'
-                                                    : 'border-gray-200 bg-white hover:border-yellow-300 hover:shadow-sm'
-                                            "
-                                            class="border-2 rounded-2xl py-3 text-center transition-all duration-300 transform flex flex-col items-center justify-center gap-1"
+                                            :class="form.shipper_tip === amount ? 'bg-gray-900 text-white shadow-md' : 'bg-white border border-gray-200 text-gray-700 hover:border-gray-300'"
+                                            class="rounded-xl py-3 text-center transition-all font-bold text-sm"
                                         >
-                                            <span v-if="amount > 0" class="text-lg leading-none">💖</span>
-                                            <span v-else class="text-lg leading-none opacity-50">💨</span>
-                                            <span class="font-black text-sm text-gray-800 block">
-                                                {{ amount === 0 ? 'Không' : (amount/1000) + 'k' }}
-                                            </span>
+                                            {{ amount === 0 ? 'Không' : (amount/1000) + 'k' }}
                                         </button>
-                                    </div>
-                                    <div class="p-3 bg-yellow-50 rounded-xl border border-yellow-100">
-                                        <p class="text-[10px] text-yellow-700 font-bold leading-relaxed">
-                                            🌟 100% tiền Tip sẽ được chuyển trực tiếp cho tài xế giao hàng để cổ vũ tinh thần!
-                                        </p>
                                     </div>
                                 </div>
                             </div>
                         </div>
+
                     </div>
 
-                    <div class="lg:col-span-1">
-                        <div
-                            class="bg-gradient-to-br from-gray-900 via-gray-800 to-black rounded-[2.5rem] p-8 text-white sticky top-24 shadow-2xl border border-gray-700 hover:shadow-3xl transition-all duration-300"
-                        >
-                            <h3
-                                class="text-xl font-black mb-8 italic uppercase text-orange-400 bg-gradient-to-r from-orange-400 to-pink-400 bg-clip-text text-transparent"
-                            >
+                    <!-- Right Column: Order Summary (Sticky) -->
+                    <div class="lg:col-span-4 relative">
+                        <div class="sticky top-24 bg-white rounded-3xl p-6 shadow-xl border border-gray-100 flex flex-col max-h-[calc(100vh-8rem)]">
+                            <h3 class="text-xl font-black text-gray-900 mb-6 flex items-center gap-2">
                                 🧾 Tóm tắt đơn hàng
                             </h3>
 
-                            <!-- Voucher Section -->
-                            <div class="mb-8 space-y-3">
-                                <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Khuyến mãi</p>
+                            <!-- Voucher Selector -->
+                            <div class="mb-6">
                                 <button
                                     @click="showVoucherModal = true"
-                                    class="w-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-orange-400 rounded-2xl p-4 flex items-center justify-between transition-all duration-300 group"
+                                    class="w-full bg-orange-50 hover:bg-orange-100 border border-orange-100 rounded-2xl p-4 flex items-center justify-between transition-colors group"
                                 >
                                     <div class="flex items-center gap-3">
-                                        <span class="text-xl group-hover:scale-110 transition-transform">🎟️</span>
+                                        <span class="text-xl">🎟️</span>
                                         <div class="text-left">
-                                            <p class="font-bold text-sm text-white group-hover:text-orange-400 transition-colors">
+                                            <p class="font-bold text-sm text-orange-900 group-hover:text-orange-700 transition-colors">
                                                 {{ selectedVoucher ? 'Đã áp dụng mã' : 'Chọn mã giảm giá' }}
                                             </p>
-                                            <p class="text-[10px] text-gray-400 font-medium">
+                                            <p class="text-xs text-orange-600/70 font-medium">
                                                 {{ selectedVoucher ? selectedVoucher.code : (props.vouchers?.length || 0) + ' mã khả dụng' }}
                                             </p>
                                         </div>
                                     </div>
-                                    <span class="text-orange-400 font-black text-sm group-hover:translate-x-1 transition-transform">❯</span>
+                                    <span class="text-orange-500 font-bold">❯</span>
                                 </button>
                                 
-                                <div
-                                    v-if="selectedVoucher"
-                                    class="rounded-xl border border-green-500/30 bg-green-500/10 p-3 flex items-center justify-between"
-                                >
-                                    <div>
-                                        <p class="text-[10px] font-black text-green-400 uppercase tracking-widest">Đã áp dụng</p>
-                                        <p class="text-xs font-bold text-green-300">
-                                            Giảm <span class="font-black text-green-400">{{ voucherLabel }}</span>
-                                        </p>
+                                <!-- Active Voucher Tag -->
+                                <div v-if="selectedVoucher" class="mt-2 bg-green-50 border border-green-200 rounded-xl p-3 flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-green-500">✅</span>
+                                        <div>
+                                            <p class="text-xs font-bold text-green-700">Giảm {{ voucherLabel }}</p>
+                                            <p class="text-[10px] text-green-600">{{ selectedVoucher.code }}</p>
+                                        </div>
                                     </div>
-                                    <button @click="form.voucher_code = ''" class="w-6 h-6 flex items-center justify-center bg-green-500/20 hover:bg-green-500/40 text-green-300 rounded-full font-bold transition-colors text-xs">
-                                        ✕
-                                    </button>
+                                    <button @click="form.voucher_code = ''" class="w-6 h-6 flex items-center justify-center bg-green-100 hover:bg-green-200 text-green-700 rounded-full text-xs font-bold transition-colors">✕</button>
                                 </div>
                             </div>
 
-                            <!-- Phần tổng tiền hiển thị ở trên cùng -->
-                            <div
-                                class="bg-gradient-to-r from-orange-500/10 to-pink-500/10 rounded-2xl p-6 mb-8 border border-orange-500/20"
-                            >
-                                <div class="text-center">
-                                    <p
-                                        class="text-sm text-gray-300 font-bold uppercase tracking-widest mb-2"
-                                    >
-                                        💰 Tổng tiền
-                                    </p>
-                                    <p
-                                        class="text-4xl font-black text-white mb-2"
-                                    >
-                                        {{ formatPrice(total) }}
-                                    </p>
-                                    <div
-                                        class="text-xs text-gray-400 space-y-1"
-                                    >
-                                        <p>
-                                            Tạm tính:
-                                            {{ formatPrice(subtotal) }}
-                                        </p>
-                                        <p>
-                                            Phí ship:
-                                            {{ formatPrice(shippingFee) }}
-                                        </p>
-                                        <p>
-                                            Phí dịch vụ:
-                                            {{ formatPrice(serviceFee) }}
-                                        </p>
-                                        <p v-if="packagingFee > 0">
-                                            Phí đóng gói:
-                                            {{ formatPrice(packagingFee) }}
-                                        </p>
-                                        <p v-if="form.shipper_tip > 0" class="text-yellow-400">
-                                            Tip tài xế:
-                                            {{ formatPrice(form.shipper_tip) }}
-                                        </p>
-                                        <p
-                                            v-if="voucherDiscount > 0"
-                                            class="text-green-400"
-                                        >
-                                            Giảm: -{{
-                                                formatPrice(voucherDiscount)
-                                            }}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div
-                                class="space-y-6 mb-8 max-h-[300px] overflow-y-auto no-scrollbar"
-                            >
-                                <div
-                                    v-for="(item, index) in localCartItems"
-                                    :key="item.id"
-                                    class="flex items-center gap-4 border-b border-white/10 pb-4 hover:bg-white/5 rounded-lg p-2 transition-all duration-300 group"
-                                >
-                                    <div
-                                        class="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-white/20 shadow-lg group-hover:shadow-xl transition-all duration-300"
-                                    >
-                                        <img
-                                            :src="
-                                                '/storage/' + item.product.image
-                                            "
-                                            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                                        />
+                            <!-- Cart Items (Scrollable) -->
+                            <div class="flex-1 overflow-y-auto no-scrollbar mb-6 pr-1 space-y-4">
+                                <div v-for="(item, index) in localCartItems" :key="item.id" class="flex gap-3 group">
+                                    <div class="w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-gray-100">
+                                        <img :src="'/storage/' + item.product.image" class="w-full h-full object-cover" />
                                     </div>
                                     <div class="flex-1 min-w-0">
-                                        <p
-                                            class="font-bold text-sm line-clamp-1 text-gray-200 group-hover:text-white transition-colors"
-                                        >
-                                            {{ item.product.name }}
-                                        </p>
-                                        <div class="flex items-center gap-3 mt-1.5">
-                                            <div class="flex items-center bg-gray-700/50 rounded-full border border-gray-600">
-                                                <button @click="updateQuantity(index, -1)" class="w-6 h-6 flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-600 rounded-l-full transition-colors font-black">
-                                                    -
-                                                </button>
-                                                <span class="text-[10px] text-white font-black px-2 w-6 text-center">
-                                                    {{ item.quantity }}
-                                                </span>
-                                                <button @click="updateQuantity(index, 1)" class="w-6 h-6 flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-600 rounded-r-full transition-colors font-black">
-                                                    +
-                                                </button>
+                                        <p class="font-bold text-sm text-gray-800 line-clamp-2 leading-tight mb-1">{{ item.product.name }}</p>
+                                        <div class="flex items-center justify-between">
+                                            <p class="font-black text-sm text-orange-600">{{ formatPrice(item.product.price) }}</p>
+                                            <div class="flex items-center bg-gray-100 rounded-lg">
+                                                <button @click="updateQuantity(index, -1)" class="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-gray-900 font-bold text-lg leading-none">-</button>
+                                                <span class="text-xs font-black px-1 min-w-[20px] text-center text-gray-800">{{ item.quantity }}</span>
+                                                <button @click="updateQuantity(index, 1)" class="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-gray-900 font-bold text-sm leading-none">+</button>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="text-right">
-                                        <p
-                                            class="font-black text-sm text-orange-400 bg-orange-900/30 px-2 py-1 rounded-lg inline-block"
-                                        >
-                                            {{
-                                                formatPrice(
-                                                    item.product.price *
-                                                        item.quantity,
-                                                )
-                                            }}
-                                        </p>
-                                        <button @click="removeItem(index)" class="block ml-auto mt-1 text-[10px] text-red-400 hover:text-red-300 underline opacity-0 group-hover:opacity-100 transition-opacity">Xóa</button>
-                                    </div>
                                 </div>
                             </div>
 
+                            <!-- Bill Details (Receipt style) -->
+                            <div class="border-t border-dashed border-gray-200 pt-4 mb-6 space-y-2 shrink-0">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-500">Tạm tính</span>
+                                    <span class="font-bold text-gray-800">{{ formatPrice(subtotal) }}</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-500">Phí giao hàng</span>
+                                    <span class="font-bold text-gray-800">{{ formatPrice(shippingFee) }}</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-500">Phí dịch vụ</span>
+                                    <span class="font-bold text-gray-800">{{ formatPrice(serviceFee) }}</span>
+                                </div>
+                                <div v-if="packagingFee > 0" class="flex justify-between text-sm">
+                                    <span class="text-gray-500">Phí đóng gói</span>
+                                    <span class="font-bold text-gray-800">{{ formatPrice(packagingFee) }}</span>
+                                </div>
+                                <div v-if="form.shipper_tip > 0" class="flex justify-between text-sm">
+                                    <span class="text-gray-500">Tip tài xế</span>
+                                    <span class="font-bold text-gray-800">{{ formatPrice(form.shipper_tip) }}</span>
+                                </div>
+                                <div v-if="voucherDiscount > 0" class="flex justify-between text-sm">
+                                    <span class="text-green-600 font-medium">Khuyến mãi</span>
+                                    <span class="font-bold text-green-600">-{{ formatPrice(voucherDiscount) }}</span>
+                                </div>
+                                <div class="pt-3 border-t border-gray-100 flex justify-between items-end">
+                                    <span class="text-base font-black text-gray-900 uppercase tracking-tight">Tổng cộng</span>
+                                    <span class="text-2xl font-black text-red-600">{{ formatPrice(total) }}</span>
+                                </div>
+                            </div>
+
+                            <!-- Submit Button -->
                             <button
                                 @click="submitOrder"
                                 :disabled="form.processing"
-                                class="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 disabled:from-gray-600 disabled:to-gray-700 text-white font-black py-5 rounded-2xl shadow-xl shadow-orange-500/30 hover:shadow-2xl hover:shadow-orange-500/40 transition-all duration-300 active:scale-95 uppercase tracking-widest text-sm transform hover:-translate-y-1"
+                                class="w-full shrink-0 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 disabled:opacity-50 text-white font-black py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 uppercase tracking-widest text-sm flex items-center justify-center gap-2"
                             >
-                                <span
-                                    v-if="form.processing"
-                                    class="flex items-center justify-center gap-2"
-                                >
-                                    <div
-                                        class="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"
-                                    ></div>
-                                    Đang xử lý...
-                                </span>
-                                <span v-else> 🚀 Đặt hàng ngay 🛵 </span>
+                                <svg v-if="form.processing" class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                <span>{{ form.processing ? 'Đang xử lý...' : 'Đặt hàng ngay' }}</span>
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div
-                v-if="!cartItems || cartItems.length === 0"
-                class="max-w-md mx-auto text-center py-20 bg-gradient-to-br from-white to-gray-50 rounded-[3rem] shadow-2xl border border-gray-200 hover:shadow-3xl transition-all duration-300"
-            >
-                <div class="text-6xl mb-6 animate-bounce">🎉</div>
-                <h2
-                    class="text-2xl font-black text-gray-800 uppercase italic bg-gradient-to-r from-gray-700 to-gray-900 bg-clip-text text-transparent"
-                >
-                    Giỏ hàng trống!
-                </h2>
-                <p class="text-gray-600 mt-2 font-medium">
-                    Đơn hàng của bạn đã được tiếp nhận hoặc giỏ hàng chưa có món
-                    nào.
-                </p>
+            <!-- Empty Cart -->
+            <div v-if="!cartItems || cartItems.length === 0" class="max-w-lg mx-auto text-center py-24">
+                <div class="w-32 h-32 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-gray-100 shadow-inner">
+                    <span class="text-5xl opacity-50">🛒</span>
+                </div>
+                <h2 class="text-2xl font-black text-gray-900 tracking-tight mb-2">Giỏ hàng trống</h2>
+                <p class="text-gray-500 mb-8 font-medium">Có vẻ như bạn chưa chọn món nào. Hãy khám phá thực đơn của chúng tôi nhé!</p>
                 <Link
                     :href="route('home')"
-                    class="mt-8 inline-block bg-gradient-to-r from-orange-500 to-pink-500 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:from-orange-600 hover:to-pink-600 transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105 active:scale-95"
+                    class="inline-flex items-center gap-2 bg-gray-900 text-white px-8 py-4 rounded-2xl font-bold hover:bg-gray-800 transition-colors shadow-lg hover:shadow-xl"
                 >
-                    🏠 Quay về trang chủ
+                    <span>Khám phá món ngon</span>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
                 </Link>
-        </div>
+            </div>
         </div>
     </div>
 
@@ -1110,7 +922,7 @@ onMounted(() => {
         </div>
     </div>
     <!-- Map Modal -->
-    <div v-if="showMapModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-md animate-fade-in">
+    <div v-show="showMapModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-md animate-fade-in">
         <div class="bg-white rounded-[2rem] w-full max-w-2xl shadow-2xl overflow-hidden animate-slide-up flex flex-col h-[80vh] md:h-[600px]">
             <div class="p-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white flex justify-between items-center shrink-0">
                 <h3 class="text-lg font-black tracking-tight uppercase flex items-center gap-2">

@@ -197,6 +197,7 @@ class ShipperController extends Controller
                 'status' => $shipper->status,
                 'current_latitude' => $shipper->current_latitude,
                 'current_longitude' => $shipper->current_longitude,
+                'wallet_balance' => $shipper->user->wallet_balance,
             ]
         ]);
     }
@@ -204,6 +205,9 @@ class ShipperController extends Controller
     public function findNearestShipper($restaurantLat, $restaurantLng, $maxDistance = 2, array $excludeShipperIds = [])
     {
         $shippers = Shipper::whereIn('status', ['available', 'online'])
+            ->whereHas('user', function ($query) {
+                $query->where('wallet_balance', '>=', 0);
+            })
             ->whereNotNull('current_latitude')
             ->whereNotNull('current_longitude');
 
@@ -268,6 +272,12 @@ class ShipperController extends Controller
     public function acceptOrder(Request $request, $orderId)
     {
         $shipper = $this->getShipper();
+        
+        if ($shipper->user->wallet_balance < 0) {
+            return response()->json([
+                'error' => 'Tài khoản của bạn đang âm (' . number_format($shipper->user->wallet_balance, 0, ',', '.') . 'đ). Vui lòng nạp thêm tiền để tiếp tục nhận đơn.'
+            ], 403);
+        }
 
         if (!in_array($shipper->status, ['available', 'online'], true)) {
             return response()->json(['error' => 'Shipper not available'], 400);
@@ -574,6 +584,93 @@ class ShipperController extends Controller
         }
 
         return response()->json(['message' => 'Order completed']);
+    }
+
+    public function reportIncident(Request $request, $orderId)
+    {
+        $request->validate([
+            'reason' => 'required|string|max:500'
+        ]);
+
+        $shipper = $this->getShipper();
+        $order = Order::where('id', $orderId)->where('shipper_id', $shipper->id)->firstOrFail();
+
+        if (!in_array($order->status, ['shipping', 'arrived', 'picked_up'])) {
+            return response()->json(['error' => 'Không thể báo cáo sự cố cho đơn hàng ở trạng thái này.'], 400);
+        }
+
+        $reason = $request->reason;
+        $order->note = ($order->note ? $order->note . "\n" : "") . "[Sự cố Shipper]: " . $reason;
+
+        $oldStatus = $order->status;
+        $restaurantUser = $order->items->first()?->product?->user;
+
+        DB::beginTransaction();
+        try {
+            if (in_array($order->status, ['shipping', 'arrived'])) {
+                // Trước khi lấy hàng: đẩy lại hệ thống tìm Shipper khác
+                $order->update([
+                    'status' => 'confirmed',
+                    'shipper_id' => null,
+                ]);
+
+                // Thử gán shipper khác ngay lập tức
+                $this->assignShipperToOrder($orderId, [$shipper->id]);
+                
+                $message = 'Đã báo sự cố. Đơn hàng đang được tìm tài xế khác.';
+            } else {
+                // Đã lấy hàng (picked_up): Hủy luôn đơn hàng, Admin sẽ xem xét hoàn tiền cho Shipper
+                $order->update([
+                    'status' => 'cancelled',
+                ]);
+
+                // Hoàn tiền cho Khách hàng nếu họ đã thanh toán trước (VNPay/Wallet)
+                if ($order->payment_status === 'paid' && !in_array($order->payment_method, ['cash', 'cod'])) {
+                    $customer = $order->user;
+                    $refundAmount = $order->total;
+                    $balanceBefore = $customer->wallet_balance;
+
+                    $customer->wallet_balance += $refundAmount;
+                    $customer->save();
+
+                    \App\Models\WalletTransaction::create([
+                        'user_id' => $customer->id,
+                        'type' => 'deposit',
+                        'amount' => $refundAmount,
+                        'balance_before' => $balanceBefore,
+                        'balance_after' => $customer->wallet_balance,
+                        'status' => 'completed',
+                        'description' => 'Hoàn tiền vào ví do Shipper gặp sự cố với đơn hàng ' . $order->order_code . '.',
+                    ]);
+
+                    $order->update(['payment_status' => 'refunded']);
+
+                    $customer->notify(new \App\Notifications\SystemNotification(
+                        'Hoàn tiền thành công',
+                        'Đơn hàng ' . $order->order_code . ' đã bị hủy do sự cố giao hàng. Số tiền ' . number_format($refundAmount) . 'đ đã được tự động hoàn vào Ví FoodXpress của bạn để bạn có thể đặt đơn khác.',
+                        'success'
+                    ));
+                }
+                
+                $message = 'Đã báo sự cố và Hủy đơn. Admin sẽ xem xét hoàn tiền cho bạn.';
+            }
+
+            // Giải phóng Shipper
+            $shipper->update(['status' => 'available']);
+
+            // Gửi thông báo
+            $order->user->notify(new \App\Notifications\OrderStatusUpdated($order, $oldStatus, $order->status));
+            if ($restaurantUser) {
+                $restaurantUser->notify(new \App\Notifications\OrderStatusUpdated($order, $oldStatus, $order->status));
+            }
+            event(new \App\Events\OrderStatusUpdated($order));
+
+            DB::commit();
+            return response()->json(['message' => $message]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'System error: ' . $e->getMessage()], 500);
+        }
     }
 
     public function updateLocation(Request $request)

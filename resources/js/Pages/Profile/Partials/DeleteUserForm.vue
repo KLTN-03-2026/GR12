@@ -4,8 +4,9 @@ import InputLabel from "@/Components/InputLabel.vue";
 import Modal from "@/Components/Modal.vue";
 import SecondaryButton from "@/Components/SecondaryButton.vue";
 import TextInput from "@/Components/TextInput.vue";
-import { useForm } from "@inertiajs/vue3";
-import { nextTick, ref } from "vue";
+import { useForm, usePage } from "@inertiajs/vue3";
+import { nextTick, ref, watch } from "vue";
+import { useToast } from "vue-toastification";
 
 const confirmingUserDeletion = ref(false);
 const passwordInput = ref(null);
@@ -13,6 +14,20 @@ const passwordInput = ref(null);
 const form = useForm({
     password: "",
 });
+
+const toast = useToast();
+const page = usePage();
+
+watch(
+    () => page.props.errors,
+    (errors) => {
+        if (errors && errors.error) {
+            toast.error(errors.error);
+            closeModal();
+        }
+    },
+    { deep: true }
+);
 
 const confirmUserDeletion = () => {
     confirmingUserDeletion.value = true;

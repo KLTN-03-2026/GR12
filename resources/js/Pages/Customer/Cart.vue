@@ -6,6 +6,7 @@ import ConfirmDialog from "@/Components/ConfirmDialog.vue";
 
 const props = defineProps({
     cartItems: Array,
+    settings: Object,
 });
 
 defineOptions({ layout: GuestLayout });
@@ -54,8 +55,8 @@ const formatPrice = (p) =>
 
 // Tính tổng tiền tạm tính
 const subtotal = computed(() => props.cartItems.reduce((acc, item) => acc + item.product.price * item.quantity, 0));
-const shippingFee = 15000; // Phí ship cơ bản 15k
-const totalPrice = computed(() => subtotal.value + shippingFee);
+const shippingFee = computed(() => Number(props.settings?.base_shipping_fee) || 15000); // Phí ship cơ bản từ settings
+const totalPrice = computed(() => subtotal.value + shippingFee.value);
 </script>
 
 <template>

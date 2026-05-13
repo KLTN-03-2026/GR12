@@ -22,8 +22,13 @@ class CartController extends Controller
             ->latest()
             ->get();
 
+        $settings = [
+            'base_shipping_fee' => \App\Models\Setting::getValue('base_shipping_fee', 15000),
+        ];
+
         return Inertia::render('Customer/Cart', [
-            'cartItems' => $cartItems
+            'cartItems' => $cartItems,
+            'settings' => $settings,
         ]);
     }
 

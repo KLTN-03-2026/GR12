@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\AdminFinanceController;
+use App\Http\Controllers\Admin\AdminLogController;
 use App\Http\Controllers\Restaurant\ProductController as RestaurantProductController;
 use App\Http\Controllers\Restaurant\ReviewController as RestaurantReviewController;
 use App\Http\Controllers\Customer\RestaurantController as CustomerRestaurantController;
@@ -70,6 +71,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ]);
     })->name('my.notifications');
 
+    Route::get('/wallet', [WalletController::class, 'customerWallet'])->name('customer.wallet');
+
     // --- DÀNH CHO NHÀ HÀNG (RESTAURANT) ---
     // Gom tất cả vào prefix 'restaurant' và name 'restaurant.'
     Route::prefix('restaurant')->name('restaurant.')->group(function () {
@@ -77,11 +80,46 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Dashboard
         Route::get('/dashboard', function () {
             $user = auth()->user();
+
+            // Lấy danh sách đơn hàng hoàn thành hôm nay
+            $todayOrders = \App\Models\Order::whereHas('items.product', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })
+            ->where('status', 'completed')
+            ->whereDate('created_at', \Carbon\Carbon::today())
+            ->get();
+            $todayRevenue = $todayOrders->sum('restaurant_revenue');
+
+            // Lấy số đơn đang xử lý
+            $activeOrdersCount = \App\Models\Order::whereHas('items.product', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })
+            ->whereIn('status', ['pending', 'processing', 'confirmed', 'shipping'])
+            ->count();
+
+            // Tính dữ liệu biểu đồ 7 ngày qua
+            $chartData = [];
+            for ($i = 6; $i >= 0; $i--) {
+                $date = \Carbon\Carbon::today()->subDays($i);
+                $dailyRevenue = \App\Models\Order::whereHas('items.product', function ($q) use ($user) {
+                    $q->where('user_id', $user->id);
+                })
+                ->where('status', 'completed')
+                ->whereDate('created_at', $date)
+                ->sum('restaurant_revenue');
+                
+                $chartData[] = [
+                    'date' => $date->format('d/m'),
+                    'revenue' => $dailyRevenue,
+                ];
+            }
+
             $stats = [
                 'total_products'  => \App\Models\Product::where('user_id', $user->id)->count(),
                 'active_products' => \App\Models\Product::where('user_id', $user->id)->where('is_available', true)->count(),
-                'active_orders'   => 0,
-                'today_revenue'   => '0đ',
+                'active_orders'   => $activeOrdersCount,
+                'today_revenue'   => number_format($todayRevenue, 0, ',', '.') . 'đ',
+                'chart_data'      => $chartData,
             ];
             return Inertia::render('Restaurant/Dashboard', ['stats' => $stats]);
         })->name('dashboard');
@@ -94,6 +132,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Quản lý đánh giá và phản hồi
         Route::get('/reviews', [RestaurantReviewController::class, 'index'])->name('reviews.index');
+        Route::post('/reviews/{review}/reply', [RestaurantReviewController::class, 'reply'])->name('reviews.reply');
+
+        // Quản lý Vouchers của nhà hàng
+        Route::get('/vouchers', [\App\Http\Controllers\Restaurant\VoucherController::class, 'index'])->name('vouchers.index');
+        Route::post('/vouchers', [\App\Http\Controllers\Restaurant\VoucherController::class, 'store'])->name('vouchers.store');
+        Route::delete('/vouchers/{voucher}', [\App\Http\Controllers\Restaurant\VoucherController::class, 'destroy'])->name('vouchers.destroy');
 
         // Quản lý món ăn (CRUD)
         Route::resource('products', RestaurantProductController::class);
@@ -126,6 +170,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/users', 'users')->name('users.index');
             Route::patch('/users/{user}/toggle-block', 'toggleBlockUser')->name('users.toggle-block');
             Route::get('/products-pending', 'pendingProducts')->name('products.pending');
+            Route::get('/products', 'allProducts')->name('products.index');
             Route::post('/users/{user}/approve', 'approve')->name('approve');
             Route::post('/users/{user}/reject', 'reject')->name('reject');
             Route::post('/products/{product}/approve', 'approveProduct')->name('products.approve');
@@ -135,26 +180,39 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::delete('/vouchers/{voucher}', 'destroyVoucher')->name('vouchers.destroy');
             Route::get('/orders', 'orders')->name('orders.index');
             Route::get('/orders/{id}', 'showOrder')->name('orders.show');
-            Route::get('/notifications', 'notificationsIndex')->name('notifications.index');
-            Route::post('/notifications', 'sendNotification')->name('notifications.send');
+            Route::post('/users/{user}/analyze-risk', 'analyzeUserRisk')->name('users.analyze-risk');
+            Route::get('/live-map', 'liveMap')->name('live-map');
+            Route::get('/live-map-data', 'liveMapData')->name('live-map-data');
         });
 
+        // Notifications (Push Center)
+        Route::controller(\App\Http\Controllers\Admin\AdminNotificationController::class)->group(function () {
+            Route::get('/notifications', 'index')->name('notifications.index');
+            Route::post('/notifications', 'store')->name('push-notifications.store');
+        });
+
+        // Logs
+        Route::get('/logs', [AdminLogController::class, 'index'])->name('logs');
         Route::controller(AdminFinanceController::class)->group(function () {
             Route::get('/withdrawals', 'withdrawals')->name('withdrawals.index');
             Route::post('/withdrawals/{transaction}/approve', 'approveWithdrawal')->name('withdrawals.approve');
             Route::post('/withdrawals/{transaction}/reject', 'rejectWithdrawal')->name('withdrawals.reject');
             Route::get('/revenue', 'revenue')->name('revenue');
+            Route::get('/wallets', 'wallets')->name('wallets.index');
+            Route::post('/wallets/{user}/adjust', 'adjustWallet')->name('wallets.adjust');
+        });
+
+        // Settings
+        Route::controller(\App\Http\Controllers\Admin\SettingController::class)->group(function () {
+            Route::get('/settings', 'index')->name('settings.index');
+            Route::post('/settings', 'update')->name('settings.update');
         });
     });
 
     // --- DÀNH CHO SHIPPER ---
     Route::prefix('shipper')->name('shipper.')->middleware(['auth', 'role:shipper'])->group(function () {
         Route::get('/dashboard', function () {
-            $shipper = \App\Models\Shipper::where('user_id', auth()->id())->first();
-            if ($shipper && $shipper->status === 'offline') {
-                return redirect()->route('shipper.notifications');
-            }
-            return Inertia::render('Shipper/MenuPage');
+            return redirect()->route('shipper.tracking');
         })->name('dashboard');
 
         Route::get('/notifications', function () {

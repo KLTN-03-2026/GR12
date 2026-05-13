@@ -70,12 +70,24 @@ import AiChatWidget from "@/Components/AiChatWidget.vue";
                             </div>
                             <span
                                 class="hidden lg:inline font-semibold text-neutral-700 group-hover:text-brand-600 transition-colors"
-                                >Giỏ hàng</span
+                                ></span
                             >
                         </div>
                     </Link>
 
                     <template v-if="$page.props.auth.user">
+                        <!-- VÍ ĐIỆN TỬ KHÁCH HÀNG -->
+                        <Link
+                            v-if="$page.props.auth.user.role === 'customer'"
+                            :href="route('customer.wallet')"
+                            class="relative group px-3 py-2 rounded-xl bg-orange-50 hover:bg-orange-100 transition-all duration-300 flex items-center gap-2 border border-orange-100 shadow-sm"
+                        >
+                            <span class="text-xl group-hover:scale-110 transition-transform duration-300">💳</span>
+                            <span class="font-black text-orange-600 group-hover:text-orange-700 transition-colors">
+                                {{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format($page.props.auth.user.wallet_balance || 0).replace('₫','') }}đ
+                            </span>
+                        </Link>
+
                         <Link
                             :href="route('orders.index')"
                             class="font-semibold text-neutral-600 hover:text-brand-500 hover:scale-105 transition-all duration-300"
@@ -87,7 +99,7 @@ import AiChatWidget from "@/Components/AiChatWidget.vue";
                             :href="route('my.notifications')"
                             class="font-semibold text-neutral-600 hover:text-brand-500 hover:scale-105 transition-all duration-300"
                         >
-                            Thông báo
+                            🔔
                         </Link>
 
                         <div class="h-6 w-[1px] bg-neutral-300"></div>
@@ -120,6 +132,9 @@ import AiChatWidget from "@/Components/AiChatWidget.vue";
                                 <template #content>
                                     <DropdownLink :href="route('profile.edit')">
                                         Hồ sơ cá nhân
+                                    </DropdownLink>
+                                    <DropdownLink :href="route('customer.wallet')">
+                                        Ví FoodXpress
                                     </DropdownLink>
                                     <div
                                         class="border-t border-neutral-200"
@@ -155,7 +170,18 @@ import AiChatWidget from "@/Components/AiChatWidget.vue";
                     </template>
                 </div>
 
-                <div class="md:hidden flex items-center gap-4">
+                <div class="md:hidden flex items-center gap-3">
+                    <Link
+                        v-if="$page.props.auth.user && $page.props.auth.user.role === 'customer'"
+                        :href="route('customer.wallet')"
+                        class="relative px-2 py-1.5 rounded-xl bg-orange-50 transition-all duration-300 flex items-center gap-1 border border-orange-100 shadow-sm"
+                    >
+                        <span class="text-base">💳</span>
+                        <span class="font-black text-orange-600 text-[10px]">
+                            {{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format($page.props.auth.user.wallet_balance || 0).replace('₫','') }}đ
+                        </span>
+                    </Link>
+
                     <Link
                         :href="route('cart.index')"
                         class="relative p-3 rounded-xl hover:bg-brand-50 transition-all duration-300"

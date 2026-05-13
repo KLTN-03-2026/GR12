@@ -157,11 +157,18 @@ class OrderController extends Controller
             ->orderBy('expires_at', 'asc')
             ->get();
 
+        $settings = [
+            'base_shipping_fee' => \App\Models\Setting::getValue('base_shipping_fee', 15000),
+            'base_radius_km' => \App\Models\Setting::getValue('base_radius_km', 2),
+            'extra_shipping_fee_per_km' => \App\Models\Setting::getValue('extra_shipping_fee_per_km', 3000),
+        ];
+
         return Inertia::render('Customer/Checkout', [
             'cartItems' => $cartItems,
             'user' => $user,
             'restaurant' => $restaurant,
             'vouchers' => $vouchers,
+            'settings' => $settings,
         ]);
     }
 
@@ -176,7 +183,7 @@ class OrderController extends Controller
             'address' => 'required|string|min:10',
             'phone' => 'required|numeric|digits_between:10,11',
             'note' => 'nullable|string|max:255',
-            'payment_method' => 'required|in:cod,cash,vnpay',
+            'payment_method' => 'required|in:cod,cash,vnpay,wallet',
             'vnpay_bank_code' => 'nullable|string',
             'voucher_code' => 'nullable|string|exists:vouchers,code',
             'shipper_tip' => 'nullable|numeric|min:0',
@@ -216,6 +223,7 @@ class OrderController extends Controller
         
         // Tính phí ship dựa trên khoảng cách từ quán đến khách hàng
         $restaurant = $cartItems->first()->product->user;
+        $restaurantId = $restaurant->id;
         $customerLat = $request->latitude;
         $customerLng = $request->longitude;
         $restaurantLat = $restaurant->latitude;
@@ -225,11 +233,15 @@ class OrderController extends Controller
 
         if ($customerLat && $customerLng && $restaurantLat && $restaurantLng) {
             $distance = $this->distanceBetweenCoordinates($restaurantLat, $restaurantLng, $customerLat, $customerLng);
-            $baseFee = 15000; // 15k cơ bản
-            $additionalFee = max(0, $distance - 2) * 3000; // 3k/km từ km thứ 3
+            
+            $baseFee = \App\Models\Setting::getValue('base_shipping_fee', 15000);
+            $baseRadiusKm = \App\Models\Setting::getValue('base_radius_km', 2);
+            $extraFeePerKm = \App\Models\Setting::getValue('extra_shipping_fee_per_km', 3000);
+            
+            $additionalFee = max(0, $distance - $baseRadiusKm) * $extraFeePerKm;
             $shippingFee = $baseFee + $additionalFee;
         } else {
-            $shippingFee = 15000; // Fallback nếu không có vị trí
+            $shippingFee = \App\Models\Setting::getValue('base_shipping_fee', 15000); // Fallback nếu không có vị trí
         }
 
         $voucherCode = $request->voucher_code;
@@ -254,6 +266,12 @@ class OrderController extends Controller
                 ])->withInput();
             }
 
+            if ($voucher->restaurant_id && $voucher->restaurant_id !== $restaurantId) {
+                return redirect()->back()->withErrors([
+                    'voucher_code' => 'Mã giảm giá này không áp dụng cho quán ăn bạn đang chọn.',
+                ])->withInput();
+            }
+
             if ($voucher->discount_type === 'percent') {
                 $discountAmount = round($subtotal * ($voucher->discount_value / 100), 2);
             } else {
@@ -267,17 +285,30 @@ class OrderController extends Controller
 
         $total = $subtotal + $shippingFee + $serviceFee + $packagingFee + $shipperTip - $discountAmount;
 
-        // Calculate Revenue Distribution
-        $restaurantCommissionRate = 0.25;
-        $restaurantTaxRate = 0.045;
+        // Tính toán doanh thu
+        $platformCommissionPercent = \App\Models\Setting::getValue('platform_commission', 20);
+        $restaurantCommissionRate = $platformCommissionPercent / 100;
+        $restaurantTaxRate = 0.045; // Fixed tax rate for now or can be added to settings later
         
         $commissionFee = $subtotal * $restaurantCommissionRate;
         $restaurantTaxFee = $subtotal * $restaurantTaxRate;
-        // Quán nhận: Tiền món + Phí đóng gói - Chiết khấu - Thuế
-        $restaurantRevenue = $subtotal + $packagingFee - $commissionFee - $restaurantTaxFee;
         
-        // Admin nhận: Chiết khấu + Thuế (giữ hộ để đóng) + Phí dịch vụ - Giảm giá
-        $adminRevenue = $commissionFee + $restaurantTaxFee + $serviceFee - $discountAmount;
+        // Phân bổ phần giảm giá (Voucher của hệ thống thì sàn chịu, voucher của quán thì quán chịu)
+        $restaurantVoucherDiscount = 0;
+        $adminVoucherDiscount = 0;
+        if ($discountAmount > 0 && isset($voucher)) {
+            if ($voucher->restaurant_id) {
+                $restaurantVoucherDiscount = $discountAmount;
+            } else {
+                $adminVoucherDiscount = $discountAmount;
+            }
+        }
+
+        // Quán nhận: Tiền món + Phí đóng gói - Chiết khấu - Thuế - Giảm giá của quán (nếu có)
+        $restaurantRevenue = $subtotal + $packagingFee - $commissionFee - $restaurantTaxFee - $restaurantVoucherDiscount;
+        
+        // Admin nhận: Chiết khấu + Thuế (giữ hộ) + Phí dịch vụ - Giảm giá của hệ thống
+        $adminRevenue = $commissionFee + $restaurantTaxFee + $serviceFee - $adminVoucherDiscount;
 
         try {
             // 3. Sử dụng Transaction để đảm bảo tính toàn vẹn dữ liệu
@@ -367,6 +398,27 @@ class OrderController extends Controller
             // PHẢI nằm TRONG transaction để đảm bảo nếu có lỗi, cart items vẫn được giữ lại
             CartItem::where('user_id', $user->id)->delete();
 
+            // 4.5. Xử lý thanh toán qua Ví FoodXpress
+            if ($request->payment_method === 'wallet') {
+                if ($user->wallet_balance < $total) {
+                    throw new \Exception('Số dư ví không đủ để thanh toán.');
+                }
+                
+                $balanceBefore = $user->wallet_balance;
+                $user->wallet_balance -= $total;
+                $user->save();
+                
+                \App\Models\WalletTransaction::create([
+                    'user_id' => $user->id,
+                    'type' => 'withdraw',
+                    'amount' => -$total,
+                    'balance_before' => $balanceBefore,
+                    'balance_after' => $user->wallet_balance,
+                    'status' => 'completed',
+                    'description' => 'Thanh toán đơn hàng ' . $order->order_code,
+                ]);
+            }
+
             DB::commit();
 
             // 5. Xử lý thanh toán
@@ -382,8 +434,8 @@ class OrderController extends Controller
                     return redirect()->back()->with('error', 'Lỗi tạo thanh toán VNPay. Vui lòng thử lại.');
                 }
             } else {
-                // 5. Điều hướng về trang chủ và hiện Toast "hàng hiệu"
-                return redirect()->route('home')->with('success', 'Đơn hàng ' . $order->order_code . ' đã được đặt thành công! Chờ shipper nhé 🛵');
+                // 5. Điều hướng về trang chi tiết đơn hàng
+                return redirect()->route('orders.show', $order->id)->with('success', 'Đơn hàng ' . $order->order_code . ' đã được đặt thành công! Chờ shipper nhé 🛵');
             }
 
         } catch (\Exception $e) {
@@ -429,10 +481,33 @@ class OrderController extends Controller
         // Gửi thông báo
         $order->user->notify(new \App\Notifications\OrderStatusUpdated($order, $oldStatus, 'cancelled'));
 
-        // Nếu đã thanh toán, xử lý hoàn tiền (tạm thời log)
-        if ($order->payment_status === 'paid') {
-            \Log::info('Refund needed for order ' . $order->order_code);
-            // Thêm logic hoàn tiền VNPay nếu cần
+        // Nếu đã thanh toán qua VNPay hoặc Ví, tự động hoàn tiền vào Ví FoodXpress
+        if ($order->payment_status === 'paid' && !in_array($order->payment_method, ['cash', 'cod'])) {
+            $user = $order->user;
+            $refundAmount = $order->total;
+            $balanceBefore = $user->wallet_balance;
+
+            $user->wallet_balance += $refundAmount;
+            $user->save();
+
+            \App\Models\WalletTransaction::create([
+                'user_id' => $user->id,
+                'type' => 'deposit',
+                'amount' => $refundAmount,
+                'balance_before' => $balanceBefore,
+                'balance_after' => $user->wallet_balance,
+                'status' => 'completed',
+                'description' => 'Hoàn tiền vào ví do đơn hàng ' . $order->order_code . ' bị hủy.',
+            ]);
+
+            $order->update(['payment_status' => 'refunded']);
+            
+            // Gửi thông báo hoàn tiền
+            $user->notify(new \App\Notifications\SystemNotification(
+                'Hoàn tiền thành công',
+                'Đơn hàng ' . $order->order_code . ' đã bị hủy. Số tiền ' . number_format($refundAmount) . 'đ đã được hoàn vào Ví FoodXpress của bạn.',
+                'success'
+            ));
         }
 
         return response()->json(['message' => 'Đơn hàng đã được hủy.']);

@@ -50,6 +50,14 @@ const menuItems = [
         component: "Restaurant/Orders/History",
     },
     {
+        name: "MÃ GIẢM GIÁ (KHUYẾN MÃI)",
+        href: "restaurant.vouchers.index",
+        icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"></path>
+        </svg>`,
+        component: "Restaurant/Vouchers",
+    },
+    {
         name: "ĐÁNH GIÁ",
         href: "restaurant.reviews.index",
         icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -106,14 +114,78 @@ const getPageTitle = () => {
     return current ? current.name : "FoodXpress";
 };
 
-// Real-time Notification Sound
+// Real-time Notification Sound using Web Audio API (FoodXpress Exclusive Melody)
 const playNotificationSound = () => {
     try {
-        const audio = new Audio('/sounds/notification.mp3'); // We'll assume a generic notification sound or it might fail gracefully
-        audio.play();
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Helper to play a note with a bell-like envelope
+        const playNote = (freq, type, startTime, duration, vol = 0.5) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, startTime);
+            
+            // Envelope (ADSR) for a plucky/bell-like sound
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(vol, startTime + 0.02); // Fast attack
+            gain.gain.exponentialRampToValueAtTime(vol * 0.3, startTime + 0.1); // Decay
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration); // Release
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.start(startTime);
+            osc.stop(startTime + duration);
+        };
+
+        const now = audioCtx.currentTime;
+        
+        // Melody sequence: C5 -> F5 -> A5 -> C6 (Upbeat ascending arpeggio)
+        const notes = [
+            { f: 523.25, t: now },         // C5
+            { f: 698.46, t: now + 0.15 },  // F5
+            { f: 880.00, t: now + 0.30 },  // A5
+            { f: 1046.50, t: now + 0.45 }  // C6
+        ];
+
+        // Play the arpeggio (combining triangle and sine for a richer bell tone)
+        notes.forEach(note => {
+            playNote(note.f, 'triangle', note.t, 0.5, 0.6);
+            playNote(note.f * 2, 'sine', note.t, 0.5, 0.2); // subtle overtone
+        });
+
+        // The final "Chime" chord (F Major chord) played together at the end
+        const finalTime = now + 0.65;
+        playNote(698.46, 'triangle', finalTime, 1.5, 0.5);  // F5
+        playNote(880.00, 'triangle', finalTime, 1.5, 0.4);  // A5
+        playNote(1046.50, 'triangle', finalTime, 1.5, 0.3); // C6
+        playNote(1396.91, 'sine', finalTime, 1.5, 0.2);     // F6 (sparkle)
+
     } catch (e) {
         console.warn("Could not play sound", e);
     }
+};
+
+let alarmInterval = null;
+
+const startAlarm = () => {
+    if (alarmInterval) clearInterval(alarmInterval);
+    const trigger = () => {
+        playNotificationSound();
+        setTimeout(() => {
+            const msg = new SpeechSynthesisUtterance("Bạn có đơn hàng mới từ Phút Ít Rét");
+            msg.lang = 'vi-VN';
+            window.speechSynthesis.speak(msg);
+        }, 1000);
+    };
+    trigger();
+    alarmInterval = setInterval(trigger, 6000);
+};
+
+const stopAlarm = () => {
+    if (alarmInterval) clearInterval(alarmInterval);
+    window.speechSynthesis.cancel();
 };
 
 onMounted(() => {
@@ -121,7 +193,7 @@ onMounted(() => {
         window.Echo.private(`restaurant.${page.props.auth.user.id}`)
             .listen('NewOrderReceived', (e) => {
                 console.log('New order received:', e);
-                playNotificationSound();
+                startAlarm();
                 
                 Swal.fire({
                     title: '🔔 ĐƠN HÀNG MỚI!',
@@ -133,7 +205,11 @@ onMounted(() => {
                     timer: 10000,
                     timerProgressBar: true,
                     customClass: { popup: "rounded-[2rem]" },
+                    willClose: () => {
+                        stopAlarm();
+                    }
                 }).then((result) => {
+                    stopAlarm();
                     if (result.isConfirmed) {
                         window.location.href = route('restaurant.orders.index');
                     }
@@ -141,7 +217,6 @@ onMounted(() => {
                 
                 // Nếu đang ở trang danh sách đơn, có thể tải lại trang
                 if (currentComponent.value === 'Restaurant/Orders/Index') {
-                    // This is simple reload, alternatively we could emit an event to the component
                     // window.location.reload(); 
                 }
             });
@@ -149,6 +224,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+    stopAlarm();
     if (window.Echo && page.props.auth?.user?.id) {
         window.Echo.leave(`restaurant.${page.props.auth.user.id}`);
     }

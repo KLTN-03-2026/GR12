@@ -32,6 +32,9 @@ class AuthenticatedSessionController extends Controller
         $request->authenticate();
         $request->session()->regenerate();
 
+        // Log out from other devices to prevent multiple simultaneous logins
+        Auth::logoutOtherDevices($request->password);
+
         $user = $request->user();
 
         // 1. KIỂM TRA TRẠNG THÁI TÀI KHOẢN
@@ -50,21 +53,21 @@ class AuthenticatedSessionController extends Controller
 
         // 2. ĐIỀU HƯỚNG DỰA TRÊN VAI TRÒ (ROLE)
         if ($user->role === 'admin') {
-            return redirect()->route('admin.dashboard');
+            return redirect()->route('admin.dashboard')->with('success', 'Đăng nhập thành công với quyền Quản trị viên!');
         }
 
         if ($user->role === 'restaurant') {
-            return redirect()->route('restaurant.dashboard');
+            return redirect()->route('restaurant.dashboard')->with('success', 'Đăng nhập thành công với quyền Nhà hàng!');
         }
 
         if ($user->role === 'shipper') {
-            return redirect()->route('shipper.dashboard');
+            return redirect()->route('shipper.dashboard')->with('success', 'Đăng nhập thành công với quyền Tài xế!');
         }
 
         // 3. MẶC ĐỊNH CHO KHÁCH HÀNG (CUSTOMER)
         // QUAN TRỌNG: Sửa từ route('dashboard') thành route('home') 
         // để đưa khách về trang Welcome sau khi đăng nhập thành công.
-        return redirect()->intended(route('home'));
+        return redirect()->intended(route('home'))->with('success', 'Đăng nhập thành công! Chào mừng bạn.');
     }
 
     /**

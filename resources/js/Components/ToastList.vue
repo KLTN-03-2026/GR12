@@ -20,15 +20,30 @@ const add = (message, type = "success") => {
 watch(
     () => page.props.flash,
     (flash) => {
-        if (flash.success) add(flash.success, "success");
-        if (flash.error) add(flash.error, "error");
+        if (flash?.success) add(flash.success, "success");
+        if (flash?.error) add(flash.error, "error");
     },
-    { deep: true },
+    { deep: true, immediate: true }
 );
 
 const remove = (id) => {
     items.value = items.value.filter((item) => item.id !== id);
 };
+
+onMounted(() => {
+    if (page.props.auth && page.props.auth.user) {
+        window.Echo.private(`App.Models.User.${page.props.auth.user.id}`)
+            .notification((notification) => {
+                if (notification.type) {
+                    // SystemNotification có 'title', 'message', 'type'
+                    add(notification.message || notification.title, notification.type === 'error' ? 'error' : 'success');
+                } else if (notification.message) {
+                    // Fallback
+                    add(notification.message, 'success');
+                }
+            });
+    }
+});
 </script>
 
 <template>

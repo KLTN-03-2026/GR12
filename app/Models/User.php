@@ -24,7 +24,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'occupation', 'role', 'status', 'restaurant_name', 
         'address', 'latitude', 'longitude', 'id_card_number', 'license_plate', 
         'avatar', 'bio', 'bank_name', 'bank_account', 'bank_account_name',
-        'opening_time', 'closing_time', 'is_accepting_orders'
+        'opening_time', 'closing_time', 'is_accepting_orders', 'block_reason', 'reject_reason'
     ];
 
     /**
@@ -53,5 +53,26 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         // Một quán ăn (User role restaurant) có nhiều sản phẩm
         return $this->hasMany(Product::class, 'user_id'); 
+    }
+
+    /**
+     * Send the password reset notification.
+     *
+     * @param  string  $token
+     * @return void
+     */
+    public function sendPasswordResetNotification($token)
+    {
+        $this->notify(new \App\Notifications\QueuedResetPassword($token));
+    }
+
+    /**
+     * Send the email verification notification.
+     *
+     * @return void
+     */
+    public function sendEmailVerificationNotification()
+    {
+        $this->notify(new \App\Notifications\QueuedVerifyEmail);
     }
 }

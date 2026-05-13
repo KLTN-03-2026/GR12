@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\WalletTransaction;
 use App\Models\Order;
 use App\Models\User;
+use App\Models\AdminActivityLog;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
@@ -26,8 +27,17 @@ class AdminFinanceController extends Controller
             ->paginate($request->get('pageSize', 10))
             ->appends($request->query());
 
+        // Thống kê nhanh
+        $stats = [
+            'pending_count' => WalletTransaction::where('type', 'withdraw')->where('status', 'pending')->count(),
+            'pending_amount' => abs(WalletTransaction::where('type', 'withdraw')->where('status', 'pending')->sum('amount')),
+            'completed_amount' => abs(WalletTransaction::where('type', 'withdraw')->where('status', 'completed')->sum('amount')),
+            'total_completed' => WalletTransaction::where('type', 'withdraw')->where('status', 'completed')->count(),
+        ];
+
         return Inertia::render('Admin/Withdrawals', [
             'withdrawals' => $withdrawals,
+            'stats' => $stats,
             'filters' => $request->only(['status']),
         ]);
     }
@@ -40,6 +50,8 @@ class AdminFinanceController extends Controller
         }
 
         $transaction->update(['status' => 'completed']);
+
+        AdminActivityLog::log('approve_withdrawal', "Duyệt chuyển tiền: " . number_format(abs($transaction->amount)) . "đ cho {$transaction->user->name}");
 
         // Nếu muốn, có thể gửi mail cho User báo đã chuyển tiền thành công ở đây
 
@@ -77,6 +89,8 @@ class AdminFinanceController extends Controller
                 'status' => 'completed',
                 'description' => 'Hoàn tiền do yêu cầu rút tiền bị từ chối. Lý do: ' . $request->input('reason', 'Không hợp lệ'),
             ]);
+
+            AdminActivityLog::log('reject_withdrawal', "Từ chối rút tiền: " . number_format(abs($transaction->amount)) . "đ của {$transaction->user->name}. Lý do: " . $request->input('reason'));
 
             DB::commit();
             return back()->with('message', 'Đã từ chối yêu cầu và hoàn tiền thành công.');
@@ -137,5 +151,81 @@ class AdminFinanceController extends Controller
             'chartData' => $chartData,
             'recent_orders' => $recentRevenueOrders
         ]);
+    }
+
+    // --- QUẢN LÝ VÍ ĐIỆN TỬ NÂNG CAO ---
+    public function wallets(Request $request)
+    {
+        $query = User::query();
+
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->has('role') && $request->role) {
+            $query->where('role', $request->role);
+        }
+
+        $users = $query->orderBy('wallet_balance', 'desc')
+                       ->paginate($request->get('pageSize', 15))
+                       ->appends($request->query());
+
+        // Tổng hợp thống kê ví
+        $stats = [
+            'total_balance' => User::sum('wallet_balance'),
+            'total_customers' => User::where('role', 'customer')->sum('wallet_balance'),
+            'total_restaurants' => User::where('role', 'restaurant')->sum('wallet_balance'),
+            'total_shippers' => User::where('role', 'shipper')->sum('wallet_balance'),
+        ];
+
+        return Inertia::render('Admin/Wallets', [
+            'users' => $users,
+            'filters' => $request->only(['search', 'role']),
+            'stats' => $stats
+        ]);
+    }
+
+    public function adjustWallet(Request $request, User $user)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|not_in:0',
+            'reason' => 'required|string|max:255',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $amount = (float) $request->amount;
+            $balanceBefore = $user->wallet_balance;
+            
+            // Không cho trừ quá số dư
+            if ($amount < 0 && abs($amount) > $balanceBefore) {
+                return back()->withErrors(['error' => 'Số tiền trừ không được lớn hơn số dư hiện tại.']);
+            }
+
+            $user->wallet_balance += $amount;
+            $user->save();
+
+            // Ghi nhận lịch sử
+            WalletTransaction::create([
+                'user_id' => $user->id,
+                'type' => $amount > 0 ? 'deposit' : 'withdraw', // Admin deposit/withdraw
+                'amount' => $amount,
+                'balance_before' => $balanceBefore,
+                'balance_after' => $user->wallet_balance,
+                'status' => 'completed',
+                'description' => '[Admin Điều Chỉnh] ' . $request->reason,
+            ]);
+
+            DB::commit();
+            return back()->with('message', 'Đã điều chỉnh số dư ví của ' . $user->name . ' thành công.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Lỗi hệ thống: ' . $e->getMessage()]);
+        }
     }
 }

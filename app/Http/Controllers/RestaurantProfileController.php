@@ -30,7 +30,7 @@ class RestaurantProfileController extends Controller
         $user = Auth::user();
 
         $request->validate([
-            'type' => 'required|in:password,avatar,location',
+            'type' => 'required|in:password,avatar,location,banking',
         ]);
 
         $oldValue = null;
@@ -44,11 +44,25 @@ class RestaurantProfileController extends Controller
                 ]);
 
                 if (!Hash::check($request->current_password, $user->password)) {
-                    return back()->withErrors(['current_password' => 'M?t kh?u hi?n t?i kh�ng d�ng']);
+                    return back()->withErrors(['current_password' => 'Mật khẩu hiện tại không đúng']);
                 }
 
-                $newValue = ['password' => Hash::make($request->new_password)];
-                break;
+                $user->update(['password' => Hash::make($request->new_password)]);
+                return back()->with('success', 'Đổi mật khẩu thành công!');
+
+            case 'banking':
+                $request->validate([
+                    'bank_name' => 'required|string|max:255',
+                    'bank_account' => 'required|string|max:255',
+                    'bank_account_name' => 'required|string|max:255',
+                ]);
+
+                $user->update([
+                    'bank_name' => $request->bank_name,
+                    'bank_account' => $request->bank_account,
+                    'bank_account_name' => $request->bank_account_name,
+                ]);
+                return back()->with('success', 'Cập nhật thông tin ngân hàng thành công!');
 
             case 'avatar':
                 $request->validate([
@@ -86,14 +100,16 @@ class RestaurantProfileController extends Controller
                 break;
         }
 
-        ApprovalRequest::create([
-            'user_id' => $user->id,
-            'type' => $request->type,
-            'old_value' => $oldValue,
-            'new_value' => $newValue,
-        ]);
+        if ($request->type === 'avatar' || $request->type === 'location') {
+            ApprovalRequest::create([
+                'user_id' => $user->id,
+                'type' => $request->type,
+                'old_value' => $oldValue,
+                'new_value' => $newValue,
+            ]);
+            return back()->with('success', 'Yêu cầu cập nhật đã được gửi và đang chờ phê duyệt từ admin.');
+        }
 
-        return back()->with('success', 'Y�u c?u c?p nh?t d� du?c g?i v� dang ch? ph� duy?t t? admin.');
+        return back();
     }
 }
-

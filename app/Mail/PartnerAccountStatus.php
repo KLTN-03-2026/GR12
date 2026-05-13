@@ -17,7 +17,7 @@ class PartnerAccountStatus extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct(public $user, public $status) {}
+    public function __construct(public $user, public $status, public $reason = null) {}
 
     public function envelope(): Envelope {
         return new Envelope(

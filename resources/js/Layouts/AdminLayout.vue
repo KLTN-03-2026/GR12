@@ -80,6 +80,17 @@ const isSidebarOpen = ref(false);
                     <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-3">Vận hành</div>
                     <div class="space-y-1">
                         <Link
+                            :href="route('admin.live-map')"
+                            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium"
+                            :class="[
+                                $page.component === 'Admin/LiveMap'
+                                    ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg shadow-orange-500/25'
+                                    : 'hover:bg-white/5 hover:text-white'
+                            ]"
+                        >
+                            <span class="text-xl">🗺️</span> Live Tracking Map
+                        </Link>
+                        <Link
                             :href="route('admin.products.pending')"
                             class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium"
                             :class="[
@@ -89,6 +100,18 @@ const isSidebarOpen = ref(false);
                             ]"
                         >
                             <span class="text-xl">🍔</span> Duyệt món ăn
+                        </Link>
+                        
+                        <Link
+                            :href="route('admin.products.index')"
+                            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium"
+                            :class="[
+                                $page.component === 'Admin/Products/Index'
+                                    ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg shadow-orange-500/25'
+                                    : 'hover:bg-white/5 hover:text-white'
+                            ]"
+                        >
+                            <span class="text-xl">📋</span> Danh sách món ăn
                         </Link>
 
                         <Link
@@ -126,7 +149,7 @@ const isSidebarOpen = ref(false);
                             :href="route('admin.notifications.index')"
                             class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium"
                             :class="[
-                                $page.component === 'Admin/Notifications/Index'
+                                $page.component === 'Admin/PushNotifications'
                                     ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg shadow-orange-500/25'
                                     : 'hover:bg-white/5 hover:text-white'
                             ]"
@@ -147,6 +170,18 @@ const isSidebarOpen = ref(false);
                         </Link>
                         
                         <Link
+                            :href="route('admin.wallets.index')"
+                            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium"
+                            :class="[
+                                $page.component === 'Admin/Wallets'
+                                    ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg shadow-orange-500/25'
+                                    : 'hover:bg-white/5 hover:text-white'
+                            ]"
+                        >
+                            <span class="text-xl">💳</span> Quản lý Ví điện tử
+                        </Link>
+
+                        <Link
                             :href="route('admin.revenue')"
                             class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium"
                             :class="[
@@ -156,6 +191,35 @@ const isSidebarOpen = ref(false);
                             ]"
                         >
                             <span class="text-xl">📈</span> Báo cáo doanh thu
+                        </Link>
+                    </div>
+                </div>
+
+                <!-- Hệ thống -->
+                <div>
+                    <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-3">Hệ thống</div>
+                    <div class="space-y-1">
+                        <Link
+                            :href="route('admin.logs')"
+                            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium"
+                            :class="[
+                                $page.component === 'Admin/AuditLogs'
+                                    ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg shadow-orange-500/25'
+                                    : 'hover:bg-white/5 hover:text-white'
+                            ]"
+                        >
+                            <span class="text-xl">📜</span> Nhật ký Hệ thống
+                        </Link>
+                        <Link
+                            :href="route('admin.settings.index')"
+                            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium"
+                            :class="[
+                                $page.component === 'Admin/Settings'
+                                    ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg shadow-orange-500/25'
+                                    : 'hover:bg-white/5 hover:text-white'
+                            ]"
+                        >
+                            <span class="text-xl">⚙️</span> Cấu hình Hệ thống
                         </Link>
                     </div>
                 </div>

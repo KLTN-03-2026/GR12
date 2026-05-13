@@ -33,4 +33,26 @@ class ReviewController extends Controller
             'averageRating' => round($averageRating ?: 0, 1),
         ]);
     }
+
+    /**
+     * Chủ nhà hàng trả lời đánh giá
+     */
+    public function reply(Request $request, Review $review)
+    {
+        $request->validate([
+            'restaurant_reply' => 'required|string|max:1000',
+        ]);
+
+        // Đảm bảo review thuộc về sản phẩm của nhà hàng này
+        $restaurantId = Auth::id();
+        if ($review->product->user_id !== $restaurantId) {
+            abort(403, 'Bạn không có quyền phản hồi đánh giá này.');
+        }
+
+        $review->update([
+            'restaurant_reply' => $request->restaurant_reply,
+        ]);
+
+        return back()->with('success', 'Đã phản hồi đánh giá.');
+    }
 }

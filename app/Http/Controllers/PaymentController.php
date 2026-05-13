@@ -105,13 +105,13 @@ class PaymentController extends Controller
             $order = Order::where('order_code', $orderId)->first();
             if ($request->vnp_ResponseCode == '00') {
                 $order->update(['payment_status' => 'paid']);
-                return redirect()->route('home')->with('success', 'Thanh toán thành công!');
+                return redirect()->route('orders.show', $order->id)->with('success', 'Thanh toán thành công!');
             } else {
                 $order->update(['payment_status' => 'failed']);
-                return redirect()->route('home')->with('error', 'Thanh toán thất bại!');
+                return redirect()->route('orders.show', $order->id)->with('error', 'Thanh toán thất bại!');
             }
         } else {
-            return redirect()->route('home')->with('error', 'Chữ ký không hợp lệ!');
+            return redirect()->route('orders.index')->with('error', 'Chữ ký không hợp lệ!');
         }
     }
 
@@ -188,7 +188,16 @@ class PaymentController extends Controller
         // Better yet, just redirect to a generic wallet page or their respective wallet page.
         // Let's assume the user is still logged in.
         $user = \Illuminate\Support\Facades\Auth::user();
-        $redirectRoute = $user && $user->role === 'shipper' ? 'shipper.wallet' : 'restaurant.wallet';
+        $redirectRoute = 'home';
+        if ($user) {
+            if ($user->role === 'shipper') {
+                $redirectRoute = 'shipper.wallet';
+            } elseif ($user->role === 'restaurant') {
+                $redirectRoute = 'restaurant.wallet';
+            } else {
+                $redirectRoute = 'customer.wallet';
+            }
+        }
 
         if ($secureHash == $request->vnp_SecureHash) {
             if ($request->vnp_ResponseCode == '00') {

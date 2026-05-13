@@ -10,6 +10,7 @@ class Voucher extends Model
     protected $fillable = [
         'code',
         'uuid',
+        'restaurant_id',
         'discount_type',
         'discount_value',
         'expires_at',
@@ -17,6 +18,11 @@ class Voucher extends Model
         'used_count',
         'minimum_product_price',
     ];
+
+    public function restaurant()
+    {
+        return $this->belongsTo(User::class, 'restaurant_id');
+    }
 
     protected $casts = [
         'discount_value' => 'float',

@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
+            \Illuminate\Session\Middleware\AuthenticateSession::class,
         ]);
 
         // Enable Sanctum's stateful API middleware so /api routes can authenticate

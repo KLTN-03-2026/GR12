@@ -57,10 +57,13 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
+        try {
+            $user->delete();
+        } catch (\Illuminate\Database\QueryException $e) {
+            return Redirect::route('profile.edit')->withErrors(['error' => 'Không thể xóa tài khoản này vì đang có dữ liệu giao dịch hoặc lịch sử hoạt động liên quan. Vui lòng liên hệ Admin để được hỗ trợ khóa tài khoản.']);
+        }
+
         Auth::logout();
-
-        $user->delete();
-
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

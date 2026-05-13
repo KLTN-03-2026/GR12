@@ -14,6 +14,9 @@ Broadcast::channel('order.{orderId}', function ($user, $orderId) {
     $order = \App\Models\Order::find($orderId);
     if (!$order) return false;
     
+    // Admin có quyền theo dõi mọi đơn hàng trên Live Map
+    if ($user->role === 'admin') return true;
+    
     // Khách hàng của đơn hàng
     if ($user->id === $order->user_id) return true;
     
