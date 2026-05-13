@@ -19,7 +19,7 @@ class HomeController extends Controller
             if ($user->status !== 'active') return redirect()->route('wait.approval');
             if ($user->role === 'admin') return redirect()->route('admin.dashboard');
             if ($user->role === 'restaurant') return redirect()->route('restaurant.dashboard');
-            if ($user->role === 'shipper') return redirect()->route('shipper.dashboard');
+            if ($user->role === 'shipper') return redirect()->route('shipper.tracking');
         }
 
         $search = $request->input('search');

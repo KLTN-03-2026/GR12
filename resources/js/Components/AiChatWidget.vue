@@ -109,25 +109,59 @@ const sendMessage = async () => {
         });
 
         if (response.data.success) {
+            const aiMessageIndex = messages.value.length;
             messages.value.push({ 
                 role: 'ai', 
-                content: response.data.reply,
+                content: '',
                 widget: response.data.widget_data
             });
             
+            // Xóa trạng thái loading ngay khi nhận được data để bắt đầu hiệu ứng gõ
+            isLoading.value = false;
+            
             // Nếu AI cập nhật giỏ hàng, reload page để component Navbar tự render lại
             if (response.data.cart_updated) {
-                router.reload({ preserveScroll: true });
                 showToast('Giỏ hàng đã được cập nhật! 🛒');
+                setTimeout(() => {
+                    router.reload({ preserveScroll: true });
+                }, 1500);
             }
+
+            // Chạy hiệu ứng gõ phím
+            await typeMessage(aiMessageIndex, response.data.reply);
         }
     } catch (error) {
         console.error("Chatbot Error:", error);
         messages.value.push({ role: 'ai', content: error.response?.data?.message || 'Xin lỗi, hệ thống đang bận. Vui lòng thử lại sau.' });
     } finally {
-        isLoading.value = false;
+        // isLoading.value = false; // Đã set ở trên để ẩn animation 3 dấu chấm
         scrollToBottom();
     }
+};
+
+// Hiệu ứng gõ phím (Simulated Streaming)
+const typeMessage = (index, fullText) => {
+    return new Promise((resolve) => {
+        let i = 0;
+        // Tốc độ: gõ 2-3 ký tự mỗi 15ms để đảm bảo mượt mà nhưng vẫn đủ nhanh
+        const chunkSize = 2; 
+        
+        const interval = setInterval(() => {
+            if (i < fullText.length) {
+                // Thêm ký tự vào nội dung
+                messages.value[index].content += fullText.slice(i, i + chunkSize);
+                i += chunkSize;
+                
+                // Cuộn xuống liên tục khi đang gõ
+                if (chatContainer.value) {
+                    chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
+                }
+            } else {
+                clearInterval(interval);
+                resolve();
+            }
+        }, 15);
+    });
 };
 
 // Web Speech API cho tính năng Giong Nói

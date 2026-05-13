@@ -3,19 +3,22 @@ import { Link } from "@inertiajs/vue3";
 import ApplicationLogo from "@/Components/ApplicationLogo.vue";
 import Dropdown from "@/Components/Dropdown.vue";
 import DropdownLink from "@/Components/DropdownLink.vue";
-import ToastList from "@/Components/ToastList.vue"; // 1. Import component Toast
+import ToastList from "@/Components/ToastList.vue";
 import UserAvatar from "@/Components/UserAvatar.vue";
 import AiChatWidget from "@/Components/AiChatWidget.vue";
+import { useTheme } from "@/Composables/useTheme";
+
+const { isDark, toggleTheme } = useTheme();
 </script>
 
 <template>
     <div
-        class="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 text-neutral-900 flex flex-col"
+        class="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-slate-900 dark:to-slate-950 text-neutral-900 dark:text-slate-100 flex flex-col transition-colors duration-300"
     >
         <ToastList />
 
         <nav
-            class="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-neutral-200/50 shadow-soft"
+            class="sticky top-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-neutral-200/50 dark:border-slate-800 shadow-soft transition-colors duration-300"
         >
             <div
                 class="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center"
@@ -39,8 +42,8 @@ import AiChatWidget from "@/Components/AiChatWidget.vue";
                         :href="route('home')"
                         :class="
                             route().current('home')
-                                ? 'text-brand-600 font-bold'
-                                : 'text-neutral-600 hover:text-brand-500'
+                                ? 'text-brand-600 dark:text-brand-400 font-bold'
+                                : 'text-neutral-600 dark:text-slate-300 hover:text-brand-500 dark:hover:text-brand-400'
                         "
                         class="font-semibold hover:scale-105 transition-all duration-300 relative"
                     >
@@ -97,12 +100,20 @@ import AiChatWidget from "@/Components/AiChatWidget.vue";
 
                         <Link
                             :href="route('my.notifications')"
-                            class="font-semibold text-neutral-600 hover:text-brand-500 hover:scale-105 transition-all duration-300"
+                            class="font-semibold text-neutral-600 dark:text-slate-300 hover:text-brand-500 dark:hover:text-brand-400 hover:scale-105 transition-all duration-300"
                         >
                             🔔
                         </Link>
 
-                        <div class="h-6 w-[1px] bg-neutral-300"></div>
+                        <button
+                            @click="toggleTheme"
+                            class="font-semibold text-neutral-600 dark:text-slate-300 hover:text-brand-500 dark:hover:text-brand-400 hover:scale-105 transition-all duration-300"
+                            title="Giao diện Tối/Sáng"
+                        >
+                            {{ isDark ? '☀️' : '🌙' }}
+                        </button>
+
+                        <div class="h-6 w-[1px] bg-neutral-300 dark:bg-slate-700"></div>
 
                         <div class="relative">
                             <Dropdown align="right" width="48">
@@ -154,9 +165,16 @@ import AiChatWidget from "@/Components/AiChatWidget.vue";
 
                     <template v-else>
                         <div class="flex items-center gap-4">
+                            <button
+                                @click="toggleTheme"
+                                class="font-semibold text-neutral-600 dark:text-slate-300 hover:text-brand-500 dark:hover:text-brand-400 px-2 py-2 rounded-xl transition-all duration-300"
+                                title="Giao diện Tối/Sáng"
+                            >
+                                {{ isDark ? '☀️' : '🌙' }}
+                            </button>
                             <Link
                                 :href="route('login')"
-                                class="font-semibold text-neutral-600 hover:text-brand-500 px-4 py-2 rounded-xl hover:bg-brand-50 transition-all duration-300"
+                                class="font-semibold text-neutral-600 dark:text-slate-300 hover:text-brand-500 dark:hover:text-brand-400 px-4 py-2 rounded-xl hover:bg-brand-50 dark:hover:bg-slate-800 transition-all duration-300"
                             >
                                 Đăng nhập
                             </Link>
@@ -203,7 +221,7 @@ import AiChatWidget from "@/Components/AiChatWidget.vue";
         </main>
 
         <footer
-            class="bg-white border-t border-neutral-200/50 py-12 mt-auto shadow-soft"
+            class="bg-white dark:bg-slate-900 border-t border-neutral-200/50 dark:border-slate-800 py-12 mt-auto shadow-soft transition-colors duration-300"
         >
             <div class="max-w-7xl mx-auto px-6">
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
@@ -226,10 +244,10 @@ import AiChatWidget from "@/Components/AiChatWidget.vue";
                         </p>
                     </div>
                     <div>
-                        <h4 class="font-bold text-neutral-800 mb-4">
+                        <h4 class="font-bold text-neutral-800 dark:text-slate-100 mb-4">
                             Khám phá
                         </h4>
-                        <ul class="space-y-2 text-sm text-neutral-600">
+                        <ul class="space-y-2 text-sm text-neutral-600 dark:text-slate-400">
                             <li>
                                 <Link
                                     href="/"
@@ -254,8 +272,8 @@ import AiChatWidget from "@/Components/AiChatWidget.vue";
                         </ul>
                     </div>
                     <div>
-                        <h4 class="font-bold text-neutral-800 mb-4">Hỗ trợ</h4>
-                        <ul class="space-y-2 text-sm text-neutral-600">
+                        <h4 class="font-bold text-neutral-800 dark:text-slate-100 mb-4">Hỗ trợ</h4>
+                        <ul class="space-y-2 text-sm text-neutral-600 dark:text-slate-400">
                             <li>
                                 <a
                                     href="#"
@@ -280,7 +298,7 @@ import AiChatWidget from "@/Components/AiChatWidget.vue";
                         </ul>
                     </div>
                     <div>
-                        <h4 class="font-bold text-neutral-800 mb-4">
+                        <h4 class="font-bold text-neutral-800 dark:text-slate-100 mb-4">
                             Theo dõi
                         </h4>
                         <div class="flex gap-4">

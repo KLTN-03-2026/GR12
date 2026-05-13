@@ -4,6 +4,9 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
+        <meta name="theme-color" content="#f97316">
+        <link rel="manifest" href="/manifest.json">
+        <link rel="apple-touch-icon" href="/icon.svg">
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
@@ -19,5 +22,19 @@
     </head>
     <body class="font-sans antialiased">
         @inertia
+        
+        <script>
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('/sw.js')
+                        .then(registration => {
+                            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                        })
+                        .catch(err => {
+                            console.log('ServiceWorker registration failed: ', err);
+                        });
+                });
+            }
+        </script>
     </body>
 </html>

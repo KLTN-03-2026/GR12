@@ -61,7 +61,7 @@ class AuthenticatedSessionController extends Controller
         }
 
         if ($user->role === 'shipper') {
-            return redirect()->route('shipper.dashboard')->with('success', 'Đăng nhập thành công với quyền Tài xế!');
+            return redirect()->route('shipper.tracking')->with('success', 'Đăng nhập thành công với quyền Tài xế!');
         }
 
         // 3. MẶC ĐỊNH CHO KHÁCH HÀNG (CUSTOMER)

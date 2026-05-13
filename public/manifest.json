@@ -1,0 +1,18 @@
+{
+    "name": "FoodXpress",
+    "short_name": "FoodXpress",
+    "description": "Nền tảng đặt đồ ăn trực tuyến hàng đầu Đà Nẵng",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#f97316",
+    "icons": [
+        {
+            "src": "/icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ],
+    "orientation": "portrait-primary"
+}

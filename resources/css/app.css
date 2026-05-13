@@ -14,8 +14,7 @@
     }
 
     body {
-        @apply antialiased;
-        background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+        @apply antialiased bg-neutral-50 text-neutral-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300;
     }
 
     /* Custom scrollbar */

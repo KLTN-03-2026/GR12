@@ -212,7 +212,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // --- DÀNH CHO SHIPPER ---
     Route::prefix('shipper')->name('shipper.')->middleware(['auth', 'role:shipper'])->group(function () {
         Route::get('/dashboard', function () {
-            return redirect()->route('shipper.tracking');
+            return Inertia::render('Shipper/Dashboard');
         })->name('dashboard');
 
         Route::get('/notifications', function () {

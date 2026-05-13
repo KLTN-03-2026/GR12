@@ -339,7 +339,7 @@ const handleAddToCart = (data) => {
     <div class="relative -mt-24 px-4 md:px-6 z-20">
         <div class="mx-auto max-w-[1400px]">
             <div
-                class="rounded-[3rem] border border-white bg-white/80 backdrop-blur-xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] hover:shadow-[0_30px_70px_-15px_rgba(249,115,22,0.15)] transition-all duration-500 p-8 md:p-10 relative overflow-hidden"
+                class="rounded-[3rem] border border-white dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] hover:shadow-[0_30px_70px_-15px_rgba(249,115,22,0.15)] transition-all duration-500 p-8 md:p-10 relative overflow-hidden"
             >
                 <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-orange-400/20 to-red-400/20 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
                 <div class="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-blue-400/10 to-transparent rounded-full blur-3xl -ml-32 -mb-32 pointer-events-none"></div>
@@ -355,7 +355,7 @@ const handleAddToCart = (data) => {
                             Tìm món nhanh
                         </p>
                         <h2
-                            class="text-3xl md:text-4xl font-black text-slate-900 tracking-tight"
+                            class="text-3xl md:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight"
                         >
                             Hương vị trong tầm tay
                         </h2>
@@ -399,7 +399,7 @@ const handleAddToCart = (data) => {
                             v-model="search"
                             type="text"
                             placeholder="Bạn muốn ăn gì hôm nay?"
-                            class="w-full h-16 rounded-[2rem] border-2 border-slate-100 bg-white text-slate-900 pl-14 pr-6 shadow-sm focus:border-orange-400 focus:ring-0 transition-all font-medium text-lg placeholder:text-slate-400"
+                            class="w-full h-16 rounded-[2rem] border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 pl-14 pr-6 shadow-sm focus:border-orange-400 focus:ring-0 transition-all font-medium text-lg placeholder:text-slate-400 dark:placeholder:text-slate-500"
                         />
                     </div>
                     <div class="relative">
@@ -460,7 +460,7 @@ const handleAddToCart = (data) => {
     <!-- MAP SECTION -->
     <section v-if="props.auth.user" class="mb-16 px-2">
         <div class="flex items-center justify-between mb-8">
-            <h2 class="text-3xl font-black text-gray-800 tracking-tighter italic uppercase flex items-center gap-3">
+            <h2 class="text-3xl font-black text-gray-800 dark:text-slate-100 tracking-tighter italic uppercase flex items-center gap-3">
                 <div class="w-2 h-8 bg-orange-500 rounded-full"></div>
                 Quán ăn quanh bạn
             </h2>
@@ -481,7 +481,7 @@ const handleAddToCart = (data) => {
     </section>
 
     <section v-else class="mb-16 px-2">
-        <div class="bg-gradient-to-br from-orange-50 to-red-50 rounded-[3.5rem] p-8 md:p-12 text-center border-4 border-dashed border-orange-200 shadow-xl">
+        <div class="bg-gradient-to-br from-orange-50 to-red-50 dark:from-slate-900 dark:to-slate-800 rounded-[3.5rem] p-8 md:p-12 text-center border-4 border-dashed border-orange-200 dark:border-slate-700 shadow-xl transition-colors duration-300">
             <div class="mb-6"><span class="text-6xl">🔑</span></div>
             <p class="text-orange-900 font-black italic text-xl md:text-2xl mb-4">Đăng nhập để khám phá các quán ăn quanh bạn!</p>
             <p class="text-orange-600/70 text-sm md:text-base font-bold uppercase tracking-widest mb-8">Trải nghiệm tính năng định vị thời gian thực của FoodXpress</p>

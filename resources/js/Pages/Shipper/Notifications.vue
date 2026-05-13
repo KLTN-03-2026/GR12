@@ -1,43 +1,6 @@
 <template>
     <ShipperLayout>
         <template #default>
-            <!-- Profile Section -->
-            <section
-                class="mb-6 rounded-[2rem] bg-gradient-to-br from-slate-900 to-slate-800 p-6 text-white shadow-[0_10px_30px_-10px_rgba(15,23,42,0.6)] relative overflow-hidden ring-1 ring-white/10"
-            >
-                <div class="absolute -right-10 -top-10 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
-                <div class="absolute -left-10 -bottom-10 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none"></div>
-                
-                <div class="flex items-center gap-5 relative z-10">
-                    <div
-                        class="h-20 w-20 shrink-0 overflow-hidden rounded-full ring-4 ring-white/10 bg-slate-800 shadow-xl"
-                    >
-                        <img
-                            v-if="avatarUrl"
-                            :src="avatarUrl"
-                            alt="Avatar"
-                            class="h-full w-full object-cover"
-                        />
-                        <div
-                            v-else
-                            class="flex h-full w-full items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 text-2xl font-black text-white"
-                        >
-                            {{ initials }}
-                        </div>
-                    </div>
-                    <div>
-                        <h1 class="text-2xl font-black tracking-tight text-white line-clamp-1">
-                            {{ fullName }}
-                        </h1>
-                        <div class="mt-1 flex items-center gap-2">
-                            <span class="px-2 py-0.5 rounded-md bg-indigo-500/20 text-[10px] font-bold uppercase tracking-widest text-indigo-300 ring-1 ring-indigo-500/50">
-                                Đối tác
-                            </span>
-                            <span class="text-xs text-slate-400">Shipper Pro</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
 
             <!-- Notifications Section -->
             <section class="space-y-6">
@@ -142,8 +105,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
-import { Link, usePage } from "@inertiajs/vue3";
+import { onMounted } from "vue";
 import ShipperLayout from "@/Layouts/ShipperLayout.vue";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -156,24 +118,6 @@ const props = defineProps({
     notifications: Array
 });
 
-const page = usePage();
-
-const fullName = computed(() => page.props.auth?.user?.name || "Shipper");
-const avatarUrl = computed(() => {
-    const user = page.props.auth?.user;
-    return user?.profile_photo_path
-        ? `/storage/${user.profile_photo_path}`
-        : "";
-});
-
-const initials = computed(() =>
-    fullName.value
-        .split(" ")
-        .map((word) => word[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase(),
-);
 
 onMounted(() => {
     // Request location permission when component mounts

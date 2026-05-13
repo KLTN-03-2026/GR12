@@ -30,7 +30,7 @@ const handleLogout = () => {
 <template>
     <div class="min-h-screen bg-slate-50 md:bg-slate-100 md:py-6 flex justify-center font-sans">
         <!-- Main Mobile Container -->
-        <div class="w-full md:max-w-md bg-slate-50 md:bg-white md:rounded-[42px] md:shadow-[0_30px_70px_-20px_rgba(15,23,42,0.25)] md:border border-slate-200 relative flex flex-col overflow-hidden min-h-[100dvh] md:min-h-[850px]">
+        <div class="w-full md:max-w-md bg-slate-50 md:bg-white md:rounded-[42px] md:shadow-[0_30px_70px_-20px_rgba(15,23,42,0.25)] md:border border-slate-200 relative flex flex-col overflow-hidden h-[100dvh] md:h-[850px]">
             
             <div class="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-cyan-400 via-sky-500 to-indigo-500 z-50"></div>
 
@@ -98,21 +98,21 @@ const handleLogout = () => {
             <footer class="absolute bottom-0 inset-x-0 z-40 bg-white/80 backdrop-blur-xl border-t border-slate-200/50 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
                 <nav class="flex justify-around items-center px-2 py-2">
                     <Link
-                        href="/shipper/dashboard"
-                        :class="[page.url.startsWith('/shipper/dashboard') ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600', 'flex flex-col items-center flex-1 py-2 transition-colors relative']"
+                        href="/shipper/tracking"
+                        :class="[page.url.startsWith('/shipper/tracking') ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600', 'flex flex-col items-center flex-1 py-2 transition-colors relative']"
                     >
-                        <div v-if="page.url.startsWith('/shipper/dashboard')" class="absolute top-0 w-8 h-1 bg-indigo-600 rounded-b-full shadow-[0_2px_10px_rgba(79,70,229,0.5)]"></div>
+                        <div v-if="page.url.startsWith('/shipper/tracking')" class="absolute top-0 w-8 h-1 bg-indigo-600 rounded-b-full shadow-[0_2px_10px_rgba(79,70,229,0.5)]"></div>
                         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="mb-1"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                         <span class="text-[10px] font-bold tracking-wide mt-0.5">Trang chủ</span>
                     </Link>
                     
                     <Link
-                        href="/shipper/tracking"
-                        :class="[page.url.startsWith('/shipper/tracking') ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600', 'flex flex-col items-center flex-1 py-2 transition-colors relative']"
+                        href="/shipper/dashboard"
+                        :class="[page.url.startsWith('/shipper/dashboard') ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600', 'flex flex-col items-center flex-1 py-2 transition-colors relative']"
                     >
-                        <div v-if="page.url.startsWith('/shipper/tracking')" class="absolute top-0 w-8 h-1 bg-indigo-600 rounded-b-full shadow-[0_2px_10px_rgba(79,70,229,0.5)]"></div>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="mb-1"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
-                        <span class="text-[10px] font-bold tracking-wide mt-0.5">Bản đồ</span>
+                        <div v-if="page.url.startsWith('/shipper/dashboard')" class="absolute top-0 w-8 h-1 bg-indigo-600 rounded-b-full shadow-[0_2px_10px_rgba(79,70,229,0.5)]"></div>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="mb-1"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                        <span class="text-[10px] font-bold tracking-wide mt-0.5">Tiện ích</span>
                     </Link>
 
                     <Link
